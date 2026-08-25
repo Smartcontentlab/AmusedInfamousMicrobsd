@@ -3,6 +3,9 @@ import { Router, type IRouter } from "express";
 import {
   AdvanceArenaBody,
   AdvanceArenaResponse,
+  AttachAgentCapabilityBody,
+  AttachAgentCapabilityParams,
+  AttachAgentCapabilityResponse,
   CreateAgentBody,
   CreateAgentResponse,
   CreateProjectBody,
@@ -11,15 +14,22 @@ import {
   CreateSkillResponse,
   CreateTaskBody,
   CreateTaskResponse,
+  DetachAgentCapabilityParams,
   GetArenaResponse,
   GetDashboardResponse,
+  ListAgentCapabilitiesParams,
+  ListAgentCapabilitiesResponse,
   ListAgentsResponse,
+  ListApprovalsResponse,
   ListProjectsResponse,
   ListSkillsResponse,
   ListTasksResponse,
   UpdateAgentBody,
   UpdateAgentParams,
   UpdateAgentResponse,
+  UpdateApprovalBody,
+  UpdateApprovalParams,
+  UpdateApprovalResponse,
   UpdateProjectBody,
   UpdateProjectParams,
   UpdateProjectResponse,
@@ -28,7 +38,9 @@ import {
   UpdateTaskResponse,
 } from "@workspace/api-zod";
 import {
+  agentSkillsTable,
   agentsTable,
+  approvalsTable,
   arenaTable,
   db,
   projectsTable,
@@ -39,6 +51,7 @@ import {
 const router: IRouter = Router();
 
 let seedPromise: Promise<void> | undefined;
+let featureSeedPromise: Promise<void> | undefined;
 
 async function ensureSeeded(): Promise<void> {
   if (!seedPromise) {
@@ -82,32 +95,53 @@ async function ensureSeeded(): Promise<void> {
           {
             name: "NOVA",
             role: "Lead orchestration",
+            provider: "OpenClaw",
             status: "working",
             projectId: lumen.id,
             skillCount: 7,
             currentTask: "Ship the invite flow",
+            room: "Launch Lab",
+            computerStatus: "deploying",
+            businessIdea: "A referral engine for creator communities",
+            phase: "first_100",
+            nextMove: "Publish the first invite landing page",
             arenaScore: 82,
             arenaIncomeCents: 42000,
+            scaleRevenueCents: 8400,
           },
           {
             name: "MICA",
             role: "Revenue systems",
+            provider: "Hermes",
             status: "reviewing",
             projectId: kite.id,
             skillCount: 5,
             currentTask: "Audit creator payouts",
+            room: "Revenue Suite",
+            computerStatus: "researching",
+            businessIdea: "Automated payout audits for independent creators",
+            phase: "first_100",
+            nextMove: "Ask for approval to contact five design partners",
             arenaScore: 74,
             arenaIncomeCents: 31000,
+            scaleRevenueCents: 5200,
           },
           {
             name: "ORBIT",
             role: "Infrastructure",
+            provider: "OpenClaw",
             status: "working",
             projectId: relay.id,
             skillCount: 6,
             currentTask: "Release webhook retries",
+            room: "Signal Den",
+            computerStatus: "building",
+            businessIdea: "Webhook reliability reports for small SaaS teams",
+            phase: "idea",
+            nextMove: "Ship a clickable demo before the next round",
             arenaScore: 61,
             arenaIncomeCents: 18000,
+            scaleRevenueCents: 1800,
           },
         ])
         .returning();
@@ -149,12 +183,126 @@ async function ensureSeeded(): Promise<void> {
         totalRounds: 5,
         status: "ready",
         secondsRemaining: 240,
-        winConditionCents: 50000,
+        winConditionCents: 10000,
       });
     })();
   }
 
   await seedPromise;
+  await ensureFeatureRecords();
+}
+
+async function ensureFeatureRecords(): Promise<void> {
+  if (!featureSeedPromise) {
+    featureSeedPromise = (async () => {
+      const [agents, skills, projects, capabilities, approvals] = await Promise.all([
+        db.select().from(agentsTable).orderBy(asc(agentsTable.id)),
+        db.select().from(skillsTable).orderBy(asc(skillsTable.id)),
+        db.select().from(projectsTable).orderBy(asc(projectsTable.id)),
+        db.select({ id: agentSkillsTable.id }).from(agentSkillsTable).limit(1),
+        db.select({ id: approvalsTable.id }).from(approvalsTable).limit(1),
+      ]);
+
+      const worldDefaults = {
+        NOVA: {
+          provider: "OpenClaw",
+          room: "Launch Lab",
+          computerStatus: "deploying",
+          businessIdea: "A referral engine for creator communities",
+          phase: "first_100",
+          nextMove: "Publish the first invite landing page",
+          scaleRevenueCents: 8400,
+        },
+        MICA: {
+          provider: "Hermes",
+          room: "Revenue Suite",
+          computerStatus: "researching",
+          businessIdea: "Automated payout audits for independent creators",
+          phase: "first_100",
+          nextMove: "Ask for approval to contact five design partners",
+          scaleRevenueCents: 5200,
+        },
+        ORBIT: {
+          provider: "OpenClaw",
+          room: "Signal Den",
+          computerStatus: "building",
+          businessIdea: "Webhook reliability reports for small SaaS teams",
+          phase: "idea",
+          nextMove: "Ship a clickable demo before the next round",
+          scaleRevenueCents: 1800,
+        },
+      } as const;
+
+      await Promise.all(
+        agents
+          .filter((agent) => agent.businessIdea === null && agent.room === "studio")
+          .map((agent) => {
+            const defaults = worldDefaults[agent.name as keyof typeof worldDefaults];
+            return defaults
+              ? db.update(agentsTable).set(defaults).where(eq(agentsTable.id, agent.id))
+              : Promise.resolve();
+          }),
+      );
+
+      const [arena] = await db.select().from(arenaTable).limit(1);
+      if (arena?.winConditionCents === 50000) {
+        await db
+          .update(arenaTable)
+          .set({ winConditionCents: 10000 })
+          .where(eq(arenaTable.id, arena.id));
+      }
+
+      if (capabilities.length === 0 && agents.length > 0 && skills.length > 0) {
+        await db.insert(agentSkillsTable).values(
+          agents.flatMap((agent, agentIndex) =>
+            skills.slice(0, Math.min(2 + agentIndex, skills.length)).map((skill) => ({
+              agentId: agent.id,
+              skillId: skill.id,
+            })),
+          ),
+        );
+        await Promise.all(
+          agents.map((agent, index) =>
+            db
+              .update(agentsTable)
+              .set({ skillCount: Math.min(2 + index, skills.length) })
+              .where(eq(agentsTable.id, agent.id)),
+          ),
+        );
+      }
+
+      if (approvals.length === 0 && agents.length > 0 && projects.length > 0) {
+        const projectForAgent = (agentIndex: number) => projects[agentIndex] ?? projects[0];
+        await db.insert(approvalsTable).values([
+          {
+            projectId: projectForAgent(0).id,
+            agentId: agents[0].id,
+            title: "Publish the Lumen invite landing page",
+            action: "Approve public launch",
+            details: "NOVA has prepared a launch page and email capture flow. Review the public copy before it goes live.",
+            risk: "medium",
+          },
+          {
+            projectId: projectForAgent(1).id,
+            agentId: agents[1] ? agents[1].id : agents[0].id,
+            title: "Contact five payout-audit design partners",
+            action: "Approve outbound outreach",
+            details: "MICA wants to send a first research message to five prospective creator businesses.",
+            risk: "high",
+          },
+          {
+            projectId: projectForAgent(2).id,
+            agentId: agents[2] ? agents[2].id : agents[0].id,
+            title: "Choose the first pricing experiment",
+            action: "Select a price test",
+            details: "ORBIT needs a human decision between a free trial and a paid pilot for the webhook report.",
+            risk: "low",
+          },
+        ]);
+      }
+    })();
+  }
+  await featureSeedPromise;
 }
 
 router.get("/dashboard", async (_req, res): Promise<void> => {
@@ -261,6 +409,117 @@ router.patch("/agents/:agentId", async (req, res): Promise<void> => {
   res.json(UpdateAgentResponse.parse(agent));
 });
 
+async function getAgentCapabilities(agentId: number) {
+  return db
+    .select({
+      id: agentSkillsTable.id,
+      agentId: agentSkillsTable.agentId,
+      skillId: agentSkillsTable.skillId,
+      name: skillsTable.name,
+      description: skillsTable.description,
+      category: skillsTable.category,
+      attachedAt: agentSkillsTable.attachedAt,
+    })
+    .from(agentSkillsTable)
+    .innerJoin(skillsTable, eq(agentSkillsTable.skillId, skillsTable.id))
+    .where(eq(agentSkillsTable.agentId, agentId))
+    .orderBy(asc(skillsTable.name));
+}
+
+router.get("/agents/:agentId/capabilities", async (req, res): Promise<void> => {
+  await ensureSeeded();
+  const params = ListAgentCapabilitiesParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Agent identifier is invalid." });
+    return;
+  }
+  res.json(ListAgentCapabilitiesResponse.parse(await getAgentCapabilities(params.data.agentId)));
+});
+
+router.post("/agents/:agentId/capabilities", async (req, res): Promise<void> => {
+  await ensureSeeded();
+  const params = AttachAgentCapabilityParams.safeParse(req.params);
+  const body = AttachAgentCapabilityBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Capability assignment is incomplete or invalid." });
+    return;
+  }
+
+  const [[agent], [skill]] = await Promise.all([
+    db.select().from(agentsTable).where(eq(agentsTable.id, params.data.agentId)),
+    db.select().from(skillsTable).where(eq(skillsTable.id, body.data.skillId)),
+  ]);
+  if (!agent || !skill) {
+    res.status(404).json({ error: "Agent or capability not found." });
+    return;
+  }
+
+  const [existing] = await db
+    .select()
+    .from(agentSkillsTable)
+    .where(and(eq(agentSkillsTable.agentId, agent.id), eq(agentSkillsTable.skillId, skill.id)));
+  if (existing) {
+    const [capability] = await getAgentCapabilities(agent.id).then((items) => items.filter((item) => item.skillId === skill.id));
+    res.status(201).json(AttachAgentCapabilityResponse.parse(capability));
+    return;
+  }
+
+  await db.insert(agentSkillsTable).values({ agentId: agent.id, skillId: skill.id });
+  const capabilities = await getAgentCapabilities(agent.id);
+  await db.update(agentsTable).set({ skillCount: capabilities.length }).where(eq(agentsTable.id, agent.id));
+  const capability = capabilities.find((item) => item.skillId === skill.id);
+  res.status(201).json(AttachAgentCapabilityResponse.parse(capability));
+});
+
+router.delete("/agents/:agentId/capabilities/:skillId", async (req, res): Promise<void> => {
+  await ensureSeeded();
+  const params = DetachAgentCapabilityParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Capability assignment is invalid." });
+    return;
+  }
+  const [removed] = await db
+    .delete(agentSkillsTable)
+    .where(and(eq(agentSkillsTable.agentId, params.data.agentId), eq(agentSkillsTable.skillId, params.data.skillId)))
+    .returning();
+  if (!removed) {
+    res.status(404).json({ error: "Capability assignment not found." });
+    return;
+  }
+  const capabilities = await getAgentCapabilities(params.data.agentId);
+  await db
+    .update(agentsTable)
+    .set({ skillCount: capabilities.length })
+    .where(eq(agentsTable.id, params.data.agentId));
+  res.sendStatus(204);
+});
+
+router.get("/approvals", async (_req, res): Promise<void> => {
+  await ensureSeeded();
+  const approvals = await db.select().from(approvalsTable).orderBy(asc(approvalsTable.createdAt));
+  res.json(ListApprovalsResponse.parse(approvals));
+});
+
+router.patch("/approvals/:approvalId", async (req, res): Promise<void> => {
+  await ensureSeeded();
+  const params = UpdateApprovalParams.safeParse(req.params);
+  const body = UpdateApprovalBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Approval update is incomplete or invalid." });
+    return;
+  }
+  const [approval] = await db
+    .update(approvalsTable)
+    .set({ status: body.data.status, resolvedAt: new Date() })
+    .where(eq(approvalsTable.id, params.data.approvalId))
+    .returning();
+  if (!approval) {
+    res.status(404).json({ error: "Approval request not found." });
+    return;
+  }
+  res.json(UpdateApprovalResponse.parse(approval));
+});
+
 router.get("/tasks", async (_req, res): Promise<void> => {
   await ensureSeeded();
   const data = ListTasksResponse.parse(await db.select().from(tasksTable).orderBy(desc(tasksTable.createdAt)));
@@ -328,6 +587,13 @@ async function getArenaState() {
       agentName: agent.name,
       score: agent.arenaScore,
       incomeCents: agent.arenaIncomeCents,
+      businessIdea: agent.businessIdea ?? "A fresh business idea is being shaped.",
+      room: agent.room,
+      computerStatus: agent.computerStatus,
+      phase: agent.phase,
+      nextMove: agent.nextMove ?? "Choose the next experiment.",
+      progressPercent: Math.min(100, Math.round((agent.arenaIncomeCents / 10000) * 100)),
+      scaleRevenueCents: agent.scaleRevenueCents,
     })),
   });
 }
@@ -368,13 +634,25 @@ router.post("/arena/advance", async (req, res): Promise<void> => {
     const agents = await db.select().from(agentsTable);
     await Promise.all(
       agents.map((agent, index) =>
+        {
+          const scoreGain = 6 - index;
+          const newRevenue = agent.arenaIncomeCents + scoreGain * 1200;
+          return (
         db
           .update(agentsTable)
           .set({
-            arenaScore: agent.arenaScore + 6 - index,
-            arenaIncomeCents: agent.arenaIncomeCents + (6 - index) * 1200,
+            arenaScore: agent.arenaScore + scoreGain,
+            arenaIncomeCents: newRevenue,
+            scaleRevenueCents: agent.scaleRevenueCents + scoreGain * 450,
+            phase: newRevenue >= arena.winConditionCents ? "scale" : "first_100",
+            computerStatus: index === 0 ? "selling" : "building",
+            nextMove: newRevenue >= arena.winConditionCents
+              ? "Double down on the channel that reached the first $100."
+              : "Run the next small experiment toward the first $100.",
           })
-          .where(and(eq(agentsTable.id, agent.id))),
+          .where(and(eq(agentsTable.id, agent.id)))
+          );
+        },
       ),
     );
   }

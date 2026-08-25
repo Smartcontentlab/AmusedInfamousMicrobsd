@@ -2,7 +2,8 @@ import { useListSkills, useCreateSkill, getListSkillsQueryKey } from "@workspace
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Zap } from "lucide-react";
+import { Zap, Link as LinkIcon } from "lucide-react";
+import { Link } from "wouter";
 
 export function Skills() {
    const { data: skills, isLoading } = useListSkills();
@@ -35,6 +36,11 @@ export function Skills() {
             <BrutalButton onClick={() => setShowNew(!showNew)} className="flex items-center gap-2">
               <Zap size={18} /> Compile Skill
             </BrutalButton>
+         </div>
+
+         <div className="border-4 border-accent bg-accent/10 p-4 shadow-[4px_4px_0px_0px_hsl(var(--accent))] flex items-center gap-4 font-mono font-bold text-sm">
+            <LinkIcon className="text-accent shrink-0" />
+            <p>Skill modules compiled here act as templates. They must be explicitly attached to individual agents via the <Link href="/agents" className="underline text-accent hover:text-foreground transition-colors">Operative Roster</Link> to take effect.</p>
          </div>
 
          {showNew && (
@@ -80,15 +86,21 @@ export function Skills() {
             {skills?.map(skill => (
                <BrutalCard key={skill.id} className="flex flex-col h-full group">
                   <div className="flex justify-between items-start mb-4">
-                     <h3 className="font-black text-2xl uppercase tracking-tight">{skill.name}</h3>
+                     <h3 className="font-black text-2xl uppercase tracking-tight pr-2">{skill.name}</h3>
                      <BrutalBadge variant={skill.enabled ? 'accent' : 'default'}>{skill.enabled ? 'ACTIVE' : 'OFFLINE'}</BrutalBadge>
                   </div>
                   <div className="text-xs font-bold text-muted-foreground uppercase border-b-4 border-border pb-2 mb-4">
                      CLASS: {skill.category}
                   </div>
-                  <p className="font-mono text-sm flex-1 leading-relaxed text-foreground/80">
+                  <p className="font-mono text-sm flex-1 leading-relaxed text-foreground/80 bg-muted/30 p-3 border-4 border-border shadow-inner">
                      {skill.description}
                   </p>
+                  
+                  <div className="mt-4 pt-4 border-t-4 border-border text-center">
+                     <Link href="/agents" className="text-xs font-black uppercase text-muted-foreground hover:text-accent flex items-center justify-center gap-2 transition-colors">
+                        Manage Attachments <LinkIcon size={12} />
+                     </Link>
+                  </div>
                </BrutalCard>
             ))}
 

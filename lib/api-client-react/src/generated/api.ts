@@ -21,8 +21,12 @@ import type {
 
 import type {
   Agent,
+  AgentCapability,
+  AgentCapabilityInput,
   AgentInput,
   AgentUpdate,
+  Approval,
+  ApprovalUpdate,
   Arena,
   ArenaAdvanceInput,
   Dashboard,
@@ -657,6 +661,377 @@ export const useUpdateAgent = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateAgentMutationOptions(options));
+    }
+
+export const getListAgentCapabilitiesUrl = (agentId: number,) => {
+
+
+
+
+  return `/api/agents/${agentId}/capabilities`
+}
+
+/**
+ * @summary List an agent's capabilities
+ */
+export const listAgentCapabilities = async (agentId: number, options?: Parameters<typeof customFetch>[1]): Promise<AgentCapability[]> => {
+
+  return customFetch<AgentCapability[]>(getListAgentCapabilitiesUrl(agentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAgentCapabilitiesQueryKey = (agentId: number,) => {
+    return [
+    `/api/agents/${agentId}/capabilities`
+    ] as const;
+    }
+
+
+export const getListAgentCapabilitiesQueryOptions = <TData = Awaited<ReturnType<typeof listAgentCapabilities>>, TError = ErrorType<unknown>>(agentId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentCapabilities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAgentCapabilitiesQueryKey(agentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgentCapabilities>>> = ({ signal }) => listAgentCapabilities(agentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: agentId !== null && agentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAgentCapabilities>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAgentCapabilitiesQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentCapabilities>>>
+export type ListAgentCapabilitiesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List an agent's capabilities
+ */
+
+export function useListAgentCapabilities<TData = Awaited<ReturnType<typeof listAgentCapabilities>>, TError = ErrorType<unknown>>(
+ agentId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentCapabilities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAgentCapabilitiesQueryOptions(agentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAttachAgentCapabilityUrl = (agentId: number,) => {
+
+
+
+
+  return `/api/agents/${agentId}/capabilities`
+}
+
+/**
+ * @summary Attach a capability to an agent
+ */
+export const attachAgentCapability = async (agentId: number,
+    agentCapabilityInput: AgentCapabilityInput, options?: Parameters<typeof customFetch>[1]): Promise<AgentCapability> => {
+
+  return customFetch<AgentCapability>(getAttachAgentCapabilityUrl(agentId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentCapabilityInput)
+  }
+);}
+
+
+
+
+
+export const getAttachAgentCapabilityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachAgentCapability>>, TError,{agentId: number;data: BodyType<AgentCapabilityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof attachAgentCapability>>, TError,{agentId: number;data: BodyType<AgentCapabilityInput>}, TContext> => {
+
+const mutationKey = ['attachAgentCapability'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof attachAgentCapability>>, {agentId: number;data: BodyType<AgentCapabilityInput>}> = (props) => {
+          const {agentId,data} = props ?? {};
+
+          return  attachAgentCapability(agentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AttachAgentCapabilityMutationResult = NonNullable<Awaited<ReturnType<typeof attachAgentCapability>>>
+    export type AttachAgentCapabilityMutationBody = BodyType<AgentCapabilityInput>
+    export type AttachAgentCapabilityMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Attach a capability to an agent
+ */
+export const useAttachAgentCapability = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof attachAgentCapability>>, TError,{agentId: number;data: BodyType<AgentCapabilityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof attachAgentCapability>>,
+        TError,
+        {agentId: number;data: BodyType<AgentCapabilityInput>},
+        TContext
+      > => {
+      return useMutation(getAttachAgentCapabilityMutationOptions(options));
+    }
+
+export const getDetachAgentCapabilityUrl = (agentId: number,
+    skillId: number,) => {
+
+
+
+
+  return `/api/agents/${agentId}/capabilities/${skillId}`
+}
+
+/**
+ * @summary Detach a capability from an agent
+ */
+export const detachAgentCapability = async (agentId: number,
+    skillId: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDetachAgentCapabilityUrl(agentId,skillId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDetachAgentCapabilityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof detachAgentCapability>>, TError,{agentId: number;skillId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof detachAgentCapability>>, TError,{agentId: number;skillId: number}, TContext> => {
+
+const mutationKey = ['detachAgentCapability'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof detachAgentCapability>>, {agentId: number;skillId: number}> = (props) => {
+          const {agentId,skillId} = props ?? {};
+
+          return  detachAgentCapability(agentId,skillId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DetachAgentCapabilityMutationResult = NonNullable<Awaited<ReturnType<typeof detachAgentCapability>>>
+
+    export type DetachAgentCapabilityMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Detach a capability from an agent
+ */
+export const useDetachAgentCapability = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof detachAgentCapability>>, TError,{agentId: number;skillId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof detachAgentCapability>>,
+        TError,
+        {agentId: number;skillId: number},
+        TContext
+      > => {
+      return useMutation(getDetachAgentCapabilityMutationOptions(options));
+    }
+
+export const getListApprovalsUrl = () => {
+
+
+
+
+  return `/api/approvals`
+}
+
+/**
+ * @summary List human approval requests
+ */
+export const listApprovals = async ( options?: Parameters<typeof customFetch>[1]): Promise<Approval[]> => {
+
+  return customFetch<Approval[]>(getListApprovalsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListApprovalsQueryKey = () => {
+    return [
+    `/api/approvals`
+    ] as const;
+    }
+
+
+export const getListApprovalsQueryOptions = <TData = Awaited<ReturnType<typeof listApprovals>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listApprovals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListApprovalsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listApprovals>>> = ({ signal }) => listApprovals({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listApprovals>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListApprovalsQueryResult = NonNullable<Awaited<ReturnType<typeof listApprovals>>>
+export type ListApprovalsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List human approval requests
+ */
+
+export function useListApprovals<TData = Awaited<ReturnType<typeof listApprovals>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listApprovals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListApprovalsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateApprovalUrl = (approvalId: number,) => {
+
+
+
+
+  return `/api/approvals/${approvalId}`
+}
+
+/**
+ * @summary Resolve or hand off an approval request
+ */
+export const updateApproval = async (approvalId: number,
+    approvalUpdate: ApprovalUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Approval> => {
+
+  return customFetch<Approval>(getUpdateApprovalUrl(approvalId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(approvalUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateApprovalMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateApproval>>, TError,{approvalId: number;data: BodyType<ApprovalUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateApproval>>, TError,{approvalId: number;data: BodyType<ApprovalUpdate>}, TContext> => {
+
+const mutationKey = ['updateApproval'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateApproval>>, {approvalId: number;data: BodyType<ApprovalUpdate>}> = (props) => {
+          const {approvalId,data} = props ?? {};
+
+          return  updateApproval(approvalId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateApprovalMutationResult = NonNullable<Awaited<ReturnType<typeof updateApproval>>>
+    export type UpdateApprovalMutationBody = BodyType<ApprovalUpdate>
+    export type UpdateApprovalMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Resolve or hand off an approval request
+ */
+export const useUpdateApproval = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateApproval>>, TError,{approvalId: number;data: BodyType<ApprovalUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateApproval>>,
+        TError,
+        {approvalId: number;data: BodyType<ApprovalUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateApprovalMutationOptions(options));
     }
 
 export const getListTasksUrl = () => {

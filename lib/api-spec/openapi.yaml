@@ -16,6 +16,10 @@ tags:
     description: Project portfolio management
   - name: agents
     description: AI agent roster management
+  - name: capabilities
+    description: Agent tool and skill assignments
+  - name: approvals
+    description: Human approval queue
   - name: tasks
     description: Work queue and kanban operations
   - name: skills
@@ -150,6 +154,86 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Agent"
+  /agents/{agentId}/capabilities:
+    get:
+      operationId: listAgentCapabilities
+      tags: [capabilities]
+      summary: List an agent's capabilities
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Attached capability packs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgentCapability"
+    post:
+      operationId: attachAgentCapability
+      tags: [capabilities]
+      summary: Attach a capability to an agent
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentCapabilityInput"
+      responses:
+        "201":
+          description: Capability attached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentCapability"
+  /agents/{agentId}/capabilities/{skillId}:
+    delete:
+      operationId: detachAgentCapability
+      tags: [capabilities]
+      summary: Detach a capability from an agent
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+        - $ref: "#/components/parameters/SkillId"
+      responses:
+        "204":
+          description: Capability detached
+  /approvals:
+    get:
+      operationId: listApprovals
+      tags: [approvals]
+      summary: List human approval requests
+      responses:
+        "200":
+          description: Approval queue
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Approval"
+  /approvals/{approvalId}:
+    patch:
+      operationId: updateApproval
+      tags: [approvals]
+      summary: Resolve or hand off an approval request
+      parameters:
+        - $ref: "#/components/parameters/ApprovalId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalUpdate"
+      responses:
+        "200":
+          description: Updated approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Approval"
   /tasks:
     get:
       operationId: listTasks
@@ -282,6 +366,18 @@ components:
       required: true
       schema:
         type: number
+    SkillId:
+      in: path
+      name: skillId
+      required: true
+      schema:
+        type: number
+    ApprovalId:
+      in: path
+      name: approvalId
+      required: true
+      schema:
+        type: number
   schemas:
     HealthStatus:
       type: object
@@ -336,13 +432,15 @@ components:
           minimum: 0
     Agent:
       type: object
-      required: [id, name, role, status, projectId, skillCount]
+      required: [id, name, role, provider, status, projectId, skillCount, room, computerStatus, phase]
       properties:
         id:
           type: number
         name:
           type: string
         role:
+          type: string
+        provider:
           type: string
         status:
           type: string
@@ -352,6 +450,16 @@ components:
         skillCount:
           type: number
         currentTask:
+          type: [string, "null"]
+        room:
+          type: string
+        computerStatus:
+          type: string
+        businessIdea:
+          type: [string, "null"]
+        phase:
+          type: string
+        nextMove:
           type: [string, "null"]
     AgentInput:
       type: object
@@ -365,6 +473,8 @@ components:
           minLength: 1
         projectId:
           type: number
+        provider:
+          type: string
     AgentUpdate:
       type: object
       properties:
@@ -377,6 +487,14 @@ components:
         projectId:
           type: number
         currentTask:
+          type: string
+        room:
+          type: string
+        businessIdea:
+          type: string
+        phase:
+          type: string
+        nextMove:
           type: string
     Task:
       type: object
@@ -454,6 +572,65 @@ components:
         category:
           type: string
           minLength: 1
+    AgentCapability:
+      type: object
+      required: [id, agentId, skillId, name, description, category, attachedAt]
+      properties:
+        id:
+          type: number
+        agentId:
+          type: number
+        skillId:
+          type: number
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        attachedAt:
+          type: string
+          format: date-time
+    AgentCapabilityInput:
+      type: object
+      required: [skillId]
+      properties:
+        skillId:
+          type: number
+    Approval:
+      type: object
+      required: [id, projectId, agentId, title, action, details, risk, status, createdAt]
+      properties:
+        id:
+          type: number
+        projectId:
+          type: number
+        agentId:
+          type: number
+        title:
+          type: string
+        action:
+          type: string
+        details:
+          type: string
+        risk:
+          type: string
+          enum: [low, medium, high]
+        status:
+          type: string
+          enum: [pending, approved, rejected, changes_requested, handed_off]
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: [string, "null"]
+    ApprovalUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [approved, rejected, changes_requested, handed_off]
     ArenaScore:
       type: object
       required: [agentId, agentName, score, incomeCents]
@@ -465,6 +642,20 @@ components:
         score:
           type: number
         incomeCents:
+          type: number
+        businessIdea:
+          type: string
+        room:
+          type: string
+        computerStatus:
+          type: string
+        phase:
+          type: string
+        nextMove:
+          type: string
+        progressPercent:
+          type: number
+        scaleRevenueCents:
           type: number
     Arena:
       type: object

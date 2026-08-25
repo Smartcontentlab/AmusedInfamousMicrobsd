@@ -13,4 +13,8 @@ export interface AgentUpdate {
   status?: AgentUpdateStatus;
   projectId?: number;
   currentTask?: string;
+  room?: string;
+  businessIdea?: string;
+  phase?: string;
+  nextMove?: string;
 }

@@ -7,10 +7,17 @@
  */
 
 export * from './agent';
+export * from './agentCapability';
+export * from './agentCapabilityInput';
 export * from './agentInput';
 export * from './agentStatus';
 export * from './agentUpdate';
 export * from './agentUpdateStatus';
+export * from './approval';
+export * from './approvalRisk';
+export * from './approvalStatus';
+export * from './approvalUpdate';
+export * from './approvalUpdateStatus';
 export * from './arena';
 export * from './arenaAdvanceInput';
 export * from './arenaAdvanceInputAction';

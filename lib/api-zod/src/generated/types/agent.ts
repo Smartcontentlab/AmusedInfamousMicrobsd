@@ -11,10 +11,18 @@ export interface Agent {
   id: number;
   name: string;
   role: string;
+  provider: string;
   status: AgentStatus;
   /** @nullable */
   projectId: number | null;
   skillCount: number;
   /** @nullable */
   currentTask?: string | null;
+  room: string;
+  computerStatus: string;
+  /** @nullable */
+  businessIdea?: string | null;
+  phase: string;
+  /** @nullable */
+  nextMove?: string | null;
 }

@@ -12,4 +12,5 @@ export interface AgentInput {
   /** @minLength 1 */
   role: string;
   projectId?: number;
+  provider?: string;
 }

@@ -102,10 +102,16 @@ export const ListAgentsResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "role": zod.string(),
+  "provider": zod.string(),
   "status": zod.enum(['working', 'waiting', 'reviewing', 'blocked', 'offline']),
   "projectId": zod.number().nullable(),
   "skillCount": zod.number(),
-  "currentTask": zod.string().nullish()
+  "currentTask": zod.string().nullish(),
+  "room": zod.string(),
+  "computerStatus": zod.string(),
+  "businessIdea": zod.string().nullish(),
+  "phase": zod.string(),
+  "nextMove": zod.string().nullish()
 })
 export const ListAgentsResponse = zod.array(ListAgentsResponseItem)
 
@@ -120,17 +126,24 @@ export const ListAgentsResponse = zod.array(ListAgentsResponseItem)
 export const CreateAgentBody = zod.object({
   "name": zod.string().min(1),
   "role": zod.string().min(1),
-  "projectId": zod.number().optional()
+  "projectId": zod.number().optional(),
+  "provider": zod.string().optional()
 })
 
 export const CreateAgentResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "role": zod.string(),
+  "provider": zod.string(),
   "status": zod.enum(['working', 'waiting', 'reviewing', 'blocked', 'offline']),
   "projectId": zod.number().nullable(),
   "skillCount": zod.number(),
-  "currentTask": zod.string().nullish()
+  "currentTask": zod.string().nullish(),
+  "room": zod.string(),
+  "computerStatus": zod.string(),
+  "businessIdea": zod.string().nullish(),
+  "phase": zod.string(),
+  "nextMove": zod.string().nullish()
 })
 
 
@@ -148,17 +161,122 @@ export const UpdateAgentBody = zod.object({
   "role": zod.string().min(1).optional(),
   "status": zod.enum(['working', 'waiting', 'reviewing', 'blocked', 'offline']).optional(),
   "projectId": zod.number().optional(),
-  "currentTask": zod.string().optional()
+  "currentTask": zod.string().optional(),
+  "room": zod.string().optional(),
+  "businessIdea": zod.string().optional(),
+  "phase": zod.string().optional(),
+  "nextMove": zod.string().optional()
 })
 
 export const UpdateAgentResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "role": zod.string(),
+  "provider": zod.string(),
   "status": zod.enum(['working', 'waiting', 'reviewing', 'blocked', 'offline']),
   "projectId": zod.number().nullable(),
   "skillCount": zod.number(),
-  "currentTask": zod.string().nullish()
+  "currentTask": zod.string().nullish(),
+  "room": zod.string(),
+  "computerStatus": zod.string(),
+  "businessIdea": zod.string().nullish(),
+  "phase": zod.string(),
+  "nextMove": zod.string().nullish()
+})
+
+
+/**
+ * @summary List an agent's capabilities
+ */
+export const ListAgentCapabilitiesParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const ListAgentCapabilitiesResponseItem = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "skillId": zod.number(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "category": zod.string(),
+  "attachedAt": zod.coerce.date()
+})
+export const ListAgentCapabilitiesResponse = zod.array(ListAgentCapabilitiesResponseItem)
+
+
+/**
+ * @summary Attach a capability to an agent
+ */
+export const AttachAgentCapabilityParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const AttachAgentCapabilityBody = zod.object({
+  "skillId": zod.number()
+})
+
+export const AttachAgentCapabilityResponse = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "skillId": zod.number(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "category": zod.string(),
+  "attachedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Detach a capability from an agent
+ */
+export const DetachAgentCapabilityParams = zod.object({
+  "agentId": zod.coerce.number(),
+  "skillId": zod.coerce.number()
+})
+
+export const DetachAgentCapabilityResponse = zod.void()
+
+
+/**
+ * @summary List human approval requests
+ */
+export const ListApprovalsResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "agentId": zod.number(),
+  "title": zod.string(),
+  "action": zod.string(),
+  "details": zod.string(),
+  "risk": zod.enum(['low', 'medium', 'high']),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'changes_requested', 'handed_off']),
+  "createdAt": zod.coerce.date(),
+  "resolvedAt": zod.string().nullish()
+})
+export const ListApprovalsResponse = zod.array(ListApprovalsResponseItem)
+
+
+/**
+ * @summary Resolve or hand off an approval request
+ */
+export const UpdateApprovalParams = zod.object({
+  "approvalId": zod.coerce.number()
+})
+
+export const UpdateApprovalBody = zod.object({
+  "status": zod.enum(['approved', 'rejected', 'changes_requested', 'handed_off'])
+})
+
+export const UpdateApprovalResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "agentId": zod.number(),
+  "title": zod.string(),
+  "action": zod.string(),
+  "details": zod.string(),
+  "risk": zod.enum(['low', 'medium', 'high']),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'changes_requested', 'handed_off']),
+  "createdAt": zod.coerce.date(),
+  "resolvedAt": zod.string().nullish()
 })
 
 
@@ -278,7 +396,14 @@ export const GetArenaResponse = zod.object({
   "agentId": zod.number(),
   "agentName": zod.string(),
   "score": zod.number(),
-  "incomeCents": zod.number()
+  "incomeCents": zod.number(),
+  "businessIdea": zod.string().optional(),
+  "room": zod.string().optional(),
+  "computerStatus": zod.string().optional(),
+  "phase": zod.string().optional(),
+  "nextMove": zod.string().optional(),
+  "progressPercent": zod.number().optional(),
+  "scaleRevenueCents": zod.number().optional()
 }))
 })
 
@@ -300,7 +425,14 @@ export const AdvanceArenaResponse = zod.object({
   "agentId": zod.number(),
   "agentName": zod.string(),
   "score": zod.number(),
-  "incomeCents": zod.number()
+  "incomeCents": zod.number(),
+  "businessIdea": zod.string().optional(),
+  "room": zod.string().optional(),
+  "computerStatus": zod.string().optional(),
+  "phase": zod.string().optional(),
+  "nextMove": zod.string().optional(),
+  "progressPercent": zod.number().optional(),
+  "scaleRevenueCents": zod.number().optional()
 }))
 })
 

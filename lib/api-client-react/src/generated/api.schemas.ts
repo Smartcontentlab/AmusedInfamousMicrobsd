@@ -83,12 +83,20 @@ export interface Agent {
   id: number;
   name: string;
   role: string;
+  provider: string;
   status: AgentStatus;
   /** @nullable */
   projectId: number | null;
   skillCount: number;
   /** @nullable */
   currentTask?: string | null;
+  room: string;
+  computerStatus: string;
+  /** @nullable */
+  businessIdea?: string | null;
+  phase: string;
+  /** @nullable */
+  nextMove?: string | null;
 }
 
 export interface AgentInput {
@@ -97,6 +105,7 @@ export interface AgentInput {
   /** @minLength 1 */
   role: string;
   projectId?: number;
+  provider?: string;
 }
 
 export type AgentUpdateStatus = typeof AgentUpdateStatus[keyof typeof AgentUpdateStatus];
@@ -116,6 +125,10 @@ export interface AgentUpdate {
   status?: AgentUpdateStatus;
   projectId?: number;
   currentTask?: string;
+  room?: string;
+  businessIdea?: string;
+  phase?: string;
+  nextMove?: string;
 }
 
 export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
@@ -209,11 +222,80 @@ export interface SkillInput {
   category: string;
 }
 
+export interface AgentCapability {
+  id: number;
+  agentId: number;
+  skillId: number;
+  name: string;
+  description: string;
+  category: string;
+  attachedAt: string;
+}
+
+export interface AgentCapabilityInput {
+  skillId: number;
+}
+
+export type ApprovalRisk = typeof ApprovalRisk[keyof typeof ApprovalRisk];
+
+
+export const ApprovalRisk = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export type ApprovalStatus = typeof ApprovalStatus[keyof typeof ApprovalStatus];
+
+
+export const ApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+  changes_requested: 'changes_requested',
+  handed_off: 'handed_off',
+} as const;
+
+export interface Approval {
+  id: number;
+  projectId: number;
+  agentId: number;
+  title: string;
+  action: string;
+  details: string;
+  risk: ApprovalRisk;
+  status: ApprovalStatus;
+  createdAt: string;
+  /** @nullable */
+  resolvedAt?: string | null;
+}
+
+export type ApprovalUpdateStatus = typeof ApprovalUpdateStatus[keyof typeof ApprovalUpdateStatus];
+
+
+export const ApprovalUpdateStatus = {
+  approved: 'approved',
+  rejected: 'rejected',
+  changes_requested: 'changes_requested',
+  handed_off: 'handed_off',
+} as const;
+
+export interface ApprovalUpdate {
+  status: ApprovalUpdateStatus;
+}
+
 export interface ArenaScore {
   agentId: number;
   agentName: string;
   score: number;
   incomeCents: number;
+  businessIdea?: string;
+  room?: string;
+  computerStatus?: string;
+  phase?: string;
+  nextMove?: string;
+  progressPercent?: number;
+  scaleRevenueCents?: number;
 }
 
 export type ArenaStatus = typeof ArenaStatus[keyof typeof ArenaStatus];

@@ -11,4 +11,11 @@ export interface ArenaScore {
   agentName: string;
   score: number;
   incomeCents: number;
+  businessIdea?: string;
+  room?: string;
+  computerStatus?: string;
+  phase?: string;
+  nextMove?: string;
+  progressPercent?: number;
+  scaleRevenueCents?: number;
 }

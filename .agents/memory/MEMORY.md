@@ -1,0 +1,1 @@
+- [OpenAPI Zod compatibility](openapi-zod-compatibility.md) — API integer schemas need a generator/version compatibility check before codegen is considered complete.

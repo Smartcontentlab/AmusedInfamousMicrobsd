@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Mission Control"
+description = "A working command center for coordinating AI-agent projects. It helps operators manage projects, assign agents, organize work, curate reusable skills, and run a BuildOff simulation with understandable status and next-action guidance."
+version = "1.0.0"
+id = "artifacts/mission-control"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26054
+
+[services.development]
+run = "pnpm --filter @workspace/mission-control run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mission-control", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/mission-control/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26054"
+BASE_PATH = "/"

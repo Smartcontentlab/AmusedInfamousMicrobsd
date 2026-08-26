@@ -8,6 +8,7 @@ export const arenaTable = pgTable("arena", {
   status: text("status").notNull().default("ready"),
   secondsRemaining: integer("seconds_remaining").notNull().default(240),
   winConditionCents: integer("win_condition_cents").notNull().default(50000),
+  winnerAgentId: integer("winner_agent_id"),
 });
 
 export const insertArenaSchema = createInsertSchema(arenaTable).omit({

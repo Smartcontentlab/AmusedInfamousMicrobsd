@@ -26,6 +26,8 @@ tags:
     description: Reusable agent skill packs
   - name: arena
     description: BuildOff simulation controls
+  - name: staff
+    description: AI employee capabilities and human approvals
 paths:
   /healthz:
     get:
@@ -683,6 +685,20 @@ components:
         action:
           type: string
           enum: [start, pause, advance, reset]
+    StaffMember:
+      allOf:
+        - $ref: "#/components/schemas/Agent"
+        - type: object
+          required: [provider, runtime, skills]
+          properties:
+            provider:
+              type: string
+            runtime:
+              type: string
+            skills:
+              type: array
+              items:
+                $ref: "#/components/schemas/Skill"
     Dashboard:
       type: object
       required: [monthlyIncomeCents, runwayDays, velocityPercent, activeAgentCount, recommendation, recentActivity]
@@ -701,4 +717,3 @@ components:
           type: array
           items:
             type: string
-

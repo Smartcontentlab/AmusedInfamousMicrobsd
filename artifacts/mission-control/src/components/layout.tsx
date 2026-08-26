@@ -25,7 +25,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <nav className="flex gap-2 overflow-x-auto p-2 md:flex-1 md:flex-col md:p-4">
            <NavItem href="/" icon={LayoutDashboard} label="Overview" active={location === "/"} />
            <NavItem href="/projects" icon={Folder} label="Projects" active={location === "/projects"} />
-           <NavItem href="/agents" icon={Users} label="Agents" active={location === "/agents"} />
+           <NavItem href="/agents" icon={Users} label="Staff + approvals" active={location === "/agents"} />
            <NavItem href="/skills" icon={Zap} label="Skills" active={location === "/skills"} />
            <NavItem href="/approvals" icon={CheckSquare} label="Approvals" active={location === "/approvals"} />
            <NavItem href="/arena" icon={Swords} label="Arena" active={location === "/arena"} />

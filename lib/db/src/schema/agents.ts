@@ -1,4 +1,4 @@
-import { integer, pgTable, serial, text } from "drizzle-orm/pg-core";
+import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const agentsTable = pgTable("agents", {
@@ -6,6 +6,7 @@ export const agentsTable = pgTable("agents", {
   name: text("name").notNull(),
   role: text("role").notNull(),
   provider: text("provider").notNull().default("OpenClaw"),
+  runtime: text("runtime").notNull().default("managed"),
   status: text("status").notNull().default("waiting"),
   projectId: integer("project_id"),
   skillCount: integer("skill_count").notNull().default(0),
@@ -18,6 +19,9 @@ export const agentsTable = pgTable("agents", {
   arenaScore: integer("arena_score").notNull().default(0),
   arenaIncomeCents: integer("arena_income_cents").notNull().default(0),
   scaleRevenueCents: integer("scale_revenue_cents").notNull().default(0),
+  capabilities: text("capabilities").array().notNull().default([]),
+  lastActivity: text("last_activity"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 export const insertAgentSchema = createInsertSchema(agentsTable).omit({

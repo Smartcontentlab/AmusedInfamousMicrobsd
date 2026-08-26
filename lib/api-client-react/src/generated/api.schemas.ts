@@ -331,6 +331,12 @@ export interface ArenaAdvanceInput {
   action: ArenaAdvanceInputAction;
 }
 
+export type StaffMember = Agent & {
+  provider: string;
+  runtime: string;
+  skills: Skill[];
+};
+
 export interface Dashboard {
   monthlyIncomeCents: number;
   runwayDays: number;

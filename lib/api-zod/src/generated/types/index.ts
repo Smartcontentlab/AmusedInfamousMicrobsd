@@ -33,6 +33,7 @@ export * from './projectUpdate';
 export * from './projectUpdateStatus';
 export * from './skill';
 export * from './skillInput';
+export * from './staffMember';
 export * from './task';
 export * from './taskInput';
 export * from './taskInputPriority';

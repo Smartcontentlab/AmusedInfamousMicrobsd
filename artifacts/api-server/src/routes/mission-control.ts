@@ -23,6 +23,8 @@ import {
   ListApprovalsResponse,
   ListProjectsResponse,
   ListSkillsResponse,
+  EquipAgentSkillResponse,
+  RefreshSkillCatalogResponse,
   ListTasksResponse,
   UpdateAgentBody,
   UpdateAgentParams,
@@ -47,7 +49,11 @@ import {
   projectsTable,
   skillsTable,
   tasksTable,
+  skillInstallationsTable,
+  runtimeConnectionsTable,
 } from "@workspace/db";
+import { BOOTSTRAP_CATALOG, APPROVED_CATALOG_SOURCES, importApprovedCatalogs, runtimeSupportsSkillInstall } from "../lib/skill-catalog";
+import { adapterError, installRuntimeSkill } from "../lib/runtime-adapters";
 
 const router: IRouter = Router();
 
@@ -196,13 +202,26 @@ export async function ensureSeeded(): Promise<void> {
 async function ensureFeatureRecords(): Promise<void> {
   if (!featureSeedPromise) {
     featureSeedPromise = (async () => {
-      const [agents, skills, projects, capabilities, approvals] = await Promise.all([
+      const [agents, _skills, projects, capabilities, approvals] = await Promise.all([
         db.select().from(agentsTable).orderBy(asc(agentsTable.id)),
         db.select().from(skillsTable).orderBy(asc(skillsTable.id)),
         db.select().from(projectsTable).orderBy(asc(projectsTable.id)),
         db.select({ id: agentSkillsTable.id }).from(agentSkillsTable).limit(1),
         db.select({ id: approvalsTable.id, status: approvalsTable.status }).from(approvalsTable),
       ]);
+
+      for (const entry of BOOTSTRAP_CATALOG) {
+        const [existing] = await db.select({ id: skillsTable.id }).from(skillsTable).where(eq(skillsTable.externalId, entry.externalId));
+        if (!existing) {
+          await db.insert(skillsTable).values({
+            ...entry,
+            importState: "imported",
+            importedAt: new Date(),
+          });
+        }
+      }
+
+      const catalogSkills = await db.select().from(skillsTable).orderBy(asc(skillsTable.id));
 
       const worldDefaults = {
         NOVA: {
@@ -253,10 +272,10 @@ async function ensureFeatureRecords(): Promise<void> {
           .where(eq(arenaTable.id, arena.id));
       }
 
-      if (capabilities.length === 0 && agents.length > 0 && skills.length > 0) {
+      if (capabilities.length === 0 && agents.length > 0 && catalogSkills.length > 0) {
         await db.insert(agentSkillsTable).values(
           agents.flatMap((agent, agentIndex) =>
-            skills.slice(0, Math.min(2 + agentIndex, skills.length)).map((skill) => ({
+            catalogSkills.slice(0, Math.min(2 + agentIndex, catalogSkills.length)).map((skill) => ({
               agentId: agent.id,
               skillId: skill.id,
             })),
@@ -266,7 +285,7 @@ async function ensureFeatureRecords(): Promise<void> {
           agents.map((agent, index) =>
             db
               .update(agentsTable)
-              .set({ skillCount: Math.min(2 + index, skills.length) })
+              .set({ skillCount: Math.min(2 + index, catalogSkills.length) })
               .where(eq(agentsTable.id, agent.id)),
           ),
         );
@@ -419,7 +438,7 @@ router.patch("/agents/:agentId", async (req, res): Promise<void> => {
 });
 
 async function getAgentCapabilities(agentId: number) {
-  return db
+  const capabilities = await db
     .select({
       id: agentSkillsTable.id,
       agentId: agentSkillsTable.agentId,
@@ -433,6 +452,20 @@ async function getAgentCapabilities(agentId: number) {
     .innerJoin(skillsTable, eq(agentSkillsTable.skillId, skillsTable.id))
     .where(eq(agentSkillsTable.agentId, agentId))
     .orderBy(asc(skillsTable.name));
+  const installations = await db
+    .select()
+    .from(skillInstallationsTable)
+    .where(eq(skillInstallationsTable.agentId, agentId))
+    .orderBy(desc(skillInstallationsTable.createdAt));
+  return capabilities.map((capability) => {
+    const installation = installations.find((item) => item.skillId === capability.skillId);
+    return {
+      ...capability,
+      installationStatus: installation?.status,
+      installationMessage: installation?.message,
+      installationUpdatedAt: installation?.updatedAt ?? null,
+    };
+  });
 }
 
 router.get("/agents/:agentId/capabilities", async (req, res): Promise<void> => {
@@ -506,7 +539,10 @@ router.delete("/agents/:agentId/capabilities/:skillId", async (req, res): Promis
 router.get("/approvals", async (_req, res): Promise<void> => {
   await ensureSeeded();
   const approvals = await db.select().from(approvalsTable).orderBy(asc(approvalsTable.createdAt));
-  res.json(ListApprovalsResponse.parse(approvals));
+  res.json(ListApprovalsResponse.parse(approvals.map((approval) => ({
+    ...approval,
+    resolvedAt: approval.resolvedAt?.toISOString() ?? null,
+  }))));
 });
 
 router.patch("/approvals/:approvalId", async (req, res): Promise<void> => {
@@ -526,7 +562,26 @@ router.patch("/approvals/:approvalId", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Approval request not found." });
     return;
   }
-  res.json(UpdateApprovalResponse.parse(approval));
+  if (body.data.status === "approved" && approval.agentId) {
+    await dispatchApprovedSkillInstallation(approval.agentId);
+  } else if (body.data.status === "rejected" && approval.agentId) {
+    const [installation] = await db
+      .select()
+      .from(skillInstallationsTable)
+      .where(and(eq(skillInstallationsTable.agentId, approval.agentId), eq(skillInstallationsTable.status, "awaiting_approval")))
+      .orderBy(desc(skillInstallationsTable.updatedAt))
+      .limit(1);
+    if (installation) {
+      await db.update(skillInstallationsTable).set({
+        status: "blocked",
+        message: "Human approval was declined. No runtime installation request was sent.",
+      }).where(eq(skillInstallationsTable.id, installation.id));
+    }
+  }
+  res.json(UpdateApprovalResponse.parse({
+    ...approval,
+    resolvedAt: approval.resolvedAt?.toISOString() ?? null,
+  }));
 });
 
 router.get("/tasks", async (_req, res): Promise<void> => {
@@ -583,6 +638,229 @@ router.post("/skills", async (req, res): Promise<void> => {
   }
   const [skill] = await db.insert(skillsTable).values(parsed.data).returning();
   res.status(201).json(CreateSkillResponse.parse(skill));
+});
+
+router.post("/skills/refresh", async (_req, res): Promise<void> => {
+  await ensureSeeded();
+  const result = await importApprovedCatalogs();
+  const existingCatalog = (await db.select().from(skillsTable)).filter((skill) => skill.sourceKind === "catalog");
+  const incomingIds = new Set(result.entries.map((entry) => entry.externalId));
+  let imported = 0;
+  let updated = 0;
+
+  for (const entry of result.entries) {
+    const [existing] = await db.select({ id: skillsTable.id }).from(skillsTable).where(eq(skillsTable.externalId, entry.externalId));
+    if (existing) {
+      await db.update(skillsTable).set({ ...entry, importState: "imported", importError: null, importedAt: new Date() }).where(eq(skillsTable.id, existing.id));
+      updated += 1;
+    } else {
+      await db.insert(skillsTable).values({ ...entry, importState: "imported", importedAt: new Date() });
+      imported += 1;
+    }
+  }
+
+  for (const skill of existingCatalog) {
+    const belongsToRefreshSource = APPROVED_CATALOG_SOURCES.some((source) => skill.sourceName === source.name);
+    if (belongsToRefreshSource && skill.externalId && !incomingIds.has(skill.externalId) && result.errors.length > 0) {
+      await db.update(skillsTable).set({
+        importState: "unavailable",
+        importError: result.errors.find((error) => error.startsWith(`${skill.sourceName}:`)) ?? "The approved repository did not return this entry.",
+      }).where(eq(skillsTable.id, skill.id));
+    }
+  }
+
+  res.json(RefreshSkillCatalogResponse.parse({
+    imported,
+    updated,
+    skipped: existingCatalog.filter((skill) => skill.externalId && incomingIds.has(skill.externalId)).length,
+    errors: result.errors,
+    sources: APPROVED_CATALOG_SOURCES.map(({ name, repositoryUrl, skillsPath }) => ({ name, repositoryUrl, skillsPath })),
+  }));
+});
+
+async function latestInstallation(agentId: number, skillId: number) {
+  const [installation] = await db
+    .select()
+    .from(skillInstallationsTable)
+    .where(and(eq(skillInstallationsTable.agentId, agentId), eq(skillInstallationsTable.skillId, skillId)))
+    .orderBy(desc(skillInstallationsTable.createdAt))
+    .limit(1);
+  return installation;
+}
+
+async function createApprovalForSkill(agent: { id: number; projectId: number | null }, skill: {
+  name: string;
+  description: string;
+  requiresApproval: boolean;
+  sideEffectRisk: string;
+  installMethod: string;
+}) {
+  if (!agent.projectId) return null;
+  const title = `Equip ${skill.name} on ${agent.id}`;
+  const existing = await db.select().from(approvalsTable).where(eq(approvalsTable.agentId, agent.id));
+  const pending = existing.find((approval) => approval.status === "pending" && approval.title === title);
+  if (pending) return pending;
+  const [approval] = await db.insert(approvalsTable).values({
+    projectId: agent.projectId,
+    agentId: agent.id,
+    title,
+    action: "Approve skill installation",
+    details: `${skill.description} Install method: ${skill.installMethod}.`,
+    reason: skill.requiresApproval
+      ? "This skill can create external side effects and needs a human clearance before installation."
+      : "The skill has no verified automatic installation contract.",
+    requestedAction: "Review the skill source and approve installation if it is appropriate for this staff member.",
+    risk: skill.sideEffectRisk === "low" ? "medium" : "high",
+  }).returning();
+  return approval;
+}
+
+async function dispatchApprovedSkillInstallation(agentId: number): Promise<void> {
+  const [installation] = await db
+    .select()
+    .from(skillInstallationsTable)
+    .where(and(eq(skillInstallationsTable.agentId, agentId), eq(skillInstallationsTable.status, "awaiting_approval")))
+    .orderBy(desc(skillInstallationsTable.updatedAt))
+    .limit(1);
+  if (!installation) return;
+
+  const [[agent], [skill]] = await Promise.all([
+    db.select().from(agentsTable).where(eq(agentsTable.id, agentId)),
+    db.select().from(skillsTable).where(eq(skillsTable.id, installation.skillId)),
+  ]);
+  if (!agent || !skill) {
+    await db.update(skillInstallationsTable).set({ status: "blocked", message: "Approval was granted, but the skill or staff record no longer exists." }).where(eq(skillInstallationsTable.id, installation.id));
+    return;
+  }
+  const connections = await db.select().from(runtimeConnectionsTable);
+  const connection = agent.runtimeConnectionId
+    ? connections.find((item) => item.id === agent.runtimeConnectionId)
+    : connections.find((item) => item.provider.toLowerCase() === agent.provider.toLowerCase());
+  if (!connection || !runtimeSupportsSkillInstall(connection)) {
+    await db.update(skillInstallationsTable).set({
+      status: "not_supported",
+      runtimeConnectionId: connection?.id ?? null,
+      message: connection
+        ? "Approval granted. The linked runtime does not advertise skill installation."
+        : "Approval granted. No linked compatible runtime is available for installation.",
+    }).where(eq(skillInstallationsTable.id, installation.id));
+    return;
+  }
+
+  await db.update(skillInstallationsTable).set({
+    status: "installing",
+    runtimeConnectionId: connection.id,
+    message: "Approval granted. Sending the installation request to the linked runtime.",
+  }).where(eq(skillInstallationsTable.id, installation.id));
+  try {
+    const result = await installRuntimeSkill(connection, skill);
+    await db.update(skillInstallationsTable).set({
+      status: "installed",
+      providerRequestId: result.providerRequestId,
+      message: result.message,
+    }).where(eq(skillInstallationsTable.id, installation.id));
+  } catch (error) {
+    const failure = adapterError(error);
+    await db.update(skillInstallationsTable).set({
+      status: "failed",
+      message: `Approval was granted, but installation failed: ${failure.message}`,
+    }).where(eq(skillInstallationsTable.id, installation.id));
+  }
+}
+
+router.post("/agents/:agentId/skills/:skillId/equip", async (req, res): Promise<void> => {
+  await ensureSeeded();
+  const agentId = Number(req.params.agentId);
+  const skillId = Number(req.params.skillId);
+  if (!Number.isInteger(agentId) || !Number.isInteger(skillId)) {
+    res.status(400).json({ error: "Agent and skill identifiers are invalid." });
+    return;
+  }
+  const [[agent], [skill]] = await Promise.all([
+    db.select().from(agentsTable).where(eq(agentsTable.id, agentId)),
+    db.select().from(skillsTable).where(eq(skillsTable.id, skillId)),
+  ]);
+  if (!agent || !skill) {
+    res.status(404).json({ error: "Agent or skill not found." });
+    return;
+  }
+  if (skill.importState !== "imported" && skill.sourceKind === "catalog") {
+    res.status(409).json({ error: skill.importError ?? "This catalog entry is not currently available from its approved source." });
+    return;
+  }
+
+  let [assignment] = await db.select().from(agentSkillsTable).where(and(eq(agentSkillsTable.agentId, agentId), eq(agentSkillsTable.skillId, skillId)));
+  if (!assignment) {
+    [assignment] = await db.insert(agentSkillsTable).values({ agentId, skillId }).returning();
+    await db.update(agentsTable).set({ skillCount: (await getAgentCapabilities(agentId)).length }).where(eq(agentsTable.id, agentId));
+  }
+
+  const compatible = skill.compatibleRuntimes.length === 0 || skill.compatibleRuntimes.some((runtime) => runtime.toLowerCase() === agent.provider.toLowerCase());
+  const automaticInstall = ["skills.install", "skill_install", "install_skill"].includes(skill.installMethod.toLowerCase());
+  let installation = await latestInstallation(agentId, skillId);
+  if (!installation || ["failed", "not_supported", "blocked", "awaiting_approval"].includes(installation.status)) {
+    [installation] = await db.insert(skillInstallationsTable).values({
+      agentId,
+      skillId,
+      status: "queued",
+      message: "Local capability equipped. Checking the linked runtime before remote installation.",
+    }).returning();
+  }
+
+  if (!compatible) {
+    [installation] = await db.update(skillInstallationsTable).set({
+      status: "blocked",
+      message: `This skill is compatible with ${skill.compatibleRuntimes.join(" or ")}, not ${agent.provider}. Local assignment is kept; no remote request was sent.`,
+    }).where(eq(skillInstallationsTable.id, installation.id)).returning();
+  } else if (skill.requiresApproval || skill.sideEffectRisk === "unknown" || !automaticInstall) {
+    const approval = await createApprovalForSkill(agent, skill);
+    [installation] = await db.update(skillInstallationsTable).set({
+      status: approval ? "awaiting_approval" : "blocked",
+      message: approval
+        ? "Local capability equipped. Human approval is required before the runtime can install this skill."
+        : "Local capability equipped, but this staff member has no project to hold the required approval.",
+    }).where(eq(skillInstallationsTable.id, installation.id)).returning();
+  } else {
+    const connections = await db.select().from(runtimeConnectionsTable);
+    const connection = agent.runtimeConnectionId
+      ? connections.find((item) => item.id === agent.runtimeConnectionId)
+      : connections.find((item) => item.provider.toLowerCase() === agent.provider.toLowerCase());
+    if (!connection) {
+      [installation] = await db.update(skillInstallationsTable).set({
+        status: "not_supported",
+        message: "Local capability equipped. No linked compatible runtime is available for installation.",
+      }).where(eq(skillInstallationsTable.id, installation.id)).returning();
+    } else if (!runtimeSupportsSkillInstall(connection)) {
+      [installation] = await db.update(skillInstallationsTable).set({
+        runtimeConnectionId: connection.id,
+        status: "not_supported",
+        message: "Local capability equipped. This runtime is linked but does not advertise skill installation.",
+      }).where(eq(skillInstallationsTable.id, installation.id)).returning();
+    } else {
+      [installation] = await db.update(skillInstallationsTable).set({
+        runtimeConnectionId: connection.id,
+        status: "installing",
+        message: "The linked runtime accepted the installation request in progress.",
+      }).where(eq(skillInstallationsTable.id, installation.id)).returning();
+      try {
+        const result = await installRuntimeSkill(connection, skill);
+        [installation] = await db.update(skillInstallationsTable).set({
+          status: "installed",
+          providerRequestId: result.providerRequestId,
+          message: result.message,
+        }).where(eq(skillInstallationsTable.id, installation.id)).returning();
+      } catch (error) {
+        const failure = adapterError(error);
+        [installation] = await db.update(skillInstallationsTable).set({
+          status: "failed",
+          message: failure.message,
+        }).where(eq(skillInstallationsTable.id, installation.id)).returning();
+      }
+    }
+  }
+
+  const capability = (await getAgentCapabilities(agentId)).find((item) => item.skillId === skillId);
+  res.status(assignment ? 200 : 201).json(EquipAgentSkillResponse.parse({ capability, installation }));
 });
 
 async function getArenaState() {

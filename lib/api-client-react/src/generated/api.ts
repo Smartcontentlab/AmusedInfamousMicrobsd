@@ -33,6 +33,7 @@ import type {
   Arena,
   ArenaAdvanceInput,
   Dashboard,
+  EquipAgentSkillResult,
   HealthStatus,
   Project,
   ProjectInput,
@@ -41,6 +42,7 @@ import type {
   RuntimeConnectionSafe,
   RuntimeHealth,
   Skill,
+  SkillCatalogRefreshResult,
   SkillInput,
   Task,
   TaskInput,
@@ -148,6 +150,10 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+
+
+
 export const getGetDashboardUrl = () => {
 
 
@@ -218,6 +224,13 @@ export function useGetDashboard<TData = Awaited<ReturnType<typeof getDashboard>>
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
+
 export const getListProjectsUrl = () => {
 
 
@@ -288,6 +301,13 @@ export function useListProjects<TData = Awaited<ReturnType<typeof listProjects>>
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
+
 export const getCreateProjectUrl = () => {
 
 
@@ -1388,6 +1408,150 @@ export const useCreateSkill = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateSkillMutationOptions(options));
+    }
+
+export const getRefreshSkillCatalogUrl = () => {
+
+
+
+
+  return `/api/skills/refresh`
+}
+
+/**
+ * @summary Refresh the approved Hermes and OpenClaw skill catalogs
+ */
+export const refreshSkillCatalog = async ( options?: Parameters<typeof customFetch>[1]): Promise<SkillCatalogRefreshResult> => {
+
+  return customFetch<SkillCatalogRefreshResult>(getRefreshSkillCatalogUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRefreshSkillCatalogMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshSkillCatalog>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshSkillCatalog>>, TError,void, TContext> => {
+
+const mutationKey = ['refreshSkillCatalog'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshSkillCatalog>>, void> = () => {
+
+
+          return  refreshSkillCatalog(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshSkillCatalogMutationResult = NonNullable<Awaited<ReturnType<typeof refreshSkillCatalog>>>
+
+    export type RefreshSkillCatalogMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Refresh the approved Hermes and OpenClaw skill catalogs
+ */
+export const useRefreshSkillCatalog = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshSkillCatalog>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof refreshSkillCatalog>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRefreshSkillCatalogMutationOptions(options));
+    }
+
+export const getEquipAgentSkillUrl = (agentId: number,
+    skillId: number,) => {
+
+
+
+
+  return `/api/agents/${agentId}/skills/${skillId}/equip`
+}
+
+/**
+ * @summary Equip a skill and request a safe runtime installation
+ */
+export const equipAgentSkill = async (agentId: number,
+    skillId: number, options?: Parameters<typeof customFetch>[1]): Promise<EquipAgentSkillResult> => {
+
+  return customFetch<EquipAgentSkillResult>(getEquipAgentSkillUrl(agentId,skillId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getEquipAgentSkillMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof equipAgentSkill>>, TError,{agentId: number;skillId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof equipAgentSkill>>, TError,{agentId: number;skillId: number}, TContext> => {
+
+const mutationKey = ['equipAgentSkill'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof equipAgentSkill>>, {agentId: number;skillId: number}> = (props) => {
+          const {agentId,skillId} = props ?? {};
+
+          return  equipAgentSkill(agentId,skillId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EquipAgentSkillMutationResult = NonNullable<Awaited<ReturnType<typeof equipAgentSkill>>>
+
+    export type EquipAgentSkillMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Equip a skill and request a safe runtime installation
+ */
+export const useEquipAgentSkill = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof equipAgentSkill>>, TError,{agentId: number;skillId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof equipAgentSkill>>,
+        TError,
+        {agentId: number;skillId: number},
+        TContext
+      > => {
+      return useMutation(getEquipAgentSkillMutationOptions(options));
     }
 
 export const getGetArenaUrl = () => {

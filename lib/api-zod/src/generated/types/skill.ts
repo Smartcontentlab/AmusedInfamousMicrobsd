@@ -5,6 +5,9 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+import type { SkillImportState } from './skillImportState';
+import type { SkillSideEffectRisk } from './skillSideEffectRisk';
+import type { SkillSourceKind } from './skillSourceKind';
 
 export interface Skill {
   id: number;
@@ -12,4 +15,19 @@ export interface Skill {
   description: string;
   category: string;
   enabled: boolean;
+  sourceKind: SkillSourceKind;
+  sourceName: string;
+  /** @nullable */
+  sourceUrl?: string | null;
+  /** @nullable */
+  externalId?: string | null;
+  compatibleRuntimes: string[];
+  installMethod: string;
+  importState: SkillImportState;
+  /** @nullable */
+  importError?: string | null;
+  requiresApproval: boolean;
+  sideEffectRisk: SkillSideEffectRisk;
+  /** @nullable */
+  importedAt?: Date | null;
 }

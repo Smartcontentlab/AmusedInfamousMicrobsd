@@ -5,6 +5,7 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+import type { AgentCapabilityInstallationStatus } from './agentCapabilityInstallationStatus';
 
 export interface AgentCapability {
   id: number;
@@ -14,4 +15,8 @@ export interface AgentCapability {
   description: string;
   category: string;
   attachedAt: Date;
+  installationStatus?: AgentCapabilityInstallationStatus;
+  installationMessage?: string;
+  /** @nullable */
+  installationUpdatedAt?: Date | null;
 }

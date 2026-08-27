@@ -320,6 +320,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Skill"
+  /skills/refresh:
+    post:
+      operationId: refreshSkillCatalog
+      tags: [skills]
+      summary: Refresh the approved Hermes and OpenClaw skill catalogs
+      responses:
+        "200":
+          description: Catalog refresh result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkillCatalogRefreshResult"
+  /agents/{agentId}/skills/{skillId}/equip:
+    post:
+      operationId: equipAgentSkill
+      tags: [capabilities]
+      summary: Equip a skill and request a safe runtime installation
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+        - $ref: "#/components/parameters/SkillId"
+      responses:
+        "200":
+          description: Skill already equipped or queued for installation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EquipAgentSkillResult"
+        "201":
+          description: Skill equipped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EquipAgentSkillResult"
   /arena:
     get:
       operationId: getArena
@@ -715,7 +748,7 @@ components:
           type: number
     Skill:
       type: object
-      required: [id, name, description, category, enabled]
+      required: [id, name, description, category, enabled, sourceKind, sourceName, compatibleRuntimes, installMethod, importState, requiresApproval, sideEffectRisk]
       properties:
         id:
           type: number
@@ -727,6 +760,34 @@ components:
           type: string
         enabled:
           type: boolean
+        sourceKind:
+          type: string
+          enum: [custom, catalog]
+        sourceName:
+          type: string
+        sourceUrl:
+          type: [string, "null"]
+        externalId:
+          type: [string, "null"]
+        compatibleRuntimes:
+          type: array
+          items:
+            type: string
+        installMethod:
+          type: string
+        importState:
+          type: string
+          enum: [operator_created, imported, unavailable, invalid]
+        importError:
+          type: [string, "null"]
+        requiresApproval:
+          type: boolean
+        sideEffectRisk:
+          type: string
+          enum: [low, medium, high, unknown]
+        importedAt:
+          type: [string, "null"]
+          format: date-time
     SkillInput:
       type: object
       required: [name, description, category]
@@ -759,6 +820,73 @@ components:
         attachedAt:
           type: string
           format: date-time
+        installationStatus:
+          type: string
+          enum: [queued, installing, installed, failed, not_supported, awaiting_approval, blocked]
+        installationMessage:
+          type: string
+        installationUpdatedAt:
+          type: [string, "null"]
+          format: date-time
+    SkillInstallation:
+      type: object
+      required: [id, agentId, skillId, runtimeConnectionId, status, message, providerRequestId, createdAt, updatedAt]
+      properties:
+        id:
+          type: number
+        agentId:
+          type: number
+        skillId:
+          type: number
+        runtimeConnectionId:
+          type: [number, "null"]
+        status:
+          type: string
+          enum: [queued, installing, installed, failed, not_supported, awaiting_approval, blocked]
+        message:
+          type: string
+        providerRequestId:
+          type: [string, "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    EquipAgentSkillResult:
+      type: object
+      required: [capability, installation]
+      properties:
+        capability:
+          $ref: "#/components/schemas/AgentCapability"
+        installation:
+          $ref: "#/components/schemas/SkillInstallation"
+    SkillCatalogRefreshResult:
+      type: object
+      required: [imported, updated, skipped, errors, sources]
+      properties:
+        imported:
+          type: number
+        updated:
+          type: number
+        skipped:
+          type: number
+        errors:
+          type: array
+          items:
+            type: string
+        sources:
+          type: array
+          items:
+            type: object
+            required: [name, repositoryUrl, skillsPath]
+            properties:
+              name:
+                type: string
+              repositoryUrl:
+                type: string
+              skillsPath:
+                type: string
     AgentCapabilityInput:
       type: object
       required: [skillId]

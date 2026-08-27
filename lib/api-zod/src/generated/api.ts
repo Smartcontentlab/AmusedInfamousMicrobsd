@@ -204,7 +204,10 @@ export const ListAgentCapabilitiesResponseItem = zod.object({
   "name": zod.string(),
   "description": zod.string(),
   "category": zod.string(),
-  "attachedAt": zod.coerce.date()
+  "attachedAt": zod.coerce.date(),
+  "installationStatus": zod.enum(['queued', 'installing', 'installed', 'failed', 'not_supported', 'awaiting_approval', 'blocked']).optional(),
+  "installationMessage": zod.string().optional(),
+  "installationUpdatedAt": zod.coerce.date().nullish()
 })
 export const ListAgentCapabilitiesResponse = zod.array(ListAgentCapabilitiesResponseItem)
 
@@ -227,7 +230,10 @@ export const AttachAgentCapabilityResponse = zod.object({
   "name": zod.string(),
   "description": zod.string(),
   "category": zod.string(),
-  "attachedAt": zod.coerce.date()
+  "attachedAt": zod.coerce.date(),
+  "installationStatus": zod.enum(['queued', 'installing', 'installed', 'failed', 'not_supported', 'awaiting_approval', 'blocked']).optional(),
+  "installationMessage": zod.string().optional(),
+  "installationUpdatedAt": zod.coerce.date().nullish()
 })
 
 
@@ -360,7 +366,18 @@ export const ListSkillsResponseItem = zod.object({
   "name": zod.string(),
   "description": zod.string(),
   "category": zod.string(),
-  "enabled": zod.boolean()
+  "enabled": zod.boolean(),
+  "sourceKind": zod.enum(['custom', 'catalog']),
+  "sourceName": zod.string(),
+  "sourceUrl": zod.string().nullish(),
+  "externalId": zod.string().nullish(),
+  "compatibleRuntimes": zod.array(zod.string()),
+  "installMethod": zod.string(),
+  "importState": zod.enum(['operator_created', 'imported', 'unavailable', 'invalid']),
+  "importError": zod.string().nullish(),
+  "requiresApproval": zod.boolean(),
+  "sideEffectRisk": zod.enum(['low', 'medium', 'high', 'unknown']),
+  "importedAt": zod.coerce.date().nullish()
 })
 export const ListSkillsResponse = zod.array(ListSkillsResponseItem)
 
@@ -384,7 +401,69 @@ export const CreateSkillResponse = zod.object({
   "name": zod.string(),
   "description": zod.string(),
   "category": zod.string(),
-  "enabled": zod.boolean()
+  "enabled": zod.boolean(),
+  "sourceKind": zod.enum(['custom', 'catalog']),
+  "sourceName": zod.string(),
+  "sourceUrl": zod.string().nullish(),
+  "externalId": zod.string().nullish(),
+  "compatibleRuntimes": zod.array(zod.string()),
+  "installMethod": zod.string(),
+  "importState": zod.enum(['operator_created', 'imported', 'unavailable', 'invalid']),
+  "importError": zod.string().nullish(),
+  "requiresApproval": zod.boolean(),
+  "sideEffectRisk": zod.enum(['low', 'medium', 'high', 'unknown']),
+  "importedAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Refresh the approved Hermes and OpenClaw skill catalogs
+ */
+export const RefreshSkillCatalogResponse = zod.object({
+  "imported": zod.number(),
+  "updated": zod.number(),
+  "skipped": zod.number(),
+  "errors": zod.array(zod.string()),
+  "sources": zod.array(zod.object({
+  "name": zod.string(),
+  "repositoryUrl": zod.string(),
+  "skillsPath": zod.string()
+}))
+})
+
+
+/**
+ * @summary Equip a skill and request a safe runtime installation
+ */
+export const EquipAgentSkillParams = zod.object({
+  "agentId": zod.coerce.number(),
+  "skillId": zod.coerce.number()
+})
+
+export const EquipAgentSkillResponse = zod.object({
+  "capability": zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "skillId": zod.number(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "category": zod.string(),
+  "attachedAt": zod.coerce.date(),
+  "installationStatus": zod.enum(['queued', 'installing', 'installed', 'failed', 'not_supported', 'awaiting_approval', 'blocked']).optional(),
+  "installationMessage": zod.string().optional(),
+  "installationUpdatedAt": zod.coerce.date().nullish()
+}),
+  "installation": zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "skillId": zod.number(),
+  "runtimeConnectionId": zod.number().nullable(),
+  "status": zod.enum(['queued', 'installing', 'installed', 'failed', 'not_supported', 'awaiting_approval', 'blocked']),
+  "message": zod.string(),
+  "providerRequestId": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
 })
 
 

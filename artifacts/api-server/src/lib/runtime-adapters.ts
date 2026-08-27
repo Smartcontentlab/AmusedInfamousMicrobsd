@@ -31,6 +31,11 @@ export type RuntimeRunResult = {
   supportsStop: boolean;
 };
 
+export type RuntimeSkillInstallResult = {
+  providerRequestId: string | null;
+  message: string;
+};
+
 const DEFAULT_CAPABILITIES = ["launch", "stop"];
 const REQUEST_TIMEOUT_MS = 8_000;
 type GatewaySocket = {
@@ -269,6 +274,24 @@ export async function launchRuntimeRun(connection: RuntimeConnection, task: stri
     supportsPause: capabilities.includes("pause"),
     supportsResume: capabilities.includes("resume"),
     supportsStop: capabilities.includes("stop") || !capabilities.length,
+  };
+}
+
+export async function installRuntimeSkill(
+  connection: RuntimeConnection,
+  skill: { externalId: string | null; sourceUrl: string | null; name: string },
+): Promise<RuntimeSkillInstallResult> {
+  const payload = {
+    skillId: skill.externalId ?? skill.name,
+    name: skill.name,
+    sourceUrl: skill.sourceUrl,
+  };
+  const response = connection.provider === "openclaw"
+    ? { data: await openClawRequest(connection, "skills.install", payload) }
+    : await requestJson(connection, "v1/skills/install", { method: "POST", body: JSON.stringify(payload) });
+  return {
+    providerRequestId: providerRunId(response.data),
+    message: stringValue(response.data.message) ?? "The runtime accepted the skill installation request.",
   };
 }
 

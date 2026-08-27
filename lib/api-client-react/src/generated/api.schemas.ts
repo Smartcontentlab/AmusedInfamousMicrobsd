@@ -209,12 +209,55 @@ export interface TaskUpdate {
   agentId?: number;
 }
 
+export type SkillSourceKind = typeof SkillSourceKind[keyof typeof SkillSourceKind];
+
+
+export const SkillSourceKind = {
+  custom: 'custom',
+  catalog: 'catalog',
+} as const;
+
+export type SkillImportState = typeof SkillImportState[keyof typeof SkillImportState];
+
+
+export const SkillImportState = {
+  operator_created: 'operator_created',
+  imported: 'imported',
+  unavailable: 'unavailable',
+  invalid: 'invalid',
+} as const;
+
+export type SkillSideEffectRisk = typeof SkillSideEffectRisk[keyof typeof SkillSideEffectRisk];
+
+
+export const SkillSideEffectRisk = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  unknown: 'unknown',
+} as const;
+
 export interface Skill {
   id: number;
   name: string;
   description: string;
   category: string;
   enabled: boolean;
+  sourceKind: SkillSourceKind;
+  sourceName: string;
+  /** @nullable */
+  sourceUrl?: string | null;
+  /** @nullable */
+  externalId?: string | null;
+  compatibleRuntimes: string[];
+  installMethod: string;
+  importState: SkillImportState;
+  /** @nullable */
+  importError?: string | null;
+  requiresApproval: boolean;
+  sideEffectRisk: SkillSideEffectRisk;
+  /** @nullable */
+  importedAt?: string | null;
 }
 
 export interface SkillInput {
@@ -226,6 +269,19 @@ export interface SkillInput {
   category: string;
 }
 
+export type AgentCapabilityInstallationStatus = typeof AgentCapabilityInstallationStatus[keyof typeof AgentCapabilityInstallationStatus];
+
+
+export const AgentCapabilityInstallationStatus = {
+  queued: 'queued',
+  installing: 'installing',
+  installed: 'installed',
+  failed: 'failed',
+  not_supported: 'not_supported',
+  awaiting_approval: 'awaiting_approval',
+  blocked: 'blocked',
+} as const;
+
 export interface AgentCapability {
   id: number;
   agentId: number;
@@ -234,6 +290,56 @@ export interface AgentCapability {
   description: string;
   category: string;
   attachedAt: string;
+  installationStatus?: AgentCapabilityInstallationStatus;
+  installationMessage?: string;
+  /** @nullable */
+  installationUpdatedAt?: string | null;
+}
+
+export type SkillInstallationStatus = typeof SkillInstallationStatus[keyof typeof SkillInstallationStatus];
+
+
+export const SkillInstallationStatus = {
+  queued: 'queued',
+  installing: 'installing',
+  installed: 'installed',
+  failed: 'failed',
+  not_supported: 'not_supported',
+  awaiting_approval: 'awaiting_approval',
+  blocked: 'blocked',
+} as const;
+
+export interface SkillInstallation {
+  id: number;
+  agentId: number;
+  skillId: number;
+  /** @nullable */
+  runtimeConnectionId: number | null;
+  status: SkillInstallationStatus;
+  message: string;
+  /** @nullable */
+  providerRequestId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EquipAgentSkillResult {
+  capability: AgentCapability;
+  installation: SkillInstallation;
+}
+
+export type SkillCatalogRefreshResultSourcesItem = {
+  name: string;
+  repositoryUrl: string;
+  skillsPath: string;
+};
+
+export interface SkillCatalogRefreshResult {
+  imported: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
+  sources: SkillCatalogRefreshResultSourcesItem[];
 }
 
 export interface AgentCapabilityInput {

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Folder, Users, Zap, Swords, CheckSquare } from "lucide-react";
+import { LayoutDashboard, Folder, Users, Zap, Swords, CheckSquare, Lightbulb } from "lucide-react";
 import React from "react";
 import { useListRuntimeHealth } from "@workspace/api-client-react";
 
@@ -32,6 +32,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
            <NavItem href="/agents" icon={Users} label="Staff + approvals" active={location === "/agents"} />
            <NavItem href="/skills" icon={Zap} label="Skills" active={location === "/skills"} />
            <NavItem href="/approvals" icon={CheckSquare} label="Approvals" active={location === "/approvals"} />
+            <NavItem href="/idea-lab" icon={Lightbulb} label="Idea lab" active={location === "/idea-lab"} />
            <NavItem href="/arena" icon={Swords} label="Arena" active={location === "/arena"} />
          </nav>
       </aside>

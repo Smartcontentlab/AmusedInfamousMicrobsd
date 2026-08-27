@@ -31,6 +31,61 @@ export const GetDashboardResponse = zod.object({
 
 
 /**
+ * @summary List saved main-agent plans
+ */
+export const ListMissionPlansResponseItem = zod.object({
+  "id": zod.number(),
+  "brainDump": zod.string(),
+  "summary": zod.string(),
+  "projectId": zod.number(),
+  "projectName": zod.string(),
+  "agentId": zod.number(),
+  "agentName": zod.string(),
+  "agentRole": zod.string(),
+  "taskIds": zod.array(zod.number()),
+  "approvalId": zod.number(),
+  "checkpoint": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListMissionPlansResponse = zod.array(ListMissionPlansResponseItem)
+
+
+/**
+ * @summary Turn a brain dump into an actionable mission plan
+ */
+export const createMissionPlanBodyBrainDumpMin = 12;
+
+
+
+
+
+
+
+export const CreateMissionPlanBody = zod.object({
+  "brainDump": zod.string().min(createMissionPlanBodyBrainDumpMin),
+  "projectName": zod.string().min(1).optional(),
+  "leadName": zod.string().min(1).optional(),
+  "leadRole": zod.string().min(1).optional(),
+  "provider": zod.string().min(1).optional()
+})
+
+export const CreateMissionPlanResponse = zod.object({
+  "id": zod.number(),
+  "brainDump": zod.string(),
+  "summary": zod.string(),
+  "projectId": zod.number(),
+  "projectName": zod.string(),
+  "agentId": zod.number(),
+  "agentName": zod.string(),
+  "agentRole": zod.string(),
+  "taskIds": zod.array(zod.number()),
+  "approvalId": zod.number(),
+  "checkpoint": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List projects
  */
 export const ListProjectsResponseItem = zod.object({
@@ -487,7 +542,9 @@ export const GetArenaResponse = zod.object({
   "phase": zod.string().optional(),
   "nextMove": zod.string().optional(),
   "progressPercent": zod.number().optional(),
-  "scaleRevenueCents": zod.number().optional()
+  "scaleRevenueCents": zod.number().optional(),
+  "assignedSkills": zod.array(zod.string()).optional(),
+  "tools": zod.array(zod.string()).optional()
 }))
 })
 
@@ -516,7 +573,9 @@ export const AdvanceArenaResponse = zod.object({
   "phase": zod.string().optional(),
   "nextMove": zod.string().optional(),
   "progressPercent": zod.number().optional(),
-  "scaleRevenueCents": zod.number().optional()
+  "scaleRevenueCents": zod.number().optional(),
+  "assignedSkills": zod.array(zod.string()).optional(),
+  "tools": zod.array(zod.string()).optional()
 }))
 })
 

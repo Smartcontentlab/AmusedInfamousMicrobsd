@@ -406,6 +406,8 @@ export interface ArenaScore {
   nextMove?: string;
   progressPercent?: number;
   scaleRevenueCents?: number;
+  assignedSkills?: string[];
+  tools?: string[];
 }
 
 export type ArenaStatus = typeof ArenaStatus[keyof typeof ArenaStatus];
@@ -454,6 +456,34 @@ export interface Dashboard {
   activeAgentCount: number;
   recommendation: string;
   recentActivity: string[];
+}
+
+export interface MissionPlanInput {
+  /** @minLength 12 */
+  brainDump: string;
+  /** @minLength 1 */
+  projectName?: string;
+  /** @minLength 1 */
+  leadName?: string;
+  /** @minLength 1 */
+  leadRole?: string;
+  /** @minLength 1 */
+  provider?: string;
+}
+
+export interface MissionPlan {
+  id: number;
+  brainDump: string;
+  summary: string;
+  projectId: number;
+  projectName: string;
+  agentId: number;
+  agentName: string;
+  agentRole: string;
+  taskIds: number[];
+  approvalId: number;
+  checkpoint: string;
+  createdAt: string;
 }
 
 export type RuntimeConnectionSafeProvider = typeof RuntimeConnectionSafeProvider[keyof typeof RuntimeConnectionSafeProvider];

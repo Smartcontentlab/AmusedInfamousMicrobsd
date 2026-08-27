@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: dashboard
     description: Command center overview
+  - name: planning
+    description: Main-agent idea shaping and launch checkpoints
   - name: projects
     description: Project portfolio management
   - name: agents
@@ -56,6 +58,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Dashboard"
+  /mission-plans:
+    get:
+      operationId: listMissionPlans
+      tags: [planning]
+      summary: List saved main-agent plans
+      responses:
+        "200":
+          description: Saved idea plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MissionPlan"
+    post:
+      operationId: createMissionPlan
+      tags: [planning]
+      summary: Turn a brain dump into an actionable mission plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MissionPlanInput"
+      responses:
+        "201":
+          description: Mission plan created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MissionPlan"
   /projects:
     get:
       operationId: listProjects
@@ -953,6 +986,14 @@ components:
           type: number
         scaleRevenueCents:
           type: number
+        assignedSkills:
+          type: array
+          items:
+            type: string
+        tools:
+          type: array
+          items:
+            type: string
     Arena:
       type: object
       required: [round, totalRounds, status, secondsRemaining, winConditionCents, scores]
@@ -1011,6 +1052,56 @@ components:
           type: array
           items:
             type: string
+    MissionPlanInput:
+      type: object
+      required: [brainDump]
+      properties:
+        brainDump:
+          type: string
+          minLength: 12
+        projectName:
+          type: string
+          minLength: 1
+        leadName:
+          type: string
+          minLength: 1
+        leadRole:
+          type: string
+          minLength: 1
+        provider:
+          type: string
+          minLength: 1
+    MissionPlan:
+      type: object
+      required: [id, brainDump, summary, projectId, projectName, agentId, agentName, agentRole, taskIds, approvalId, checkpoint, createdAt]
+      properties:
+        id:
+          type: number
+        brainDump:
+          type: string
+        summary:
+          type: string
+        projectId:
+          type: number
+        projectName:
+          type: string
+        agentId:
+          type: number
+        agentName:
+          type: string
+        agentRole:
+          type: string
+        taskIds:
+          type: array
+          items:
+            type: number
+        approvalId:
+          type: number
+        checkpoint:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
     RuntimeConnectionSafe:
       type: object
       required: [id, name, provider, status, capabilities, hasCredentials, lastCheckedAt, errorCode, errorMessage]

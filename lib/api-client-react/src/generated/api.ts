@@ -35,6 +35,8 @@ import type {
   Dashboard,
   EquipAgentSkillResult,
   HealthStatus,
+  MissionPlan,
+  MissionPlanInput,
   Project,
   ProjectInput,
   ProjectUpdate,
@@ -230,6 +232,154 @@ export function useGetDashboard<TData = Awaited<ReturnType<typeof getDashboard>>
 
 
 
+
+export const getListMissionPlansUrl = () => {
+
+
+
+
+  return `/api/mission-plans`
+}
+
+/**
+ * @summary List saved main-agent plans
+ */
+export const listMissionPlans = async ( options?: Parameters<typeof customFetch>[1]): Promise<MissionPlan[]> => {
+
+  return customFetch<MissionPlan[]>(getListMissionPlansUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMissionPlansQueryKey = () => {
+    return [
+    `/api/mission-plans`
+    ] as const;
+    }
+
+
+export const getListMissionPlansQueryOptions = <TData = Awaited<ReturnType<typeof listMissionPlans>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMissionPlans>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMissionPlansQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMissionPlans>>> = ({ signal }) => listMissionPlans({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMissionPlans>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMissionPlansQueryResult = NonNullable<Awaited<ReturnType<typeof listMissionPlans>>>
+export type ListMissionPlansQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List saved main-agent plans
+ */
+
+export function useListMissionPlans<TData = Awaited<ReturnType<typeof listMissionPlans>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMissionPlans>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMissionPlansQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateMissionPlanUrl = () => {
+
+
+
+
+  return `/api/mission-plans`
+}
+
+/**
+ * @summary Turn a brain dump into an actionable mission plan
+ */
+export const createMissionPlan = async (missionPlanInput: MissionPlanInput, options?: Parameters<typeof customFetch>[1]): Promise<MissionPlan> => {
+
+  return customFetch<MissionPlan>(getCreateMissionPlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(missionPlanInput)
+  }
+);}
+
+
+
+
+
+export const getCreateMissionPlanMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMissionPlan>>, TError,{data: BodyType<MissionPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMissionPlan>>, TError,{data: BodyType<MissionPlanInput>}, TContext> => {
+
+const mutationKey = ['createMissionPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMissionPlan>>, {data: BodyType<MissionPlanInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createMissionPlan(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMissionPlanMutationResult = NonNullable<Awaited<ReturnType<typeof createMissionPlan>>>
+    export type CreateMissionPlanMutationBody = BodyType<MissionPlanInput>
+    export type CreateMissionPlanMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Turn a brain dump into an actionable mission plan
+ */
+export const useCreateMissionPlan = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMissionPlan>>, TError,{data: BodyType<MissionPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMissionPlan>>,
+        TError,
+        {data: BodyType<MissionPlanInput>},
+        TContext
+      > => {
+      return useMutation(getCreateMissionPlanMutationOptions(options));
+    }
 
 export const getListProjectsUrl = () => {
 

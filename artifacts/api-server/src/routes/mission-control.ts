@@ -26,6 +26,9 @@ import {
   EquipAgentSkillResponse,
   RefreshSkillCatalogResponse,
   ListTasksResponse,
+  ListMissionPlansResponse,
+  CreateMissionPlanBody,
+  CreateMissionPlanResponse,
   UpdateAgentBody,
   UpdateAgentParams,
   UpdateAgentResponse,
@@ -51,6 +54,7 @@ import {
   tasksTable,
   skillInstallationsTable,
   runtimeConnectionsTable,
+  missionItemsTable,
 } from "@workspace/db";
 import { BOOTSTRAP_CATALOG, APPROVED_CATALOG_SOURCES, importApprovedCatalogs, runtimeSupportsSkillInstall } from "../lib/skill-catalog";
 import { adapterError, installRuntimeSkill } from "../lib/runtime-adapters";
@@ -359,6 +363,120 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
       : ["No live runtime activity has been recorded yet."],
   });
   res.json(data);
+});
+
+function buildMissionPlanRecord(item: { id: number; data: Record<string, unknown>; createdAt: Date }) {
+  return {
+    id: item.id,
+    brainDump: String(item.data.brainDump ?? ""),
+    summary: String(item.data.summary ?? ""),
+    projectId: Number(item.data.projectId),
+    projectName: String(item.data.projectName ?? "Untitled project"),
+    agentId: Number(item.data.agentId),
+    agentName: String(item.data.agentName ?? "Lead operative"),
+    agentRole: String(item.data.agentRole ?? "Project lead"),
+    taskIds: Array.isArray(item.data.taskIds) ? item.data.taskIds.map(Number) : [],
+    approvalId: Number(item.data.approvalId),
+    checkpoint: String(item.data.checkpoint ?? "Review the plan before starting outside work."),
+    createdAt: item.createdAt.toISOString(),
+  };
+}
+
+router.get("/mission-plans", async (_req, res): Promise<void> => {
+  await ensureSeeded();
+  const items = await db
+    .select()
+    .from(missionItemsTable)
+    .where(eq(missionItemsTable.kind, "idea_plan"))
+    .orderBy(desc(missionItemsTable.createdAt));
+  res.json(ListMissionPlansResponse.parse(items.map(buildMissionPlanRecord)));
+});
+
+router.post("/mission-plans", async (req, res): Promise<void> => {
+  await ensureSeeded();
+  const parsed = CreateMissionPlanBody.safeParse(req.body);
+  if (!parsed.success) {
+    req.log.warn({ errors: parsed.error.message }, "Invalid mission plan input");
+    res.status(400).json({ error: "Add at least a sentence describing the idea you want to shape." });
+    return;
+  }
+
+  const brainDump = parsed.data.brainDump.trim();
+  const firstSentence = brainDump.split(/[.!?]/)[0]?.trim() || brainDump;
+  const fallbackProjectName = firstSentence
+    .replace(/^(i want to|we should|build|create|make)\s+/i, "")
+    .split(/\s+/)
+    .slice(0, 5)
+    .join(" ")
+    .replace(/[^a-z0-9 -]/gi, "")
+    .trim();
+  const projectName = parsed.data.projectName?.trim() || (fallbackProjectName ? `${fallbackProjectName} Lab` : "New venture lab");
+  const leadName = parsed.data.leadName?.trim() || "SCOUT";
+  const leadRole = parsed.data.leadRole?.trim() || "Idea lead";
+  const provider = parsed.data.provider?.trim() || "OpenClaw";
+  const summary = `Shape ${projectName} into a small, testable launch loop: clarify the user, prove demand, then review the first signal.`;
+  const tasksToCreate = [
+    `Clarify the user and smallest useful version for ${projectName}`,
+    `Run one low-cost demand test for ${projectName}`,
+    `Prepare a decision brief with the first signal`,
+  ];
+
+  const [project] = await db.insert(projectsTable).values({
+    name: projectName,
+    description: brainDump,
+    status: "planning",
+  }).returning();
+  const [agent] = await db.insert(agentsTable).values({
+    name: leadName,
+    role: leadRole,
+    provider,
+    status: "waiting",
+    projectId: project.id,
+    currentTask: tasksToCreate[0],
+    room: "Idea Studio",
+    computerStatus: "ready",
+    businessIdea: brainDump,
+    phase: "idea",
+    nextMove: "Wait for the operator to approve the launch checkpoint.",
+  }).returning();
+  const tasks = await db.insert(tasksTable).values(
+    tasksToCreate.map((title, index) => ({
+      title,
+      projectId: project.id,
+      agentId: agent.id,
+      priority: index === 0 ? "high" : "medium",
+      status: "queued",
+    })),
+  ).returning();
+  const [approval] = await db.insert(approvalsTable).values({
+    projectId: project.id,
+    agentId: agent.id,
+    title: `Approve the ${projectName} launch loop`,
+    action: "Approve the first experiment",
+    details: `The main agent shaped this brain dump into a project, a lead operative, and ${tasks.length} starter tasks. Review the scope before any outside action begins.`,
+    reason: "New ideas remain paused until a human confirms the project shape and first experiment.",
+    requestedAction: "Review the project brief, then approve, request changes, or hand the loop to a different owner.",
+    risk: "medium",
+    status: "pending",
+  }).returning();
+  const [item] = await db.insert(missionItemsTable).values({
+    kind: "idea_plan",
+    name: projectName,
+    data: {
+      brainDump,
+      summary,
+      projectId: project.id,
+      projectName: project.name,
+      agentId: agent.id,
+      agentName: agent.name,
+      agentRole: agent.role,
+      taskIds: tasks.map((task) => task.id),
+      approvalId: approval.id,
+      checkpoint: "Review the project shape and approve the first experiment before dispatch.",
+    },
+  }).returning();
+
+  res.status(201).json(CreateMissionPlanResponse.parse(buildMissionPlanRecord(item)));
 });
 
 router.get("/projects", async (_req, res): Promise<void> => {
@@ -867,9 +985,17 @@ async function getArenaState() {
   await ensureSeeded();
   const [arena] = await db.select().from(arenaTable).limit(1);
   const agents = await db.select().from(agentsTable).orderBy(desc(agentsTable.arenaScore));
+  const capabilities = await Promise.all(agents.map((agent) => getAgentCapabilities(agent.id)));
   return GetArenaResponse.parse({
     ...arena,
-    scores: agents.map((agent) => ({
+    scores: agents.map((agent, index) => ({
+      ...(() => {
+        const loadout = capabilities[index] ?? [];
+        return {
+          assignedSkills: loadout.map((item) => item.name),
+          tools: [...new Set(loadout.map((item) => item.category))],
+        };
+      })(),
       agentId: agent.id,
       agentName: agent.name,
       score: agent.arenaScore,

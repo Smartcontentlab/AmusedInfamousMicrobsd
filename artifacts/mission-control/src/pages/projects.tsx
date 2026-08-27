@@ -1,13 +1,15 @@
-import { useListProjects, useCreateProject, useUpdateProject, getListProjectsQueryKey, useListAgents, useListApprovals } from "@workspace/api-client-react";
+import { useListProjects, useCreateProject, useUpdateProject, getListProjectsQueryKey, useListAgents, useListApprovals, useListTasks, useListRuntimeHealth } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, Users, ShieldAlert } from "lucide-react";
+import { Plus, Users, ShieldAlert, Activity, CircleAlert, Radio, RotateCcw } from "lucide-react";
 
 export function Projects() {
   const { data: projects, isLoading: pLoading } = useListProjects();
   const { data: agents, isLoading: aLoading } = useListAgents();
   const { data: approvals, isLoading: apLoading } = useListApprovals();
+   const { data: tasks, isLoading: tLoading } = useListTasks({ query: { queryKey: ["/api/tasks"], refetchInterval: 10000 } });
+   const { data: runtimeHealth, isLoading: rLoading } = useListRuntimeHealth({ query: { queryKey: ["runtime-health"], refetchInterval: 10000 } });
   
   const queryClient = useQueryClient();
   
@@ -29,7 +31,7 @@ export function Projects() {
      }
   };
 
-  if (pLoading || aLoading || apLoading) return <div className="p-8 font-mono font-bold animate-pulse text-2xl uppercase">Loading Portfolio...</div>;
+   if (pLoading || aLoading || apLoading || tLoading || rLoading) return <div className="p-8 font-mono font-bold animate-pulse text-2xl uppercase">Loading Portfolio...</div>;
 
   return (
      <div className="space-y-8">
@@ -74,8 +76,13 @@ export function Projects() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
            {projects?.map(project => {
-              const projectAgents = agents?.filter(a => a.projectId === project.id) || [];
               const pendingApprovals = approvals?.filter(a => a.projectId === project.id && a.status === 'pending') || [];
+              const projectTasks = (tasks || []).filter((task) => task.projectId === project.id);
+              const projectAgents = agents?.filter(a => a.projectId === project.id) || [];
+              const blockedAgents = projectAgents.filter((agent) => agent.status === "blocked" || agent.status === "offline");
+              const assignedRuntimeIds = new Set(projectAgents.map((agent) => agent.runtimeConnectionId).filter(Boolean));
+              const unhealthyRuntime = (runtimeHealth || []).filter((runtime) => assignedRuntimeIds.has(runtime.id) && ["unhealthy", "degraded", "disabled"].includes(runtime.status));
+              const blockerCount = pendingApprovals.length + blockedAgents.length + unhealthyRuntime.length;
               
               return (
                  <BrutalCard key={project.id} className="group flex flex-col h-full">
@@ -90,7 +97,7 @@ export function Projects() {
                        {project.description || "No specific directive provided."}
                     </p>
                     
-                    <div className="grid grid-cols-2 gap-4 mb-6">
+                     <div className="grid grid-cols-2 gap-4 mb-6">
                        <div className="border-4 border-border bg-muted/30 p-3">
                           <div className="text-xs font-bold uppercase text-muted-foreground mb-1 flex items-center gap-1"><Users size={14}/> Staff Assigned</div>
                           <div className="text-2xl font-black font-mono">{projectAgents.length}</div>
@@ -101,16 +108,38 @@ export function Projects() {
                           )}
                        </div>
                        
-                       <div className={`border-4 p-3 ${pendingApprovals.length > 0 ? 'border-destructive bg-destructive/10' : 'border-border bg-muted/30'}`}>
-                          <div className={`text-xs font-bold uppercase mb-1 flex items-center gap-1 ${pendingApprovals.length > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                             <ShieldAlert size={14}/> Clearances
+                        <div className={`border-4 p-3 ${blockerCount > 0 ? 'border-destructive bg-destructive/10' : 'border-border bg-muted/30'}`}>
+                           <div className={`text-xs font-bold uppercase mb-1 flex items-center gap-1 ${blockerCount > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                              <ShieldAlert size={14}/> Blockers
                           </div>
-                          <div className={`text-2xl font-black font-mono ${pendingApprovals.length > 0 ? 'text-destructive' : ''}`}>{pendingApprovals.length}</div>
-                          <div className={`text-xs font-mono mt-1 ${pendingApprovals.length > 0 ? 'text-destructive font-bold animate-pulse' : 'text-muted-foreground'}`}>
-                             {pendingApprovals.length > 0 ? 'ACTION REQUIRED' : 'ALL CLEAR'}
+                           <div className={`text-2xl font-black font-mono ${blockerCount > 0 ? 'text-destructive' : ''}`}>{blockerCount}</div>
+                           <div className={`text-xs font-mono mt-1 ${blockerCount > 0 ? 'text-destructive font-bold animate-pulse' : 'text-muted-foreground'}`}>
+                              {blockerCount > 0 ? 'OPERATOR REVIEW' : 'ALL CLEAR'}
                           </div>
                        </div>
                     </div>
+                     <div className="mb-5 border-4 border-border bg-muted/20 p-3">
+                        <div className="mb-2 flex items-center justify-between border-b-2 border-border pb-2 text-xs font-black uppercase">
+                           <span className="flex items-center gap-2"><Activity size={14} /> Work pulse</span>
+                           <span className="font-mono text-muted-foreground">{projectTasks.length} tasks</span>
+                        </div>
+                        {projectTasks.length === 0 ? (
+                           <p className="font-mono text-xs text-muted-foreground">No task history yet. Add a task from the overview when this project has a next move.</p>
+                        ) : (
+                           <div className="space-y-2">
+                              {projectTasks.slice(0, 3).map((task) => <div key={task.id} className="flex items-center justify-between gap-2 font-mono text-xs"><span className="truncate">{task.title}</span><BrutalBadge variant={task.status === "done" ? "primary" : task.status === "review" ? "secondary" : "default"}>{task.status}</BrutalBadge></div>)}
+                           </div>
+                        )}
+                     </div>
+                     <div className="mb-5 border-l-4 border-accent bg-accent/10 p-3 font-mono text-xs">
+                        <div className="flex items-center gap-2 font-black uppercase"><Radio size={14} /> Ownership</div>
+                        <div className="mt-1">{projectAgents.length ? projectAgents.map((agent) => `${agent.name} (${agent.status})`).join(" · ") : "No owner assigned yet."}</div>
+                     </div>
+                     {blockerCount > 0 && <div className="mb-5 border-4 border-destructive bg-destructive/10 p-3 font-mono text-xs text-destructive">
+                        <div className="flex items-center gap-2 font-black uppercase"><CircleAlert size={14} /> Recovery guidance</div>
+                        <div className="mt-1">{pendingApprovals.length > 0 ? "Review the pending clearance." : blockedAgents.length > 0 ? "Inspect the blocked or offline owner in the roster." : "Restart or check the linked runtime before dispatching more work."}</div>
+                        {unhealthyRuntime.length > 0 && <div className="mt-1 flex items-center gap-1 font-bold"><RotateCcw size={13} /> {unhealthyRuntime.map((runtime) => `${runtime.name}: ${runtime.nextAction}`).join(" · ")}</div>}
+                     </div>}
                     
                     <div className="flex justify-between items-end border-t-4 border-border pt-4 mt-auto">
                        <div>

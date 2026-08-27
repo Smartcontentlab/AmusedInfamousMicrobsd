@@ -18,4 +18,6 @@ export interface ArenaScore {
   nextMove?: string;
   progressPercent?: number;
   scaleRevenueCents?: number;
+  assignedSkills?: string[];
+  tools?: string[];
 }

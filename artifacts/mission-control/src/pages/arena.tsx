@@ -1,11 +1,20 @@
-import { useGetArena, useAdvanceArena, getGetArenaQueryKey } from "@workspace/api-client-react";
+import { useGetArena, useAdvanceArena, getGetArenaQueryKey, useCreateAgent, useListProjects, useListSkills, useEquipAgentSkill, getListAgentsQueryKey } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
-import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Cpu, Code2, Banknote, MapPin, Zap } from "lucide-react";
+import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Code2, MapPin, Zap, UserPlus, Loader2, RefreshCw, Wrench } from "lucide-react";
+import { useState } from "react";
 
 export function Arena() {
-   const { data: arena, isLoading } = useGetArena();
+   const { data: arena, isLoading, isError, error, refetch } = useGetArena({ query: { queryKey: getGetArenaQueryKey(), refetchInterval: 5000 } });
+   const projectsQuery = useListProjects();
+   const skillsQuery = useListSkills();
    const queryClient = useQueryClient();
+   const createAgent = useCreateAgent();
+   const equipSkill = useEquipAgentSkill();
+   const [showSetup, setShowSetup] = useState(false);
+   const [contestant, setContestant] = useState({ name: "", role: "", provider: "OpenClaw", projectId: "" });
+   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+   const [setupError, setSetupError] = useState("");
 
    const advance = useAdvanceArena({
       mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetArenaQueryKey() }) }
@@ -14,12 +23,39 @@ export function Arena() {
    const handleAction = (action: 'start' | 'pause' | 'advance' | 'reset') => {
       advance.mutate({ data: { action } });
    };
+   const createContestant = () => {
+      if (!contestant.name.trim() || !contestant.role.trim()) return;
+      createAgent.mutate({ data: {
+         name: contestant.name.trim(),
+         role: contestant.role.trim(),
+         provider: contestant.provider,
+         projectId: contestant.projectId ? Number(contestant.projectId) : undefined,
+      } }, {
+         onSuccess: async (createdAgent) => {
+            try {
+               await Promise.all(selectedSkills.map((skillId) => equipSkill.mutateAsync({ agentId: createdAgent.id, skillId: Number(skillId) })));
+            } catch {
+               setSetupError("Contestant created, but one or more skills could not be equipped. Keep this panel open and use the Staff roster to retry.");
+               queryClient.invalidateQueries({ queryKey: getGetArenaQueryKey() });
+               queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+               return;
+            }
+            setContestant({ name: "", role: "", provider: "OpenClaw", projectId: "" });
+            setSelectedSkills([]);
+            setSetupError("");
+            setShowSetup(false);
+            queryClient.invalidateQueries({ queryKey: getGetArenaQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+         },
+      });
+   };
 
    if (isLoading) return <div className="p-8 font-mono font-bold animate-pulse text-2xl uppercase">Connecting to Arena Server...</div>;
+   if (isError) return <div data-testid="arena-error" className="border-4 border-destructive bg-destructive/10 p-8"><h1 className="text-2xl font-black uppercase">Arena feed interrupted</h1><p className="mt-2 font-mono text-sm">{error instanceof Error ? error.message : "The BuildOff state could not be loaded."}</p><BrutalButton data-testid="arena-retry-button" variant="destructive" className="mt-5" onClick={() => refetch()}><RefreshCw size={16} /> Retry feed</BrutalButton></div>;
 
    return (
       <div className="space-y-8 pb-12">
-         <div className="flex justify-between items-start md:items-center">
+          <div className="flex flex-col justify-between items-start gap-4 md:flex-row md:items-center">
             <div className="max-w-3xl">
               <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter flex items-center gap-4">
                  <Swords className="text-destructive drop-shadow-md" size={48} /> BuildOff Arena
@@ -27,7 +63,8 @@ export function Arena() {
               <p className="text-muted-foreground font-mono mt-4 text-lg border-l-4 border-destructive pl-4">
                  The ultimate testing ground. Watch agents compete in real-time to maximize revenue and hit win conditions before the timer runs out.
               </p>
-            </div>
+          </div>
+            <BrutalButton data-testid="arena-setup-toggle" variant="accent" onClick={() => setShowSetup((open) => !open)}><UserPlus size={17} /> Set up contestant</BrutalButton>
          </div>
 
          {/* Arena Status Panel */}
@@ -56,20 +93,49 @@ export function Arena() {
             </div>
 
             <div className="flex flex-wrap gap-4 bg-card border-4 border-border p-4 shadow-[4px_4px_0_hsl(var(--border))]">
-               <BrutalButton variant="destructive" onClick={() => handleAction('start')} disabled={arena?.status === 'live' || arena?.status === 'complete'} className="flex items-center gap-2 flex-1 md:flex-none justify-center">
+                <BrutalButton variant="destructive" onClick={() => handleAction('start')} disabled={advance.isPending || arena?.status === 'live' || arena?.status === 'complete'} className="flex items-center gap-2 flex-1 md:flex-none justify-center">
                   <Play size={18} /> START MATCH
                </BrutalButton>
-               <BrutalButton variant="secondary" onClick={() => handleAction('pause')} disabled={arena?.status !== 'live'} className="flex items-center gap-2 flex-1 md:flex-none justify-center">
+                <BrutalButton variant="secondary" onClick={() => handleAction('pause')} disabled={advance.isPending || arena?.status !== 'live'} className="flex items-center gap-2 flex-1 md:flex-none justify-center">
                   <Pause size={18} /> PAUSE
                </BrutalButton>
-               <BrutalButton variant="accent" onClick={() => handleAction('advance')} className="flex items-center gap-2 bg-accent text-accent-foreground flex-1 md:flex-none justify-center">
+                <BrutalButton variant="accent" onClick={() => handleAction('advance')} disabled={advance.isPending} className="flex items-center gap-2 bg-accent text-accent-foreground flex-1 md:flex-none justify-center">
                   <FastForward size={18} /> ADVANCE TICK
                </BrutalButton>
-               <BrutalButton variant="default" onClick={() => handleAction('reset')} className="flex items-center gap-2 md:ml-auto flex-1 md:flex-none justify-center">
+                <BrutalButton variant="default" onClick={() => handleAction('reset')} disabled={advance.isPending} className="flex items-center gap-2 md:ml-auto flex-1 md:flex-none justify-center">
                   <RotateCcw size={18} /> RESET ARENA
                </BrutalButton>
             </div>
+             {advance.isPending && <div className="mt-3 flex items-center gap-2 border-2 border-border bg-accent/10 p-2 font-mono text-xs font-bold uppercase"><Loader2 size={14} className="animate-spin" /> Sending arena control signal...</div>}
+             {advance.isError && <div data-testid="arena-action-error" className="mt-3 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">Arena control signal failed. The live feed was not changed; retry when the service is available.</div>}
+             {advance.isSuccess && !advance.isPending && <div data-testid="arena-action-success" className="mt-3 border-2 border-primary bg-primary/10 p-2 font-mono text-xs font-bold uppercase">Arena control signal acknowledged. The feed will refresh automatically.</div>}
          </BrutalCard>
+
+          {showSetup && (
+             <BrutalCard title={<span className="flex items-center gap-2"><UserPlus size={18} /> Contestant setup</span>} className="border-accent bg-accent/10">
+                <p className="mb-4 max-w-3xl font-mono text-sm text-muted-foreground">Create a named contestant and optionally place it on a project. It starts waiting; launch work from the live roster when you are ready.</p>
+                 <div className="grid gap-4 md:grid-cols-4">
+                   <label className="text-xs font-black uppercase">Callsign<input data-testid="arena-contestant-name" value={contestant.name} onChange={(event) => setContestant({ ...contestant, name: event.target.value })} placeholder="e.g. VECTOR" className="mt-2 w-full border-4 border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none" /></label>
+                   <label className="text-xs font-black uppercase">Specialty<input data-testid="arena-contestant-role" value={contestant.role} onChange={(event) => setContestant({ ...contestant, role: event.target.value })} placeholder="e.g. Growth operator" className="mt-2 w-full border-4 border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none" /></label>
+                   <label className="text-xs font-black uppercase">Provider<select data-testid="arena-contestant-provider" value={contestant.provider} onChange={(event) => setContestant({ ...contestant, provider: event.target.value })} className="mt-2 w-full border-4 border-border bg-card p-2 font-mono text-sm font-normal focus:outline-none"><option value="OpenClaw">OpenClaw</option><option value="Hermes">Hermes</option></select></label>
+                   <label className="text-xs font-black uppercase">Project<select data-testid="arena-contestant-project" value={contestant.projectId} onChange={(event) => setContestant({ ...contestant, projectId: event.target.value })} className="mt-2 w-full border-4 border-border bg-card p-2 font-mono text-sm font-normal focus:outline-none"><option value="">No project yet</option>{projectsQuery.data?.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+                   <fieldset className="border-4 border-border bg-card p-3 md:col-span-2">
+                      <legend className="px-1 text-xs font-black uppercase">Initial skill loadout</legend>
+                      <p className="mb-2 font-mono text-xs font-normal normal-case text-muted-foreground">Skills are equipped locally now. Any runtime installation still waits for approval.</p>
+                      <div className="flex flex-wrap gap-2">
+                         {skillsQuery.data?.length ? skillsQuery.data.map((skill) => (
+                            <label key={skill.id} className="flex cursor-pointer items-center gap-2 border-2 border-border bg-muted/30 px-2 py-1 font-mono text-xs font-bold normal-case hover:bg-accent/20">
+                               <input type="checkbox" checked={selectedSkills.includes(String(skill.id))} onChange={(event) => setSelectedSkills((current) => event.target.checked ? [...current, String(skill.id)] : current.filter((id) => id !== String(skill.id)))} />
+                               {skill.name}
+                            </label>
+                         )) : <span className="font-mono text-xs font-normal normal-case text-muted-foreground">No catalog skills available yet.</span>}
+                      </div>
+                   </fieldset>
+                </div>
+                {(createAgent.isError || setupError) && <p data-testid="arena-contestant-error" className="mt-3 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{setupError || "Contestant could not be created. Keep the details and try again."}</p>}
+                <div className="mt-5 flex gap-3"><BrutalButton data-testid="arena-create-contestant" disabled={createAgent.isPending || equipSkill.isPending || !contestant.name.trim() || !contestant.role.trim()} onClick={createContestant}>{createAgent.isPending || equipSkill.isPending ? <><Loader2 size={15} className="animate-spin" /> Preparing...</> : "Add contestant"}</BrutalButton><BrutalButton variant="default" onClick={() => setShowSetup(false)}>Cancel</BrutalButton></div>
+             </BrutalCard>
+          )}
 
          {/* The House / Contestants */}
          <div className="mt-12 space-y-6">
@@ -79,11 +145,11 @@ export function Arena() {
             </h2>
             
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-               {arena?.scores?.sort((a, b) => b.score - a.score).map((score, idx) => (
-                  <div key={score.agentId} className={`border-8 ${idx === 0 && arena.status !== 'ready' ? 'border-accent shadow-[8px_8px_0_hsl(var(--accent))]' : 'border-border shadow-[8px_8px_0_hsl(var(--border))]'} bg-card relative overflow-hidden transition-all hover:-translate-y-1`}>
+                {[...(arena?.scores || [])].sort((a, b) => b.score - a.score).map((score, idx) => (
+                 <div key={score.agentId} className={`border-8 ${idx === 0 && arena?.status !== 'ready' ? 'border-accent shadow-[8px_8px_0_hsl(var(--accent))]' : 'border-border shadow-[8px_8px_0_hsl(var(--border))]'} bg-card relative overflow-hidden transition-all hover:-translate-y-1`}>
                      
                      {/* Leader Banner */}
-                     {idx === 0 && arena.status !== 'ready' && (
+                     {idx === 0 && arena?.status !== 'ready' && (
                         <div className="absolute top-4 -right-12 bg-accent text-accent-foreground font-black uppercase text-xs py-1 px-12 rotate-45 border-y-4 border-border shadow-sm z-10">
                            LEADER
                         </div>
@@ -91,17 +157,18 @@ export function Arena() {
 
                      {/* Room Header */}
                      <div className="flex border-b-8 border-border">
-                        <div className={`p-6 flex-1 flex flex-col justify-center ${idx === 0 && arena.status !== 'ready' ? 'bg-accent/10' : 'bg-muted/30'}`}>
+                        <div className={`p-6 flex-1 flex flex-col justify-center ${idx === 0 && arena?.status !== 'ready' ? 'bg-accent/10' : 'bg-muted/30'}`}>
                            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase mb-1">
                               <MapPin size={14} /> {score.room || 'MAIN HALL'}
                            </div>
                            <h3 className="text-4xl font-black uppercase tracking-tighter truncate" title={score.agentName}>{score.agentName}</h3>
-                           <div className="flex items-center gap-3 mt-3 flex-wrap">
+                            <div className="flex items-center gap-3 mt-3 flex-wrap">
                               <BrutalBadge variant="primary" className="border-4 shadow-[2px_2px_0_hsl(var(--border))] px-3 py-1 text-sm">{score.phase || 'IDLE'}</BrutalBadge>
                               <div className="flex items-center gap-1 font-mono text-xs font-bold bg-background border-2 border-border px-2 py-1">
                                  <Monitor size={12} className={score.computerStatus?.includes('ONLINE') ? 'text-green-500' : 'text-destructive'} /> 
-                                 {score.computerStatus || 'SYS_OFFLINE'}
+                                  {score.computerStatus || 'SYS_OFFLINE'}
                               </div>
+                               <div className="flex items-center gap-2 border-2 border-border bg-background px-2 py-1 font-mono text-xs font-bold uppercase"><span className={`arena-worker ${score.computerStatus === "idle" ? "arena-worker-idle" : ""}`} /> {score.computerStatus || "idle"}</div>
                            </div>
                         </div>
                         
@@ -133,13 +200,20 @@ export function Arena() {
 
                      {/* Action & Status */}
                      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-card">
-                        <div className="space-y-2">
+                         <div className="space-y-2">
                            <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground border-b-4 border-border pb-1">
                               <Code2 size={14} /> Startup Idea
                            </div>
                            <div className="font-mono text-sm leading-relaxed min-h-12">
                               {score.businessIdea || "Analyzing market opportunities..."}
                            </div>
+                         </div>
+                         <div className="space-y-2">
+                            <div className="flex items-center gap-2 border-b-4 border-border pb-1 text-xs font-bold uppercase text-muted-foreground"><Wrench size={14} /> Contestant loadout</div>
+                            <div className="flex flex-wrap gap-2">
+                               {(score.assignedSkills || []).length > 0 ? score.assignedSkills?.map((skill) => <BrutalBadge key={skill} variant="accent">{skill}</BrutalBadge>) : <span className="font-mono text-xs text-muted-foreground">No skills assigned yet. Equip this contestant from the roster.</span>}
+                            </div>
+                            <div className="font-mono text-xs text-muted-foreground"><span className="font-black uppercase text-foreground">Tool lanes:</span> {(score.tools || []).length > 0 ? score.tools?.join(" / ") : "none reported"}</div>
                         </div>
                         
                         <div className="space-y-2">

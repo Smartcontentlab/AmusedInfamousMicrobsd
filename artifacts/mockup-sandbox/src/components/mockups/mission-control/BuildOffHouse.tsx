@@ -8,9 +8,13 @@ import {
   CircleAlert,
   Clock3,
   Coins,
+  Database,
   Flag,
+  Gauge,
+  Globe2,
   Hammer,
   Lightbulb,
+  LockKeyhole,
   MousePointer2,
   Radio,
   Send,
@@ -46,6 +50,28 @@ const contestants: Contestant[] = [
   { name: "ORBIT", initials: "O", zone: "south studio", idea: "Relay Repair", role: "reliability builder", status: "shipped", revenue: 2210, target: 2600, progress: 88, tools: ["OpenClaw", "Linear", "Railway"], skills: ["infra", "automation"], tone: "butter", activity: "watching the first paid workflow", },
   { name: "VELA", initials: "V", zone: "west studio", idea: "Tiny Thesis", role: "signal curator", status: "blocked", revenue: 420, target: 2200, progress: 29, tools: ["Hermes", "Airtable", "Rive"], skills: ["positioning", "visuals"], tone: "violet", activity: "waiting on a human decision", blocker: "Choose the audience: founders or teachers", },
 ];
+
+const seasonRounds = [
+  ["0", "Meet contestants", "personality"],
+  ["1", "Find opportunity", "research + choice"],
+  ["2", "Build MVP", "real product"],
+  ["3", "First customer", "acquisition"],
+  ["4", "First $100", "revenue"],
+] as const;
+
+const freeTools = ["Browser", "GitHub", "Coding", "Research", "Memory", "Planning", "Database"];
+const unlockTools = [
+  { label: "n8n", round: "R2" },
+  { label: "Stripe", round: "R3" },
+  { label: "Paid ads", round: "R4" },
+];
+
+const scoreSignals: Record<string, Array<[string, string, string]>> = {
+  NOVA: [["website", "live", "10"], ["traffic", "418 visits", "7"], ["signups", "31", "8"], ["revenue", "$1,840", "9"], ["conversion", "7.4%", "11"], ["cost efficiency", "4.8x", "8"], ["adaptability", "strong", "9"]],
+  MICA: [["website", "live", "10"], ["traffic", "362 visits", "6"], ["signups", "28", "7"], ["revenue", "$1,260", "7"], ["conversion", "7.7%", "12"], ["cost efficiency", "3.2x", "6"], ["adaptability", "strong", "9"]],
+  ORBIT: [["website", "live", "10"], ["traffic", "507 visits", "8"], ["signups", "42", "10"], ["revenue", "$2,210", "10"], ["conversion", "8.3%", "13"], ["cost efficiency", "6.1x", "10"], ["adaptability", "steady", "7"]],
+  VELA: [["website", "draft", "0"], ["traffic", "86 visits", "3"], ["signups", "9", "3"], ["revenue", "$420", "4"], ["conversion", "4.1%", "6"], ["cost efficiency", "1.6x", "3"], ["adaptability", "learning", "6"]],
+};
 
 const colors: Record<Tone, { ink: string; fill: string; soft: string; line: string }> = {
   coral: { ink: "#ff765f", fill: "#ff765f", soft: "#3b2426", line: "#a84c45" },
@@ -105,6 +131,28 @@ export function BuildOffHouse() {
           </div>
         </header>
 
+        <Card className="mb-4 overflow-hidden">
+          <div className="grid gap-0 lg:grid-cols-[1.05fr_1.5fr_1fr]">
+            <div className="border-b border-[#d8cdbd] bg-[#302b37] p-4 text-[#fff7ec] lg:border-b-0 lg:border-r">
+              <Label tone="butter"><Sparkles size={13} /> game master layer</Label>
+              <div className="font-['Space_Grotesk'] text-xl font-black">The house checks the world.</div>
+              <p className="mt-1 text-xs leading-relaxed text-[#d9cbbd]">Scores come from live evidence, not contestant claims.</p>
+              <div className="mt-3 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.12em] text-[#ffd36b]"><ShieldCheck size={13} /> rules · tools · events · eliminations</div>
+            </div>
+            <div className="p-4">
+              <div className="mb-3 flex items-center justify-between"><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#867968]">season 0 · 5-round arc</div><span className="font-mono text-xs font-bold text-[#d05449]">round 2 / 4</span></div>
+              <div className="grid grid-cols-5 gap-1">
+                {seasonRounds.map(([number, title, detail], index) => <button key={number} onClick={() => notify(`Round ${number}: ${title}`)} className={`min-w-0 border p-2 text-left ${index <= 2 ? "border-[#d05449] bg-[#f4dfca]" : "border-[#d8cdbd] bg-[#f8eee1]"}`}><div className="font-mono text-[10px] font-bold text-[#d05449]">R{number}</div><div className="mt-1 truncate text-[10px] font-bold">{title}</div><div className="mt-1 hidden text-[9px] text-[#867968] sm:block">{detail}</div></button>)}
+              </div>
+            </div>
+            <div className="border-t border-[#d8cdbd] p-4 lg:border-l lg:border-t-0">
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#867968]"><Flag size={13} className="text-[#d05449]" /> three lives each</div>
+              <div className="grid grid-cols-4 gap-2">{contestants.map((person, index) => <button key={person.name} onClick={() => setSelected(person.name)} className="text-left"><div className="mb-1 flex items-center justify-between text-[9px] font-bold"><span>{person.name}</span><span className="text-[#867968]">{index === 3 ? "2/3" : "3/3"}</span></div><div className="flex gap-1">{[0, 1, 2].map((life) => <span key={life} className={`h-2 flex-1 border ${index === 3 && life === 2 ? "border-[#d8cdbd] bg-[#f8eee1]" : "border-[#d05449] bg-[#ff765f]"}`} />)}</div></button>)}</div>
+              <p className="mt-3 text-[10px] leading-relaxed text-[#867968]">Lowest score loses a life. Zero lives means out. Ties go to adaptability.</p>
+            </div>
+          </div>
+        </Card>
+
         <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_330px]">
           <Card className="overflow-hidden p-4 sm:p-6">
             <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
@@ -134,7 +182,7 @@ export function BuildOffHouse() {
           </Card>
 
           <Card className="p-5">
-            <div className="mb-4 flex items-start justify-between"><div><Label tone="coral"><MousePointer2 size={13} /> host console</Label><h2 className="font-['Space_Grotesk'] text-xl font-black tracking-[-0.04em]">Keep the room moving.</h2></div><span className="rounded-full bg-[#ff765f] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#302b37]">live</span></div>
+            <div className="mb-4 flex items-start justify-between"><div><Label tone="coral"><MousePointer2 size={13} /> game master control</Label><h2 className="font-['Space_Grotesk'] text-xl font-black tracking-[-0.04em]">Keep the room moving.</h2></div><span className="rounded-full bg-[#ff765f] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#302b37]">live</span></div>
             <div className="border-l-2 border-[#ff765f] bg-[#f4dfca] p-3"><div className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[#d05449]">decision needed · VELA</div><p className="text-sm font-semibold leading-snug">{approved ? "Audience selected: teachers. VELA can ship the landing page." : active.blocker ?? "Pick a contestant to review their next move."}</p></div>
             <button onClick={() => { setApproved((value) => !value); notify(approved ? "Decision reopened for host" : "Decision sent to VELA"); }} className={`mt-3 flex w-full items-center justify-center gap-2 px-3 py-3 text-[10px] font-black uppercase tracking-[0.14em] ${approved ? "bg-[#53d6c7] text-[#18312d]" : "bg-[#302b37] text-[#fff7ec]"}`}><Check size={14} /> {approved ? "decision sent" : "approve audience: teachers"}</button>
             <div className="mt-5 border-t border-[#d8cdbd] pt-4"><div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.13em] text-[#867968]"><span>challenge progress</span><span className="text-[#302b37]">day {day} / 21</span></div><div className="h-2 bg-[#dcc9b2]"><div className="h-full w-[57%] bg-[#d05449]" /></div><div className="mt-2 flex justify-between text-[10px] text-[#867968]"><span>brief</span><span>proof</span><span>showdown</span></div></div>
@@ -155,6 +203,24 @@ export function BuildOffHouse() {
             {active.blocker && <div className="mt-4 flex items-start gap-2 border border-[#a84c45] bg-[#f2d6cf] p-3 text-xs"><CircleAlert size={15} className="mt-0.5 shrink-0 text-[#b4473e]" /><span><strong>Blocked:</strong> {approved && active.name === "VELA" ? "decision cleared — ready to build" : active.blocker}</span></div>}
           </Card>
         </div>
+        <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+          <Card className="p-5">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-2"><div><Label tone="butter"><Gauge size={13} /> evidence score</Label><h2 className="font-['Space_Grotesk'] text-xl font-black">Signals the Game Master can verify.</h2></div><span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#867968]">real outcomes only</span></div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+              {scoreSignals[active.name].map(([metric, value, points]) => <button key={metric} onClick={() => notify(`${metric} evidence checked`)} className="border border-[#d8cdbd] bg-[#f6eadb] p-2 text-left hover:border-[#a88f73]"><div className="truncate text-[9px] font-bold uppercase tracking-[0.08em] text-[#867968]">{metric}</div><div className="mt-1 truncate font-mono text-sm font-bold">{value}</div><div className="mt-1 text-[9px] font-bold text-[#d05449]">{points} pts</div></button>)}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-[#867968]"><span>website + traffic = deployment + analytics</span><span>signups + revenue = database + payments</span><span>cost + conversion = efficiency</span></div>
+          </Card>
+          <Card className="p-5">
+            <div className="mb-4"><Label tone="violet"><Wrench size={13} /> business toolbox</Label><h2 className="font-['Space_Grotesk'] text-xl font-black">Free now. Earn the rest.</h2></div>
+            <div className="mb-3 flex flex-wrap gap-1.5">{freeTools.map((tool) => <span key={tool} className="border border-[#367f78] bg-[#e0f1e9] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-[#28766c]">{tool}</span>)}</div>
+            <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.14em] text-[#867968]">round unlocks</div>
+            <div className="grid grid-cols-3 gap-2">{unlockTools.map((tool, index) => <button key={tool.label} onClick={() => notify(`${tool.label} unlocks in ${tool.round}`)} className={`border p-2 text-left ${index === 0 ? "border-[#d05449] bg-[#f4dfcf]" : "border-[#d8cdbd] bg-[#f8eee1]"}`}><div className="flex items-center gap-1 text-[10px] font-bold"><LockKeyhole size={11} /> {tool.label}</div><div className="mt-1 font-mono text-[9px] text-[#867968]">{tool.round} reward</div></button>)}</div>
+          </Card>
+        </div>
+        <Card className="mt-4 p-4">
+          <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#867968]"><Database size={15} className="text-[#3b9187]" /><span className="text-[#302b37]">business trail</span><span className="h-1 w-1 rounded-full bg-[#b9a896]" /><span className="flex items-center gap-1"><Globe2 size={13} /> Vercel website</span><span className="h-1 w-1 rounded-full bg-[#b9a896]" /><span className="flex items-center gap-1"><Database size={13} /> Supabase customers</span><span className="h-1 w-1 rounded-full bg-[#b9a896]" /><span className="flex items-center gap-1"><Coins size={13} /> Stripe payments</span><span className="ml-auto text-[#3b9187]">evidence synced · 18 sec ago</span></div>
+        </Card>
         <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#b9a896] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#867968]"><span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#53d6c7]" /> outputs only · private reasoning stays private</span><span className="flex items-center gap-2"><Clock3 size={13} /> {notice}</span><div className="flex items-center gap-2"><input value={announcement} onChange={(event) => setAnnouncement(event.target.value)} placeholder="quick host note" className="w-32 border-b border-[#b9a896] bg-transparent py-1 text-[10px] outline-none placeholder:text-[#9c8d7d]" /><button onClick={() => { if (announcement.trim()) { notify("Host note pinned to the floor"); setAnnouncement(""); } }} aria-label="Send host note" className="text-[#d05449]"><Send size={14} /></button><button onClick={() => notify("Floor guide opened")} aria-label="Open floor guide" className="text-[#867968]"><Hammer size={14} /></button></div></footer>
       </div>
     </main>

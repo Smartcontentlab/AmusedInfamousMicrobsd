@@ -103,6 +103,7 @@ export const ListAgentsResponseItem = zod.object({
   "name": zod.string(),
   "role": zod.string(),
   "provider": zod.string(),
+  "runtimeConnectionId": zod.number().nullable(),
   "status": zod.enum(['working', 'waiting', 'reviewing', 'blocked', 'offline']),
   "projectId": zod.number().nullable(),
   "skillCount": zod.number(),
@@ -135,6 +136,7 @@ export const CreateAgentResponse = zod.object({
   "name": zod.string(),
   "role": zod.string(),
   "provider": zod.string(),
+  "runtimeConnectionId": zod.number().nullable(),
   "status": zod.enum(['working', 'waiting', 'reviewing', 'blocked', 'offline']),
   "projectId": zod.number().nullable(),
   "skillCount": zod.number(),
@@ -165,7 +167,9 @@ export const UpdateAgentBody = zod.object({
   "room": zod.string().optional(),
   "businessIdea": zod.string().optional(),
   "phase": zod.string().optional(),
-  "nextMove": zod.string().optional()
+  "nextMove": zod.string().optional(),
+  "runtimeConnectionId": zod.number().optional(),
+  "runtime": zod.string().optional()
 })
 
 export const UpdateAgentResponse = zod.object({
@@ -173,6 +177,7 @@ export const UpdateAgentResponse = zod.object({
   "name": zod.string(),
   "role": zod.string(),
   "provider": zod.string(),
+  "runtimeConnectionId": zod.number().nullable(),
   "status": zod.enum(['working', 'waiting', 'reviewing', 'blocked', 'offline']),
   "projectId": zod.number().nullable(),
   "skillCount": zod.number(),
@@ -435,5 +440,249 @@ export const AdvanceArenaResponse = zod.object({
   "scaleRevenueCents": zod.number().optional()
 }))
 })
+
+
+/**
+ * @summary List redacted runtime connections
+ */
+export const ListRuntimeConnectionsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "provider": zod.enum(['hermes', 'openclaw']),
+  "status": zod.enum(['unknown', 'healthy', 'degraded', 'unhealthy', 'disabled']),
+  "capabilities": zod.array(zod.string()),
+  "hasCredentials": zod.boolean(),
+  "lastCheckedAt": zod.coerce.date().nullable(),
+  "errorCode": zod.string().nullable(),
+  "errorMessage": zod.string().nullable()
+})
+export const ListRuntimeConnectionsResponse = zod.array(ListRuntimeConnectionsResponseItem)
+
+
+/**
+ * @summary Add a server-side runtime connection
+ */
+
+
+
+
+export const CreateRuntimeConnectionBody = zod.object({
+  "name": zod.string().min(1),
+  "provider": zod.enum(['hermes', 'openclaw']),
+  "endpointUrl": zod.string(),
+  "token": zod.string().min(1).optional()
+})
+
+export const CreateRuntimeConnectionResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "provider": zod.enum(['hermes', 'openclaw']),
+  "status": zod.enum(['unknown', 'healthy', 'degraded', 'unhealthy', 'disabled']),
+  "capabilities": zod.array(zod.string()),
+  "hasCredentials": zod.boolean(),
+  "lastCheckedAt": zod.coerce.date().nullable(),
+  "errorCode": zod.string().nullable(),
+  "errorMessage": zod.string().nullable()
+})
+
+
+/**
+ * @summary Check a runtime and discover capabilities
+ */
+export const CheckRuntimeConnectionParams = zod.object({
+  "connectionId": zod.coerce.number()
+})
+
+export const CheckRuntimeConnectionResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "provider": zod.enum(['hermes', 'openclaw']),
+  "status": zod.enum(['unknown', 'healthy', 'degraded', 'unhealthy', 'disabled']),
+  "capabilities": zod.array(zod.string()),
+  "lastCheckedAt": zod.coerce.date().nullable(),
+  "errorCode": zod.string().nullable(),
+  "errorMessage": zod.string().nullable(),
+  "nextAction": zod.string(),
+  "latencyMs": zod.number().nullish()
+})
+
+
+/**
+ * @summary List runtime health snapshots
+ */
+export const ListRuntimeHealthResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "provider": zod.enum(['hermes', 'openclaw']),
+  "status": zod.enum(['unknown', 'healthy', 'degraded', 'unhealthy', 'disabled']),
+  "capabilities": zod.array(zod.string()),
+  "lastCheckedAt": zod.coerce.date().nullable(),
+  "errorCode": zod.string().nullable(),
+  "errorMessage": zod.string().nullable(),
+  "nextAction": zod.string(),
+  "latencyMs": zod.number().nullish()
+})
+export const ListRuntimeHealthResponse = zod.array(ListRuntimeHealthResponseItem)
+
+
+/**
+ * @summary Get an agent's current or most recent run
+ */
+export const GetAgentRunParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const GetAgentRunResponse = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "connectionId": zod.number(),
+  "providerRunId": zod.string().nullable(),
+  "task": zod.string(),
+  "status": zod.enum(['queued', 'running', 'paused', 'stopping', 'stopped', 'completed', 'failed']),
+  "startedAt": zod.coerce.date().nullable(),
+  "endedAt": zod.coerce.date().nullable(),
+  "lastEventAt": zod.coerce.date().nullable(),
+  "lastEvent": zod.string().nullable(),
+  "errorCode": zod.string().nullable(),
+  "errorMessage": zod.string().nullable(),
+  "supportsPause": zod.boolean(),
+  "supportsResume": zod.boolean(),
+  "supportsStop": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Launch a live agent run
+ */
+export const LaunchAgentRunParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+
+
+
+export const LaunchAgentRunBody = zod.object({
+  "task": zod.string().min(1),
+  "runtimeConnectionId": zod.number().optional()
+})
+
+export const LaunchAgentRunResponse = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "connectionId": zod.number(),
+  "providerRunId": zod.string().nullable(),
+  "task": zod.string(),
+  "status": zod.enum(['queued', 'running', 'paused', 'stopping', 'stopped', 'completed', 'failed']),
+  "startedAt": zod.coerce.date().nullable(),
+  "endedAt": zod.coerce.date().nullable(),
+  "lastEventAt": zod.coerce.date().nullable(),
+  "lastEvent": zod.string().nullable(),
+  "errorCode": zod.string().nullable(),
+  "errorMessage": zod.string().nullable(),
+  "supportsPause": zod.boolean(),
+  "supportsResume": zod.boolean(),
+  "supportsStop": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Pause an agent run when supported
+ */
+export const PauseAgentRunParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const PauseAgentRunResponse = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "connectionId": zod.number(),
+  "providerRunId": zod.string().nullable(),
+  "task": zod.string(),
+  "status": zod.enum(['queued', 'running', 'paused', 'stopping', 'stopped', 'completed', 'failed']),
+  "startedAt": zod.coerce.date().nullable(),
+  "endedAt": zod.coerce.date().nullable(),
+  "lastEventAt": zod.coerce.date().nullable(),
+  "lastEvent": zod.string().nullable(),
+  "errorCode": zod.string().nullable(),
+  "errorMessage": zod.string().nullable(),
+  "supportsPause": zod.boolean(),
+  "supportsResume": zod.boolean(),
+  "supportsStop": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Resume an agent run when supported
+ */
+export const ResumeAgentRunParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const ResumeAgentRunResponse = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "connectionId": zod.number(),
+  "providerRunId": zod.string().nullable(),
+  "task": zod.string(),
+  "status": zod.enum(['queued', 'running', 'paused', 'stopping', 'stopped', 'completed', 'failed']),
+  "startedAt": zod.coerce.date().nullable(),
+  "endedAt": zod.coerce.date().nullable(),
+  "lastEventAt": zod.coerce.date().nullable(),
+  "lastEvent": zod.string().nullable(),
+  "errorCode": zod.string().nullable(),
+  "errorMessage": zod.string().nullable(),
+  "supportsPause": zod.boolean(),
+  "supportsResume": zod.boolean(),
+  "supportsStop": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Safely stop an agent run
+ */
+export const StopAgentRunParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const StopAgentRunResponse = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "connectionId": zod.number(),
+  "providerRunId": zod.string().nullable(),
+  "task": zod.string(),
+  "status": zod.enum(['queued', 'running', 'paused', 'stopping', 'stopped', 'completed', 'failed']),
+  "startedAt": zod.coerce.date().nullable(),
+  "endedAt": zod.coerce.date().nullable(),
+  "lastEventAt": zod.coerce.date().nullable(),
+  "lastEvent": zod.string().nullable(),
+  "errorCode": zod.string().nullable(),
+  "errorMessage": zod.string().nullable(),
+  "supportsPause": zod.boolean(),
+  "supportsResume": zod.boolean(),
+  "supportsStop": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List recent activity for an agent
+ */
+export const ListAgentActivityParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const ListAgentActivityResponseItem = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number().nullable(),
+  "runId": zod.number().nullable(),
+  "kind": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAgentActivityResponse = zod.array(ListAgentActivityResponseItem)
 
 

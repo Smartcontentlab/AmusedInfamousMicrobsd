@@ -84,6 +84,8 @@ export interface Agent {
   name: string;
   role: string;
   provider: string;
+  /** @nullable */
+  runtimeConnectionId: number | null;
   status: AgentStatus;
   /** @nullable */
   projectId: number | null;
@@ -129,6 +131,8 @@ export interface AgentUpdate {
   businessIdea?: string;
   phase?: string;
   nextMove?: string;
+  runtimeConnectionId?: number;
+  runtime?: string;
 }
 
 export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
@@ -344,5 +348,148 @@ export interface Dashboard {
   activeAgentCount: number;
   recommendation: string;
   recentActivity: string[];
+}
+
+export type RuntimeConnectionSafeProvider = typeof RuntimeConnectionSafeProvider[keyof typeof RuntimeConnectionSafeProvider];
+
+
+export const RuntimeConnectionSafeProvider = {
+  hermes: 'hermes',
+  openclaw: 'openclaw',
+} as const;
+
+export type RuntimeConnectionSafeStatus = typeof RuntimeConnectionSafeStatus[keyof typeof RuntimeConnectionSafeStatus];
+
+
+export const RuntimeConnectionSafeStatus = {
+  unknown: 'unknown',
+  healthy: 'healthy',
+  degraded: 'degraded',
+  unhealthy: 'unhealthy',
+  disabled: 'disabled',
+} as const;
+
+export interface RuntimeConnectionSafe {
+  id: number;
+  name: string;
+  provider: RuntimeConnectionSafeProvider;
+  status: RuntimeConnectionSafeStatus;
+  capabilities: string[];
+  hasCredentials: boolean;
+  /** @nullable */
+  lastCheckedAt: string | null;
+  /** @nullable */
+  errorCode: string | null;
+  /** @nullable */
+  errorMessage: string | null;
+}
+
+export type RuntimeConnectionInputProvider = typeof RuntimeConnectionInputProvider[keyof typeof RuntimeConnectionInputProvider];
+
+
+export const RuntimeConnectionInputProvider = {
+  hermes: 'hermes',
+  openclaw: 'openclaw',
+} as const;
+
+export interface RuntimeConnectionInput {
+  /** @minLength 1 */
+  name: string;
+  provider: RuntimeConnectionInputProvider;
+  endpointUrl: string;
+  /** @minLength 1 */
+  token?: string;
+}
+
+export type RuntimeHealthProvider = typeof RuntimeHealthProvider[keyof typeof RuntimeHealthProvider];
+
+
+export const RuntimeHealthProvider = {
+  hermes: 'hermes',
+  openclaw: 'openclaw',
+} as const;
+
+export type RuntimeHealthStatus = typeof RuntimeHealthStatus[keyof typeof RuntimeHealthStatus];
+
+
+export const RuntimeHealthStatus = {
+  unknown: 'unknown',
+  healthy: 'healthy',
+  degraded: 'degraded',
+  unhealthy: 'unhealthy',
+  disabled: 'disabled',
+} as const;
+
+export interface RuntimeHealth {
+  id: number;
+  name: string;
+  provider: RuntimeHealthProvider;
+  status: RuntimeHealthStatus;
+  capabilities: string[];
+  /** @nullable */
+  lastCheckedAt: string | null;
+  /** @nullable */
+  errorCode: string | null;
+  /** @nullable */
+  errorMessage: string | null;
+  nextAction: string;
+  /** @nullable */
+  latencyMs?: number | null;
+}
+
+export interface AgentRunInput {
+  /** @minLength 1 */
+  task: string;
+  runtimeConnectionId?: number;
+}
+
+export type AgentRunStatus = typeof AgentRunStatus[keyof typeof AgentRunStatus];
+
+
+export const AgentRunStatus = {
+  queued: 'queued',
+  running: 'running',
+  paused: 'paused',
+  stopping: 'stopping',
+  stopped: 'stopped',
+  completed: 'completed',
+  failed: 'failed',
+} as const;
+
+export interface AgentRun {
+  id: number;
+  agentId: number;
+  connectionId: number;
+  /** @nullable */
+  providerRunId: string | null;
+  task: string;
+  status: AgentRunStatus;
+  /** @nullable */
+  startedAt: string | null;
+  /** @nullable */
+  endedAt: string | null;
+  /** @nullable */
+  lastEventAt: string | null;
+  /** @nullable */
+  lastEvent: string | null;
+  /** @nullable */
+  errorCode: string | null;
+  /** @nullable */
+  errorMessage: string | null;
+  supportsPause: boolean;
+  supportsResume: boolean;
+  supportsStop: boolean;
+  createdAt: string;
+}
+
+export interface ActivityEvent {
+  id: number;
+  /** @nullable */
+  agentId: number | null;
+  /** @nullable */
+  runId: number | null;
+  kind: string;
+  message: string;
+  createdAt: string;
 }
 

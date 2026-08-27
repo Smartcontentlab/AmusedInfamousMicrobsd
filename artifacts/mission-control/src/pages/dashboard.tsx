@@ -1,15 +1,17 @@
-import { useGetDashboard, useHealthCheck, useListTasks, useListAgents, useListProjects, useCreateTask, getListTasksQueryKey, useListApprovals } from "@workspace/api-client-react";
+import { useGetDashboard, useHealthCheck, useListTasks, useListAgents, useListProjects, useCreateTask, getListTasksQueryKey, useListApprovals, useListRuntimeHealth, useListRuntimeConnections } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Activity, AlertTriangle, ShieldCheck, ShieldAlert, ArrowRight } from "lucide-react";
+import { Activity, AlertTriangle, ShieldCheck, ShieldAlert, ArrowRight, HeartPulse, Link2, RefreshCw, Radio, Server } from "lucide-react";
 import { Link } from "wouter";
 
 export function Dashboard() {
-  const { data: dashboard, isLoading: dashLoading } = useGetDashboard();
-  const { data: health, isLoading: healthLoading } = useHealthCheck();
-  const { data: tasks, isLoading: tasksLoading } = useListTasks();
-  const { data: agents, isLoading: agentsLoading } = useListAgents();
+  const { data: dashboard, isLoading: dashLoading, isError: dashError, error: dashErrorValue, refetch: refetchDashboard } = useGetDashboard();
+  const { data: health, isLoading: healthLoading, isError: healthError } = useHealthCheck({ query: { queryKey: ["/api/healthz"], refetchInterval: 10000 } });
+  const { data: runtimeHealth, isLoading: runtimeHealthLoading, isError: runtimeHealthError, refetch: refetchRuntimeHealth } = useListRuntimeHealth({ query: { queryKey: ["runtime-health"], refetchInterval: 10000 } });
+  const { data: runtimeConnections, isLoading: runtimeConnectionsLoading, isError: runtimeConnectionsError } = useListRuntimeConnections({ query: { queryKey: ["runtime-connections"], refetchInterval: 15000 } });
+  const { data: tasks, isLoading: tasksLoading } = useListTasks({ query: { queryKey: ["/api/tasks"], refetchInterval: 10000 } });
+  const { data: agents, isLoading: agentsLoading } = useListAgents({ query: { queryKey: ["/api/agents"], refetchInterval: 10000 } });
   const { data: projects, isLoading: projectsLoading } = useListProjects();
   const { data: approvals, isLoading: approvalsLoading } = useListApprovals();
 
@@ -25,11 +27,18 @@ export function Dashboard() {
 
   const [command, setCommand] = useState("");
 
-  if (dashLoading || healthLoading || tasksLoading || agentsLoading || projectsLoading || approvalsLoading) {
-     return <div className="p-8 font-mono font-bold animate-pulse text-2xl uppercase">Initiating Systems...</div>;
+  if (dashLoading || healthLoading || tasksLoading || agentsLoading || projectsLoading || approvalsLoading || runtimeHealthLoading || runtimeConnectionsLoading) {
+     return <div className="space-y-4 p-2 font-mono font-bold"><div className="h-10 w-2/3 animate-pulse bg-muted" /><div className="h-24 animate-pulse border-4 border-border bg-muted/50" /><div className="h-64 animate-pulse border-4 border-border bg-muted/50" /></div>;
+  }
+
+  if (dashError) {
+     return <div className="border-4 border-destructive bg-destructive/10 p-8"><h1 className="text-2xl font-black uppercase">Command feed interrupted</h1><p className="mt-2 font-mono text-sm">{dashErrorValue instanceof Error ? dashErrorValue.message : "Dashboard data is unavailable."}</p><BrutalButton data-testid="dashboard-retry-button" variant="destructive" className="mt-5" onClick={() => refetchDashboard()}><RefreshCw size={16} /> Retry feed</BrutalButton></div>;
   }
 
   const pendingApprovals = approvals?.filter(a => a.status === 'pending') || [];
+  const runtimeHealthList = Array.isArray(runtimeHealth) ? runtimeHealth as Array<Record<string, any>> : [];
+  const runtimeConnectionList = Array.isArray(runtimeConnections) ? runtimeConnections as Array<Record<string, any>> : [];
+  const runtimeOnline = runtimeHealthList.filter(item => ["ok", "healthy", "connected", "online"].includes(String(item.status).toLowerCase())).length;
 
   return (
     <div className="space-y-8">
@@ -67,7 +76,28 @@ export function Dashboard() {
           </div>
        )}
 
-       {/* Metrics */}
+        {/* Runtime telemetry */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
+          <div className="border-4 border-border bg-card p-4 shadow-[6px_6px_0px_0px_hsl(var(--border))]" data-testid="dashboard-runtime-telemetry">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b-4 border-border pb-3">
+              <div className="flex items-center gap-2 text-lg font-black uppercase"><Radio size={20} className="text-primary" /> Runtime telemetry</div>
+              <span className="font-mono text-xs font-bold text-muted-foreground">POLL // 10 SEC</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="border-2 border-border bg-primary/10 p-3"><div className="flex items-center gap-2 text-xs font-black uppercase text-muted-foreground"><HeartPulse size={14} /> Healthy</div><div className="mt-1 font-mono text-2xl font-black text-primary" data-testid="runtime-healthy-count">{runtimeOnline}/{runtimeHealthList.length || "—"}</div></div>
+              <div className="border-2 border-border bg-accent/10 p-3"><div className="flex items-center gap-2 text-xs font-black uppercase text-muted-foreground"><Link2 size={14} /> Links</div><div className="mt-1 font-mono text-2xl font-black">{runtimeConnectionList.length}</div></div>
+              <div className="border-2 border-border bg-muted/40 p-3"><div className="flex items-center gap-2 text-xs font-black uppercase text-muted-foreground"><Server size={14} /> Staff live</div><div className="mt-1 font-mono text-2xl font-black">{agents?.filter(agent => ["working", "waiting", "reviewing"].includes(agent.status)).length || 0}</div></div>
+            </div>
+            {(healthError || runtimeHealthError || runtimeConnectionsError) && <div className="mt-3 flex items-center justify-between gap-3 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs"><span>{runtimeConnectionsError ? "Runtime links unavailable." : runtimeHealthError ? "Runtime health probe unavailable." : "System health probe unavailable."}</span><button type="button" data-testid="runtime-health-retry" className="flex items-center gap-1 font-black uppercase underline" onClick={() => refetchRuntimeHealth()}><RefreshCw size={13} /> Retry</button></div>}
+          </div>
+          <div className="border-4 border-border bg-muted/40 p-4 shadow-[6px_6px_0px_0px_hsl(var(--border))]">
+            <div className="mb-3 flex items-center gap-2 text-sm font-black uppercase"><Activity size={17} /> Dispatch lane</div>
+            <p className="font-mono text-sm leading-relaxed text-muted-foreground">Runs refresh automatically while this console is open. Open the roster to launch, pause, resume, or stop an operative.</p>
+            <Link href="/agents" data-testid="dashboard-open-roster" className="mt-4 inline-flex items-center gap-2 border-4 border-border bg-primary px-3 py-2 text-xs font-black uppercase text-primary-foreground shadow-[4px_4px_0px_0px_hsl(var(--border))] transition-all hover:translate-x-1 hover:-translate-y-1">Open live roster <ArrowRight size={15} /></Link>
+          </div>
+        </div>
+
+        {/* Metrics */}
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <BrutalCard title="Monthly Income" className="border-l-8 border-l-primary">
             <div className="text-4xl font-black font-mono text-primary">${((dashboard?.monthlyIncomeCents || 0) / 100).toFixed(2)}</div>
@@ -130,7 +160,7 @@ export function Dashboard() {
                    <ul className="space-y-4">
                      {dashboard?.recentActivity?.map((act, i) => (
                        <li key={i} className="font-mono text-sm flex gap-3 items-start p-2 hover:bg-muted/50 transition-colors">
-                         <span className="text-primary mt-1">▶</span> 
+                          <span className="mt-1 font-black text-primary">&gt;</span>
                          <span className="flex-1">{act}</span>
                        </li>
                      ))}

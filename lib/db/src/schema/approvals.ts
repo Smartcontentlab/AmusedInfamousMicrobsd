@@ -11,7 +11,7 @@ export const approvalsTable = pgTable("approvals", {
   reason: text("reason").notNull().default("Operator review is required."),
   requestedAction: text("requested_action").notNull().default("Review the requested action."),
   risk: text("risk").notNull().default("medium"),
-  status: text("status").notNull().default("needs_review"),
+  status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   decidedAt: timestamp("decided_at", { withTimezone: true }),

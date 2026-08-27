@@ -39,6 +39,7 @@ import {
 } from "@workspace/api-zod";
 import {
   agentSkillsTable,
+  activityTable,
   agentsTable,
   approvalsTable,
   arenaTable,
@@ -53,7 +54,7 @@ const router: IRouter = Router();
 let seedPromise: Promise<void> | undefined;
 let featureSeedPromise: Promise<void> | undefined;
 
-async function ensureSeeded(): Promise<void> {
+export async function ensureSeeded(): Promise<void> {
   if (!seedPromise) {
     seedPromise = (async () => {
       const existing = await db.select({ id: projectsTable.id }).from(projectsTable).limit(1);
@@ -200,7 +201,7 @@ async function ensureFeatureRecords(): Promise<void> {
         db.select().from(skillsTable).orderBy(asc(skillsTable.id)),
         db.select().from(projectsTable).orderBy(asc(projectsTable.id)),
         db.select({ id: agentSkillsTable.id }).from(agentSkillsTable).limit(1),
-        db.select({ id: approvalsTable.id }).from(approvalsTable).limit(1),
+        db.select({ id: approvalsTable.id, status: approvalsTable.status }).from(approvalsTable),
       ]);
 
       const worldDefaults = {
@@ -300,6 +301,12 @@ async function ensureFeatureRecords(): Promise<void> {
           },
         ]);
       }
+
+      await Promise.all(
+        approvals
+          .filter((approval) => approval.status === "needs_review")
+          .map((approval) => db.update(approvalsTable).set({ status: "pending" }).where(eq(approvalsTable.id, approval.id))),
+      );
     })();
   }
   await featureSeedPromise;
@@ -307,10 +314,11 @@ async function ensureFeatureRecords(): Promise<void> {
 
 router.get("/dashboard", async (_req, res): Promise<void> => {
   await ensureSeeded();
-  const [projects, agents, tasks] = await Promise.all([
+  const [projects, agents, tasks, activity] = await Promise.all([
     db.select().from(projectsTable),
     db.select().from(agentsTable),
     db.select().from(tasksTable).orderBy(desc(tasksTable.createdAt)).limit(4),
+    db.select().from(activityTable).orderBy(desc(activityTable.createdAt)).limit(6),
   ]);
 
   const monthlyIncomeCents = projects.reduce((total, project) => total + project.incomeCents, 0);
@@ -324,11 +332,12 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
     recommendation: reviewTask
       ? `Review “${reviewTask.title}” before moving more work into the queue.`
       : "Choose the next task you want your lead agent to prioritize.",
-    recentActivity: [
-      "NOVA moved the Lumen invite flow into active build.",
-      "MICA is reviewing the Kite payout audit.",
-      "ORBIT completed a webhook retry checkpoint.",
-    ],
+    recentActivity: activity.length
+      ? activity.map((item) => {
+          const agent = agents.find((candidate) => candidate.id === item.agentId);
+          return `${agent?.name ?? "SYSTEM"}: ${item.message}`;
+        })
+      : ["No live runtime activity has been recorded yet."],
   });
   res.json(data);
 });

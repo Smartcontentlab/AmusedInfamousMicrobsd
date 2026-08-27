@@ -17,4 +17,6 @@ export interface AgentUpdate {
   businessIdea?: string;
   phase?: string;
   nextMove?: string;
+  runtimeConnectionId?: number;
+  runtime?: string;
 }

@@ -7,6 +7,7 @@ export const agentsTable = pgTable("agents", {
   role: text("role").notNull(),
   provider: text("provider").notNull().default("OpenClaw"),
   runtime: text("runtime").notNull().default("managed"),
+   runtimeConnectionId: integer("runtime_connection_id"),
   status: text("status").notNull().default("waiting"),
   projectId: integer("project_id"),
   skillCount: integer("skill_count").notNull().default(0),

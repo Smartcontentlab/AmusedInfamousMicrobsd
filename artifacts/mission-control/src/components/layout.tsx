@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { LayoutDashboard, Folder, Users, Zap, Swords, CheckSquare } from "lucide-react";
 import React from "react";
+import { useListRuntimeHealth } from "@workspace/api-client-react";
 
 function NavItem({ href, icon: Icon, label, active }: any) {
    return (
@@ -13,9 +14,12 @@ function NavItem({ href, icon: Icon, label, active }: any) {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const runtimeHealth = useListRuntimeHealth({ query: { queryKey: ["runtime-health"], refetchInterval: 10000 } });
+  const healthItems = Array.isArray(runtimeHealth.data) ? runtimeHealth.data : [];
+  const healthy = healthItems.filter((item) => item.status === "healthy").length;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background font-sans text-foreground md:flex-row">
+     <div className="min-h-[100dvh] flex flex-col bg-background font-sans text-foreground md:flex-row">
       {/* Sidebar */}
       <aside className="z-10 flex w-full shrink-0 flex-col border-b-4 border-border bg-sidebar shadow-[0_4px_0_0_hsl(var(--border))] md:w-64 md:border-r-4 md:border-b-0 md:shadow-[4px_0_0_0_hsl(var(--border))]">
           <div className="flex items-center justify-between border-b-4 border-border bg-card px-4 py-3 md:block md:p-6">
@@ -35,11 +39,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main className="flex flex-1 flex-col overflow-hidden md:h-screen">
          {/* Header */}
-          <header className="flex h-14 shrink-0 items-center border-b-4 border-border bg-card px-4 shadow-[0_4px_0_0_hsl(var(--border))] md:h-16 md:px-6">
-           <div className="font-mono text-sm tracking-tight font-bold flex items-center gap-2">
-             <div className="w-3 h-3 rounded-none border-2 border-border bg-accent animate-pulse" />
-             LIVE LINK ACTIVE
-           </div>
+           <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b-4 border-border bg-card px-4 py-2 shadow-[0_4px_0_0_hsl(var(--border))] md:min-h-16 md:px-6">
+            <div className="flex items-center gap-2 font-mono text-sm font-bold tracking-tight">
+              <div className={`h-3 w-3 rounded-none border-2 border-border ${runtimeHealth.isError ? "bg-destructive" : "bg-accent"} ${runtimeHealth.isLoading ? "" : "animate-pulse"}`} />
+              {runtimeHealth.isError ? "RUNTIME LINK DEGRADED" : "LIVE LINK ACTIVE"}
+            </div>
+            <div data-testid="layout-runtime-status" className="flex items-center gap-2 border-2 border-border bg-muted/40 px-2 py-1 font-mono text-[11px] font-black uppercase">
+              <span className="text-muted-foreground">runtime</span>
+              <span className={runtimeHealth.isError ? "text-destructive" : "text-primary"}>{runtimeHealth.isLoading ? "probing" : `${healthy}/${healthItems.length || "—"} healthy`}</span>
+            </div>
          </header>
          
          {/* Scrollable Canvas */}

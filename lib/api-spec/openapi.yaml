@@ -28,6 +28,8 @@ tags:
     description: BuildOff simulation controls
   - name: staff
     description: AI employee capabilities and human approvals
+  - name: runtimes
+    description: Secure runtime connections and live staff controls
 paths:
   /healthz:
     get:
@@ -348,6 +350,158 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Arena"
+  /runtime-connections:
+    get:
+      operationId: listRuntimeConnections
+      tags: [runtimes]
+      summary: List redacted runtime connections
+      responses:
+        "200":
+          description: Runtime connections without secrets or URLs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RuntimeConnectionSafe"
+    post:
+      operationId: createRuntimeConnection
+      tags: [runtimes]
+      summary: Add a server-side runtime connection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuntimeConnectionInput"
+      responses:
+        "201":
+          description: Runtime connection added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeConnectionSafe"
+  /runtime-connections/{connectionId}/check:
+    post:
+      operationId: checkRuntimeConnection
+      tags: [runtimes]
+      summary: Check a runtime and discover capabilities
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      responses:
+        "200":
+          description: Runtime health snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeHealth"
+  /runtime-health:
+    get:
+      operationId: listRuntimeHealth
+      tags: [runtimes]
+      summary: List runtime health snapshots
+      responses:
+        "200":
+          description: Runtime health
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RuntimeHealth"
+  /agents/{agentId}/run:
+    get:
+      operationId: getAgentRun
+      tags: [runtimes]
+      summary: Get an agent's current or most recent run
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Agent run, or null when no run exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRun"
+        "204":
+          description: No run exists
+    post:
+      operationId: launchAgentRun
+      tags: [runtimes]
+      summary: Launch a live agent run
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentRunInput"
+      responses:
+        "201":
+          description: Live run launched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRun"
+  /agents/{agentId}/run/pause:
+    post:
+      operationId: pauseAgentRun
+      tags: [runtimes]
+      summary: Pause an agent run when supported
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Paused run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRun"
+  /agents/{agentId}/run/resume:
+    post:
+      operationId: resumeAgentRun
+      tags: [runtimes]
+      summary: Resume an agent run when supported
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Resumed run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRun"
+  /agents/{agentId}/run/stop:
+    post:
+      operationId: stopAgentRun
+      tags: [runtimes]
+      summary: Safely stop an agent run
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Stopped run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRun"
+  /agents/{agentId}/activity:
+    get:
+      operationId: listAgentActivity
+      tags: [runtimes]
+      summary: List recent activity for an agent
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Agent runtime activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEvent"
 components:
   parameters:
     ProjectId:
@@ -377,6 +531,12 @@ components:
     ApprovalId:
       in: path
       name: approvalId
+      required: true
+      schema:
+        type: number
+    ConnectionId:
+      in: path
+      name: connectionId
       required: true
       schema:
         type: number
@@ -434,7 +594,7 @@ components:
           minimum: 0
     Agent:
       type: object
-      required: [id, name, role, provider, status, projectId, skillCount, room, computerStatus, phase]
+      required: [id, name, role, provider, status, projectId, skillCount, room, computerStatus, phase, runtimeConnectionId]
       properties:
         id:
           type: number
@@ -444,6 +604,8 @@ components:
           type: string
         provider:
           type: string
+        runtimeConnectionId:
+          type: [number, "null"]
         status:
           type: string
           enum: [working, waiting, reviewing, blocked, offline]
@@ -497,6 +659,10 @@ components:
         phase:
           type: string
         nextMove:
+          type: string
+        runtimeConnectionId:
+          type: number
+        runtime:
           type: string
     Task:
       type: object
@@ -717,3 +883,141 @@ components:
           type: array
           items:
             type: string
+    RuntimeConnectionSafe:
+      type: object
+      required: [id, name, provider, status, capabilities, hasCredentials, lastCheckedAt, errorCode, errorMessage]
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        provider:
+          type: string
+          enum: [hermes, openclaw]
+        status:
+          type: string
+          enum: [unknown, healthy, degraded, unhealthy, disabled]
+        capabilities:
+          type: array
+          items:
+            type: string
+        hasCredentials:
+          type: boolean
+        lastCheckedAt:
+          type: [string, "null"]
+          format: date-time
+        errorCode:
+          type: [string, "null"]
+        errorMessage:
+          type: [string, "null"]
+    RuntimeConnectionInput:
+      type: object
+      required: [name, provider, endpointUrl]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        provider:
+          type: string
+          enum: [hermes, openclaw]
+        endpointUrl:
+          type: string
+        token:
+          type: string
+          minLength: 1
+    RuntimeHealth:
+      type: object
+      required: [id, name, provider, status, capabilities, lastCheckedAt, errorCode, errorMessage, nextAction]
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        provider:
+          type: string
+          enum: [hermes, openclaw]
+        status:
+          type: string
+          enum: [unknown, healthy, degraded, unhealthy, disabled]
+        capabilities:
+          type: array
+          items:
+            type: string
+        lastCheckedAt:
+          type: [string, "null"]
+          format: date-time
+        errorCode:
+          type: [string, "null"]
+        errorMessage:
+          type: [string, "null"]
+        nextAction:
+          type: string
+        latencyMs:
+          type: [number, "null"]
+    AgentRunInput:
+      type: object
+      required: [task]
+      properties:
+        task:
+          type: string
+          minLength: 1
+        runtimeConnectionId:
+          type: number
+    AgentRun:
+      type: object
+      required: [id, agentId, connectionId, providerRunId, task, status, startedAt, endedAt, lastEventAt, lastEvent, errorCode, errorMessage, supportsPause, supportsResume, supportsStop, createdAt]
+      properties:
+        id:
+          type: number
+        agentId:
+          type: number
+        connectionId:
+          type: number
+        providerRunId:
+          type: [string, "null"]
+        task:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, paused, stopping, stopped, completed, failed]
+        startedAt:
+          type: [string, "null"]
+          format: date-time
+        endedAt:
+          type: [string, "null"]
+          format: date-time
+        lastEventAt:
+          type: [string, "null"]
+          format: date-time
+        lastEvent:
+          type: [string, "null"]
+        errorCode:
+          type: [string, "null"]
+        errorMessage:
+          type: [string, "null"]
+        supportsPause:
+          type: boolean
+        supportsResume:
+          type: boolean
+        supportsStop:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    ActivityEvent:
+      type: object
+      required: [id, agentId, runId, kind, message, createdAt]
+      properties:
+        id:
+          type: number
+        agentId:
+          type: [number, "null"]
+        runId:
+          type: [number, "null"]
+        kind:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time

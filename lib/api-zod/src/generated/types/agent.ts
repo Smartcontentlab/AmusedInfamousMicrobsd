@@ -12,6 +12,8 @@ export interface Agent {
   name: string;
   role: string;
   provider: string;
+  /** @nullable */
+  runtimeConnectionId: number | null;
   status: AgentStatus;
   /** @nullable */
   projectId: number | null;

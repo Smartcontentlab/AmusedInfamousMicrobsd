@@ -1,13 +1,115 @@
-import { useGetArena, useAdvanceArena, getGetArenaQueryKey, useCreateAgent, useListProjects, useListSkills, useEquipAgentSkill, getListAgentsQueryKey } from "@workspace/api-client-react";
+import { useGetArena, useAdvanceArena, getGetArenaQueryKey, useCreateAgent, useListProjects, useListSkills, useEquipAgentSkill, useDetachAgentCapability, getListAgentsQueryKey, getListSkillsQueryKey, getListAgentCapabilitiesQueryKey, useListAgentCapabilities } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
-import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Code2, MapPin, Zap, UserPlus, Loader2, RefreshCw, Wrench, LockKeyhole, UnlockKeyhole } from "lucide-react";
+import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Code2, MapPin, Zap, UserPlus, Loader2, RefreshCw, Wrench, LockKeyhole, UnlockKeyhole, X } from "lucide-react";
 import { useState } from "react";
+
+const messageFor = (error: unknown, fallback: string) =>
+   error && typeof error === "object" && "message" in error ? String((error as { message?: unknown }).message || fallback) : fallback;
+
+function ContestantLoadoutEditor({ score, skills }: { score: { agentId: number }; skills: Array<{ id: number; name: string; category: string }> }) {
+   const queryClient = useQueryClient();
+   const capabilitiesQuery = useListAgentCapabilities(score.agentId, {
+      query: { queryKey: getListAgentCapabilitiesQueryKey(score.agentId) },
+   });
+   const equipSkill = useEquipAgentSkill({
+      mutation: {
+         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: getListAgentCapabilitiesQueryKey(score.agentId) });
+            queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getGetArenaQueryKey() });
+         },
+      },
+   });
+   const detachSkill = useDetachAgentCapability({
+      mutation: {
+         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: getListAgentCapabilitiesQueryKey(score.agentId) });
+            queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getGetArenaQueryKey() });
+         },
+      },
+   });
+   const [selectedSkill, setSelectedSkill] = useState("");
+   const [pendingRemovalId, setPendingRemovalId] = useState<number | null>(null);
+   const capabilities = capabilitiesQuery.data ?? [];
+   const availableSkills = skills.filter((skill) => !capabilities.some((capability) => capability.skillId === skill.id));
+
+   const equip = () => {
+      if (!selectedSkill) return;
+      equipSkill.mutate({ agentId: score.agentId, skillId: Number(selectedSkill) }, {
+         onSuccess: () => setSelectedSkill(""),
+      });
+   };
+
+   const remove = (skillId: number) => {
+      setPendingRemovalId(skillId);
+      detachSkill.mutate({ agentId: score.agentId, skillId }, {
+         onSuccess: () => setPendingRemovalId(null),
+         onError: () => setPendingRemovalId(null),
+      });
+   };
+
+   return (
+      <div className="mt-4 border-t-2 border-border pt-3">
+         {capabilities.length > 0 && (
+            <div className="mb-3">
+               <div className="mb-2 text-[10px] font-black uppercase text-muted-foreground">Remove an assigned skill</div>
+               <div className="flex flex-wrap gap-2">
+                  {capabilities.map((capability) => (
+                     <BrutalButton
+                        key={capability.skillId}
+                        type="button"
+                        data-testid={`arena-remove-skill-${score.agentId}-${capability.skillId}`}
+                        variant="default"
+                        className="gap-1 border-2 border-destructive/60 px-2 py-1 text-[10px] text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        disabled={detachSkill.isPending}
+                        onClick={() => remove(capability.skillId)}
+                     >
+                        {detachSkill.isPending && pendingRemovalId === capability.skillId ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />} Remove {capability.name}
+                     </BrutalButton>
+                  ))}
+               </div>
+            </div>
+         )}
+         <div className="mb-2 flex items-center justify-between gap-2 text-xs font-black uppercase">
+            <span>Adjust loadout</span>
+            <span className="font-mono text-[10px] text-muted-foreground">Updates this house immediately</span>
+         </div>
+         <div className="flex flex-col gap-2 sm:flex-row">
+            <label className="sr-only" htmlFor={`arena-skill-select-${score.agentId}`}>Equip another skill</label>
+            <select
+               id={`arena-skill-select-${score.agentId}`}
+               data-testid={`arena-skill-select-${score.agentId}`}
+               value={selectedSkill}
+               onChange={(event) => setSelectedSkill(event.target.value)}
+               disabled={capabilitiesQuery.isLoading || !availableSkills.length}
+               className="min-w-0 flex-1 border-4 border-border bg-background p-2 font-mono text-xs font-bold focus:outline-none"
+            >
+               <option value="">{capabilitiesQuery.isLoading ? "CHECKING LOADOUT..." : availableSkills.length ? "EQUIP ANOTHER SKILL..." : "ALL CATALOG SKILLS EQUIPPED"}</option>
+               {availableSkills.map((skill) => <option key={skill.id} value={skill.id}>{skill.name} // {skill.category}</option>)}
+            </select>
+            <BrutalButton
+               data-testid={`arena-equip-skill-${score.agentId}`}
+               variant="accent"
+               className="justify-center px-4 py-2 text-xs"
+               disabled={!selectedSkill || equipSkill.isPending}
+               onClick={equip}
+            >
+               {equipSkill.isPending ? <><Loader2 size={14} className="animate-spin" /> Equipping...</> : <><Zap size={14} /> Equip</>}
+            </BrutalButton>
+         </div>
+         {equipSkill.isSuccess && <div data-testid={`arena-equip-success-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">Skill equipped. Tool lanes are refreshing from the saved loadout.</div>}
+         {detachSkill.isSuccess && <div data-testid={`arena-remove-success-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">Skill removed. Tool lanes are refreshing from the saved loadout.</div>}
+         {(capabilitiesQuery.isError || equipSkill.isError || detachSkill.isError) && <div data-testid={`arena-loadout-error-${score.agentId}`} className="mt-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-[11px] text-destructive">{messageFor(equipSkill.error || detachSkill.error || capabilitiesQuery.error, "This contestant's loadout could not be updated.")}</div>}
+      </div>
+   );
+}
 
 export function Arena() {
    const { data: arena, isLoading, isError, error, refetch } = useGetArena({ query: { queryKey: getGetArenaQueryKey(), refetchInterval: 5000 } });
    const projectsQuery = useListProjects();
-   const skillsQuery = useListSkills();
+   const skillsQuery = useListSkills({ query: { queryKey: getListSkillsQueryKey(), refetchOnMount: "always" } });
    const queryClient = useQueryClient();
    const createAgent = useCreateAgent();
    const equipSkill = useEquipAgentSkill();
@@ -214,6 +316,7 @@ export function Arena() {
                                {(score.assignedSkills || []).length > 0 ? score.assignedSkills?.map((skill) => <BrutalBadge key={skill} variant="accent">{skill}</BrutalBadge>) : <span className="font-mono text-xs text-muted-foreground">No skills assigned yet. Equip this contestant from the roster.</span>}
                             </div>
                             <div className="font-mono text-xs text-muted-foreground"><span className="font-black uppercase text-foreground">Tool lanes:</span> {(score.tools || []).length > 0 ? score.tools?.join(" / ") : "none reported"}</div>
+                             <ContestantLoadoutEditor score={score} skills={skillsQuery.data ?? []} />
                         </div>
 
                          <div className="space-y-2 md:col-span-2">

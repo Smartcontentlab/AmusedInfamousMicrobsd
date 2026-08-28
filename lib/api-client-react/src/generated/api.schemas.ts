@@ -394,6 +394,53 @@ export interface ApprovalUpdate {
   status: ApprovalUpdateStatus;
 }
 
+export type ToolAccessStatus = typeof ToolAccessStatus[keyof typeof ToolAccessStatus];
+
+
+export const ToolAccessStatus = {
+  available: 'available',
+  locked: 'locked',
+} as const;
+
+export type ToolAccessSource = typeof ToolAccessSource[keyof typeof ToolAccessSource];
+
+
+export const ToolAccessSource = {
+  free: 'free',
+  round: 'round',
+  locked: 'locked',
+  manual: 'manual',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ToolAccessOverrideAction = typeof ToolAccessOverrideAction[keyof typeof ToolAccessOverrideAction] | null;
+
+
+export const ToolAccessOverrideAction = {
+  grant: 'grant',
+  revoke: 'revoke',
+} as const;
+
+export interface ToolAccess {
+  key: string;
+  label: string;
+  description: string;
+  available: boolean;
+  status: ToolAccessStatus;
+  /** @nullable */
+  unlockRound?: number | null;
+  unlockCondition: string;
+  source: ToolAccessSource;
+  /** @nullable */
+  overrideAction: ToolAccessOverrideAction;
+  /** @nullable */
+  overrideReason: string | null;
+  /** @nullable */
+  lastChangedAt: string | null;
+}
+
 export interface ArenaScore {
   agentId: number;
   agentName: string;
@@ -408,6 +455,47 @@ export interface ArenaScore {
   scaleRevenueCents?: number;
   assignedSkills?: string[];
   tools?: string[];
+  toolAccess?: ToolAccess[];
+}
+
+export type ToolUnlockAuditAction = typeof ToolUnlockAuditAction[keyof typeof ToolUnlockAuditAction];
+
+
+export const ToolUnlockAuditAction = {
+  grant: 'grant',
+  revoke: 'revoke',
+} as const;
+
+export interface ToolUnlockAudit {
+  id: number;
+  agentId: number;
+  toolKey: string;
+  action: ToolUnlockAuditAction;
+  reason: string;
+  actor: string;
+  round: number;
+  createdAt: string;
+}
+
+export interface AgentToolAccess {
+  agentId: number;
+  currentRound: number;
+  tools: ToolAccess[];
+  audit: ToolUnlockAudit[];
+}
+
+export type ToolUnlockInputAction = typeof ToolUnlockInputAction[keyof typeof ToolUnlockInputAction];
+
+
+export const ToolUnlockInputAction = {
+  grant: 'grant',
+  revoke: 'revoke',
+} as const;
+
+export interface ToolUnlockInput {
+  action: ToolUnlockInputAction;
+  /** @minLength 1 */
+  reason: string;
 }
 
 export type ArenaStatus = typeof ArenaStatus[keyof typeof ArenaStatus];
@@ -577,6 +665,7 @@ export interface AgentRunInput {
   /** @minLength 1 */
   task: string;
   runtimeConnectionId?: number;
+  tools?: string[];
 }
 
 export type AgentRunStatus = typeof AgentRunStatus[keyof typeof AgentRunStatus];
@@ -599,6 +688,7 @@ export interface AgentRun {
   /** @nullable */
   providerRunId: string | null;
   task: string;
+  allowedTools: string[];
   status: AgentRunStatus;
   /** @nullable */
   startedAt: string | null;

@@ -15,6 +15,8 @@ import {
   CreateTaskBody,
   CreateTaskResponse,
   DetachAgentCapabilityParams,
+  GetAgentToolAccessParams,
+  GetAgentToolAccessResponse,
   GetArenaResponse,
   GetDashboardResponse,
   ListAgentCapabilitiesParams,
@@ -41,8 +43,12 @@ import {
   UpdateTaskBody,
   UpdateTaskParams,
   UpdateTaskResponse,
+  UpdateAgentToolUnlockBody,
+  UpdateAgentToolUnlockParams,
+  UpdateAgentToolUnlockResponse,
 } from "@workspace/api-zod";
 import {
+  agentToolUnlocksTable,
   agentSkillsTable,
   activityTable,
   agentsTable,
@@ -58,6 +64,7 @@ import {
 } from "@workspace/db";
 import { BOOTSTRAP_CATALOG, APPROVED_CATALOG_SOURCES, importApprovedCatalogs, runtimeSupportsSkillInstall } from "../lib/skill-catalog";
 import { adapterError, installRuntimeSkill } from "../lib/runtime-adapters";
+import { findSeason0Tool, getAgentToolAccess } from "../lib/tool-unlocks";
 
 const router: IRouter = Router();
 
@@ -555,6 +562,62 @@ router.patch("/agents/:agentId", async (req, res): Promise<void> => {
   res.json(UpdateAgentResponse.parse(agent));
 });
 
+router.get("/agents/:agentId/tool-unlocks", async (req, res): Promise<void> => {
+  await ensureSeeded();
+  const params = GetAgentToolAccessParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Contestant identifier is invalid." });
+    return;
+  }
+  const [agent] = await db.select({ id: agentsTable.id }).from(agentsTable).where(eq(agentsTable.id, params.data.agentId));
+  if (!agent) {
+    res.status(404).json({ error: "Contestant not found." });
+    return;
+  }
+  res.json(GetAgentToolAccessResponse.parse(await getAgentToolAccess(agent.id)));
+});
+
+router.patch("/agents/:agentId/tool-unlocks/:toolKey", async (req, res): Promise<void> => {
+  await ensureSeeded();
+  const params = UpdateAgentToolUnlockParams.safeParse(req.params);
+  const body = UpdateAgentToolUnlockBody.safeParse(req.body);
+  if (!params.success || !body.success || !body.data.reason.trim()) {
+    res.status(400).json({ error: "Choose grant or revoke and add a reason for the audit trail." });
+    return;
+  }
+  const tool = findSeason0Tool(params.data.toolKey);
+  if (!tool) {
+    res.status(404).json({ error: "That tool is not part of the Season 0 catalog." });
+    return;
+  }
+  const [[agent], [arena]] = await Promise.all([
+    db.select({ id: agentsTable.id, name: agentsTable.name }).from(agentsTable).where(eq(agentsTable.id, params.data.agentId)),
+    db.select({ round: arenaTable.round }).from(arenaTable).limit(1),
+  ]);
+  if (!agent) {
+    res.status(404).json({ error: "Contestant not found." });
+    return;
+  }
+  const round = arena?.round ?? 1;
+  const reason = body.data.reason.trim();
+  await db.insert(agentToolUnlocksTable).values({
+    agentId: agent.id,
+    toolKey: tool.key,
+    action: body.data.action,
+    reason,
+    actor: "Game Master",
+    round,
+  });
+  await db.insert(activityTable).values({
+    agentId: agent.id,
+    kind: body.data.action === "grant" ? "tool_unlock_granted" : "tool_unlock_revoked",
+    message: `Game Master ${body.data.action === "grant" ? "granted" : "revoked"} ${tool.label} in Round ${round}: ${reason}`,
+  });
+  const access = await getAgentToolAccess(agent.id, round);
+  const updatedTool = access.tools.find((item) => item.key === tool.key);
+  res.json(UpdateAgentToolUnlockResponse.parse(updatedTool));
+});
+
 async function getAgentCapabilities(agentId: number) {
   const capabilities = await db
     .select({
@@ -986,6 +1049,7 @@ async function getArenaState() {
   const [arena] = await db.select().from(arenaTable).limit(1);
   const agents = await db.select().from(agentsTable).orderBy(desc(agentsTable.arenaScore));
   const capabilities = await Promise.all(agents.map((agent) => getAgentCapabilities(agent.id)));
+  const toolAccess = await Promise.all(agents.map((agent) => getAgentToolAccess(agent.id, arena?.round ?? 1)));
   return GetArenaResponse.parse({
     ...arena,
     scores: agents.map((agent, index) => ({
@@ -994,6 +1058,7 @@ async function getArenaState() {
         return {
           assignedSkills: loadout.map((item) => item.name),
           tools: [...new Set(loadout.map((item) => item.category))],
+          toolAccess: toolAccess[index]?.tools ?? [],
         };
       })(),
       agentId: agent.id,

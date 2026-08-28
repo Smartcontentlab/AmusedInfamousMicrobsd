@@ -14,6 +14,7 @@ export interface AgentRun {
   /** @nullable */
   providerRunId: string | null;
   task: string;
+  allowedTools: string[];
   status: AgentRunStatus;
   /** @nullable */
   startedAt: Date | null;

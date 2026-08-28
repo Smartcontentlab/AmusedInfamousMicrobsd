@@ -568,6 +568,45 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ActivityEvent"
+  /agents/{agentId}/tool-unlocks:
+    get:
+      operationId: getAgentToolAccess
+      tags: [arena]
+      summary: Get a contestant's current Season 0 tool permissions and audit trail
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Tool permission state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentToolAccess"
+  /agents/{agentId}/tool-unlocks/{toolKey}:
+    patch:
+      operationId: updateAgentToolUnlock
+      tags: [arena]
+      summary: Grant or revoke one named contestant tool with an auditable reason
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+        - in: path
+          name: toolKey
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToolUnlockInput"
+      responses:
+        "200":
+          description: Updated tool permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToolAccess"
 components:
   parameters:
     ProjectId:
@@ -994,6 +1033,88 @@ components:
           type: array
           items:
             type: string
+        toolAccess:
+          type: array
+          items:
+            $ref: "#/components/schemas/ToolAccess"
+    ToolAccess:
+      type: object
+      required: [key, label, description, available, status, unlockCondition, source, overrideAction, overrideReason, lastChangedAt]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        description:
+          type: string
+        available:
+          type: boolean
+        status:
+          type: string
+          enum: [available, locked]
+        unlockRound:
+          type: [number, "null"]
+        unlockCondition:
+          type: string
+        source:
+          type: string
+          enum: [free, round, locked, manual]
+        overrideAction:
+          type: [string, "null"]
+          enum: [grant, revoke, null]
+        overrideReason:
+          type: [string, "null"]
+        lastChangedAt:
+          type: [string, "null"]
+          format: date-time
+    ToolUnlockAudit:
+      type: object
+      required: [id, agentId, toolKey, action, reason, actor, round, createdAt]
+      properties:
+        id:
+          type: number
+        agentId:
+          type: number
+        toolKey:
+          type: string
+        action:
+          type: string
+          enum: [grant, revoke]
+        reason:
+          type: string
+        actor:
+          type: string
+        round:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+    AgentToolAccess:
+      type: object
+      required: [agentId, currentRound, tools, audit]
+      properties:
+        agentId:
+          type: number
+        currentRound:
+          type: number
+        tools:
+          type: array
+          items:
+            $ref: "#/components/schemas/ToolAccess"
+        audit:
+          type: array
+          items:
+            $ref: "#/components/schemas/ToolUnlockAudit"
+    ToolUnlockInput:
+      type: object
+      required: [action, reason]
+      properties:
+        action:
+          type: string
+          enum: [grant, revoke]
+        reason:
+          type: string
+          minLength: 1
     Arena:
       type: object
       required: [round, totalRounds, status, secondsRemaining, winConditionCents, scores]
@@ -1182,9 +1303,13 @@ components:
           minLength: 1
         runtimeConnectionId:
           type: number
+        tools:
+          type: array
+          items:
+            type: string
     AgentRun:
       type: object
-      required: [id, agentId, connectionId, providerRunId, task, status, startedAt, endedAt, lastEventAt, lastEvent, errorCode, errorMessage, supportsPause, supportsResume, supportsStop, createdAt]
+      required: [id, agentId, connectionId, providerRunId, task, allowedTools, status, startedAt, endedAt, lastEventAt, lastEvent, errorCode, errorMessage, supportsPause, supportsResume, supportsStop, createdAt]
       properties:
         id:
           type: number
@@ -1196,6 +1321,10 @@ components:
           type: [string, "null"]
         task:
           type: string
+        allowedTools:
+          type: array
+          items:
+            type: string
         status:
           type: string
           enum: [queued, running, paused, stopping, stopped, completed, failed]

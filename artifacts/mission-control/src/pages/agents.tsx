@@ -5,6 +5,7 @@ import {
   useCreateRuntimeConnection,
   useDetachAgentCapability,
   useGetAgentRun,
+  useGetAgentToolAccess,
   useLaunchAgentRun,
   useListAgentActivity,
   useListAgentCapabilities,
@@ -17,8 +18,11 @@ import {
   useResumeAgentRun,
   useStopAgentRun,
   useUpdateAgent,
+  useUpdateAgentToolUnlock,
   getListAgentCapabilitiesQueryKey,
   getListAgentsQueryKey,
+  getGetAgentToolAccessQueryKey,
+  getGetArenaQueryKey,
 } from "@workspace/api-client-react";
 import { BrutalBadge, BrutalButton, BrutalCard } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,6 +33,7 @@ import {
   ChevronUp,
   CircleAlert,
   Cpu,
+  LockKeyhole,
   HeartPulse,
   Lightbulb,
   Link2,
@@ -42,11 +47,12 @@ import {
   Server,
   Square,
   Terminal,
+  UnlockKeyhole,
   UserPlus,
   Workflow,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type LooseRecord = Record<string, any>;
 
@@ -216,6 +222,7 @@ function RunPanel({ agentId, agentName }: { agentId: number; agentName: string }
   const runQuery = useGetAgentRun(agentId, { query: { queryKey: ["agent-run", agentId], refetchInterval: 5000 } });
   const activityQuery = useListAgentActivity(agentId, { query: { queryKey: ["agent-activity", agentId], refetchInterval: 5000 } });
   const connectionsQuery = useListRuntimeConnections({ query: { queryKey: ["runtime-connections"], refetchInterval: 15000 } });
+  const toolAccessQuery = useGetAgentToolAccess(agentId, { query: { queryKey: getGetAgentToolAccessQueryKey(agentId), refetchInterval: 10000 } });
   const launchRun = useLaunchAgentRun();
   const pauseRun = usePauseAgentRun();
   const resumeRun = useResumeAgentRun();
@@ -223,6 +230,7 @@ function RunPanel({ agentId, agentName }: { agentId: number; agentName: string }
   const [instruction, setInstruction] = useState("");
   const [connectionId, setConnectionId] = useState("");
   const [showActivity, setShowActivity] = useState(false);
+  const [requestedTools, setRequestedTools] = useState<string[]>([]);
   const run = runQuery.data;
   const events = useMemo(() => activityQuery.data ?? [], [activityQuery.data]);
   const runId = run?.id;
@@ -233,6 +241,12 @@ function RunPanel({ agentId, agentName }: { agentId: number; agentName: string }
   const canResume = Boolean(run?.supportsResume && runStatus === "paused");
   const canStop = Boolean(run?.supportsStop && ["running", "paused", "queued", "stopping"].includes(runStatus));
   const disabledReason = runStatus === "not_running" ? "No live run exists for this operative." : `Action unavailable while run is ${runStatus}.`;
+  const availableTools = toolAccessQuery.data?.tools.filter((tool) => tool.available) ?? [];
+
+  useEffect(() => {
+    if (availableTools.length === 0 || requestedTools.length > 0) return;
+    setRequestedTools(availableTools.map((tool) => tool.key));
+  }, [availableTools, requestedTools.length]);
 
   const refresh = () => {
     runQuery.refetch();
@@ -242,7 +256,11 @@ function RunPanel({ agentId, agentName }: { agentId: number; agentName: string }
   };
   const launch = () => {
     if (!instruction.trim()) return;
-    launchRun.mutate({ agentId, data: { task: instruction.trim() } }, {
+    launchRun.mutate({ agentId, data: {
+      task: instruction.trim(),
+      runtimeConnectionId: connectionId ? Number(connectionId) : undefined,
+      tools: requestedTools,
+    } }, {
       onSuccess: () => {
         setInstruction("");
         refresh();
@@ -280,12 +298,28 @@ function RunPanel({ agentId, agentName }: { agentId: number; agentName: string }
             <div><span className="font-black uppercase text-muted-foreground">Last event</span><div className="truncate font-mono font-bold">{run?.lastEvent || "Awaiting dispatch"}</div></div>
           </div>
           {runStatus === "not_running" && (
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-              {asList(connectionsQuery.data).length > 0 && <select data-testid={`run-connection-${agentId}`} value={connectionId} onChange={(event) => setConnectionId(event.target.value)} className="border-4 border-border bg-card p-2 font-mono text-xs focus:outline-none sm:max-w-48"><option value="">AUTO LINK</option>{asList(connectionsQuery.data).map((connection) => <option key={String(connection.id ?? connection.connectionId)} value={String(connection.id ?? connection.connectionId)}>{connection.name ?? connection.provider ?? "runtime link"}</option>)}</select>}
-              <input data-testid={`run-instruction-${agentId}`} value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="Describe the next run directive..." className="min-w-0 flex-1 border-4 border-border bg-card p-2 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/20" />
-              <BrutalButton data-testid={`run-launch-${agentId}`} disabled={busy || !instruction.trim()} onClick={launch}>
-                {launchRun.isPending ? <><Loader2 size={15} className="animate-spin" /> Launching...</> : <><Play size={15} /> Launch run</>}
-              </BrutalButton>
+            <div className="mt-3 space-y-3">
+              <div className="border-2 border-border bg-muted/30 p-3">
+                <div className="mb-2 text-[11px] font-black uppercase text-muted-foreground">Requested tool access</div>
+                {toolAccessQuery.isLoading ? <div className="font-mono text-xs text-muted-foreground">Loading round permissions...</div> : (
+                  <div className="flex flex-wrap gap-2">
+                    {toolAccessQuery.data?.tools.map((tool) => (
+                      <label key={tool.key} className={`flex items-center gap-1.5 border-2 px-2 py-1 font-mono text-[11px] font-bold ${tool.available ? "cursor-pointer border-border bg-card" : "cursor-not-allowed border-destructive/50 bg-destructive/10 text-muted-foreground"}`} title={tool.available ? tool.description : `${tool.unlockCondition}${tool.overrideReason ? ` — ${tool.overrideReason}` : ""}`}>
+                        <input type="checkbox" disabled={!tool.available} checked={requestedTools.includes(tool.key)} onChange={(event) => setRequestedTools((current) => event.target.checked ? [...current, tool.key] : current.filter((key) => key !== tool.key))} />
+                        {tool.available ? <UnlockKeyhole size={12} /> : <LockKeyhole size={12} />}
+                        {tool.label}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {asList(connectionsQuery.data).length > 0 && <select data-testid={`run-connection-${agentId}`} value={connectionId} onChange={(event) => setConnectionId(event.target.value)} className="border-4 border-border bg-card p-2 font-mono text-xs focus:outline-none sm:max-w-48"><option value="">AUTO LINK</option>{asList(connectionsQuery.data).map((connection) => <option key={String(connection.id ?? connection.connectionId)} value={String(connection.id ?? connection.connectionId)}>{connection.name ?? connection.provider ?? "runtime link"}</option>)}</select>}
+                <input data-testid={`run-instruction-${agentId}`} value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="Describe the next run directive..." className="min-w-0 flex-1 border-4 border-border bg-card p-2 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/20" />
+                <BrutalButton data-testid={`run-launch-${agentId}`} disabled={busy || !instruction.trim()} onClick={launch}>
+                  {launchRun.isPending ? <><Loader2 size={15} className="animate-spin" /> Launching...</> : <><Play size={15} /> Launch run</>}
+                </BrutalButton>
+              </div>
             </div>
           )}
           <div className="mt-3 flex flex-wrap gap-2">
@@ -320,6 +354,7 @@ function RunPanel({ agentId, agentName }: { agentId: number; agentName: string }
 function AgentCard({ agent, projects, skills, runtimeConnections }: { agent: any; projects: any[]; skills: any[]; runtimeConnections: LooseRecord[] }) {
   const queryClient = useQueryClient();
   const { data: capabilities, isLoading: capLoading, isError: capError } = useListAgentCapabilities(agent.id);
+  const toolAccessQuery = useGetAgentToolAccess(agent.id, { query: { queryKey: getGetAgentToolAccessQueryKey(agent.id), refetchInterval: 10000 } });
   const updateAgent = useUpdateAgent({
     mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() }) },
   });
@@ -336,8 +371,31 @@ function AgentCard({ agent, projects, skills, runtimeConnections }: { agent: any
       onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAgentCapabilitiesQueryKey(agent.id) }),
     },
   });
+  const updateToolUnlock = useUpdateAgentToolUnlock({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetAgentToolAccessQueryKey(agent.id) });
+        queryClient.invalidateQueries({ queryKey: getGetArenaQueryKey() });
+      },
+    },
+  });
   const availableSkills = skills.filter((skill) => !capabilities?.some((capability) => capability.skillId === skill.id));
   const [selectedSkill, setSelectedSkill] = useState("");
+  const [unlockReason, setUnlockReason] = useState("");
+  const [pendingToolKey, setPendingToolKey] = useState("");
+
+  const changeToolAccess = (toolKey: string, action: "grant" | "revoke") => {
+    const reason = unlockReason.trim();
+    if (!reason) return;
+    setPendingToolKey(toolKey);
+    updateToolUnlock.mutate({ agentId: agent.id, toolKey, data: { action, reason } }, {
+      onSuccess: () => {
+        setUnlockReason("");
+        setPendingToolKey("");
+      },
+      onError: () => setPendingToolKey(""),
+    });
+  };
 
   return (
     <div data-testid={`agent-card-${agent.id}`}><BrutalCard className="group flex h-full flex-col bg-card">
@@ -373,6 +431,33 @@ function AgentCard({ agent, projects, skills, runtimeConnections }: { agent: any
           )) : !capLoading && <div className="border-2 border-dashed border-border p-2 text-center font-mono text-xs text-muted-foreground">NO MODULES ATTACHED</div>}
         </div>
         {availableSkills.length > 0 && <div className="mt-3 flex gap-2"><select data-testid={`skill-select-${agent.id}`} value={selectedSkill} onChange={(event) => setSelectedSkill(event.target.value)} className="min-w-0 flex-1 border-4 border-border bg-card p-1 font-mono text-xs focus:outline-none"><option value="">ATTACH MODULE...</option>{availableSkills.map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}</select><BrutalButton data-testid={`attach-skill-${agent.id}`} variant="accent" className="px-3 py-1 text-xs" disabled={!selectedSkill || attachSkill.isPending} onClick={() => { attachSkill.mutate({ agentId: agent.id, data: { skillId: Number(selectedSkill) } }); setSelectedSkill(""); }}>+</BrutalButton></div>}
+      </div>
+
+      <div className="mb-4 border-4 border-border bg-accent/5 p-3">
+        <div className="mb-2 flex items-center justify-between gap-2 border-b-2 border-border pb-2 text-xs font-black uppercase">
+          <span className="flex items-center gap-2"><UnlockKeyhole size={14} /> Arena tool permissions</span>
+          <span className="font-mono text-[10px] text-muted-foreground">Round {toolAccessQuery.data?.currentRound ?? "—"}</span>
+        </div>
+        <input data-testid={`tool-unlock-reason-${agent.id}`} value={unlockReason} onChange={(event) => setUnlockReason(event.target.value)} placeholder="Game Master reason required..." className="mb-2 w-full border-2 border-border bg-card p-2 font-mono text-xs focus:outline-none" />
+        <div className="max-h-48 space-y-2 overflow-y-auto">
+          {toolAccessQuery.isLoading && <div className="font-mono text-xs text-muted-foreground">Loading tool permissions...</div>}
+          {toolAccessQuery.data?.tools.map((tool) => (
+            <div key={tool.key} data-testid={`tool-access-${agent.id}-${tool.key}`} className={`border-2 p-2 ${tool.available ? "border-primary bg-primary/5" : "border-destructive/60 bg-destructive/5"}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5"><span className="font-mono text-xs font-black">{tool.label}</span><BrutalBadge variant={tool.available ? "primary" : "destructive"}>{tool.available ? "allowed" : "locked"}</BrutalBadge></div>
+                  <div className="mt-1 font-mono text-[10px] text-muted-foreground">{tool.unlockCondition} · {tool.source === "manual" ? `GM ${tool.overrideAction}` : tool.source}</div>
+                  {tool.overrideReason && <div className="mt-1 font-mono text-[10px]">Reason: {tool.overrideReason}</div>}
+                </div>
+                <BrutalButton data-testid={`tool-toggle-${agent.id}-${tool.key}`} variant={tool.available ? "destructive" : "primary"} className="shrink-0 px-2 py-1 text-[10px]" disabled={!unlockReason.trim() || updateToolUnlock.isPending} onClick={() => changeToolAccess(tool.key, tool.available ? "revoke" : "grant")}>
+                  {updateToolUnlock.isPending && pendingToolKey === tool.key ? <Loader2 size={12} className="animate-spin" /> : tool.available ? "Revoke" : "Grant"}
+                </BrutalButton>
+              </div>
+            </div>
+          ))}
+        </div>
+        {toolAccessQuery.data?.audit.length ? <div className="mt-2 border-t-2 border-border pt-2 font-mono text-[10px] text-muted-foreground">Audit trail: {toolAccessQuery.data.audit.length} Game Master change{toolAccessQuery.data.audit.length === 1 ? "" : "s"} recorded.</div> : null}
+        {(toolAccessQuery.isError || updateToolUnlock.isError) && <div className="mt-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{messageFor(updateToolUnlock.error || toolAccessQuery.error, "Tool permissions could not be updated.")}</div>}
       </div>
 
        <div className="border-4 border-border bg-muted/50 p-3">

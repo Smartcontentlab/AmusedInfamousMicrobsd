@@ -10,4 +10,5 @@ export interface AgentRunInput {
   /** @minLength 1 */
   task: string;
   runtimeConnectionId?: number;
+  tools?: string[];
 }

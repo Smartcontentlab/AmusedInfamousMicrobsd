@@ -6,6 +6,7 @@ export const liveRunsTable = pgTable("live_runs", {
   connectionId: integer("connection_id").notNull(),
   providerRunId: text("provider_run_id"),
   task: text("task").notNull(),
+  allowedTools: text("allowed_tools").array().notNull().default([]),
   status: text("status").notNull().default("queued"),
   startedAt: timestamp("started_at", { withTimezone: true }),
   endedAt: timestamp("ended_at", { withTimezone: true }),

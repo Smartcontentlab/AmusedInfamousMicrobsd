@@ -27,6 +27,7 @@ import type {
   AgentInput,
   AgentRun,
   AgentRunInput,
+  AgentToolAccess,
   AgentUpdate,
   Approval,
   ApprovalUpdate,
@@ -48,7 +49,9 @@ import type {
   SkillInput,
   Task,
   TaskInput,
-  TaskUpdate
+  TaskUpdate,
+  ToolAccess,
+  ToolUnlockInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -2586,4 +2589,155 @@ export function useListAgentActivity<TData = Awaited<ReturnType<typeof listAgent
 
 
 
+
+export const getGetAgentToolAccessUrl = (agentId: number,) => {
+
+
+
+
+  return `/api/agents/${agentId}/tool-unlocks`
+}
+
+/**
+ * @summary Get a contestant's current Season 0 tool permissions and audit trail
+ */
+export const getAgentToolAccess = async (agentId: number, options?: Parameters<typeof customFetch>[1]): Promise<AgentToolAccess> => {
+
+  return customFetch<AgentToolAccess>(getGetAgentToolAccessUrl(agentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgentToolAccessQueryKey = (agentId: number,) => {
+    return [
+    `/api/agents/${agentId}/tool-unlocks`
+    ] as const;
+    }
+
+
+export const getGetAgentToolAccessQueryOptions = <TData = Awaited<ReturnType<typeof getAgentToolAccess>>, TError = ErrorType<unknown>>(agentId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentToolAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentToolAccessQueryKey(agentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentToolAccess>>> = ({ signal }) => getAgentToolAccess(agentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: agentId !== null && agentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgentToolAccess>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgentToolAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentToolAccess>>>
+export type GetAgentToolAccessQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a contestant's current Season 0 tool permissions and audit trail
+ */
+
+export function useGetAgentToolAccess<TData = Awaited<ReturnType<typeof getAgentToolAccess>>, TError = ErrorType<unknown>>(
+ agentId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentToolAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgentToolAccessQueryOptions(agentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAgentToolUnlockUrl = (agentId: number,
+    toolKey: string,) => {
+
+
+
+
+  return `/api/agents/${agentId}/tool-unlocks/${toolKey}`
+}
+
+/**
+ * @summary Grant or revoke one named contestant tool with an auditable reason
+ */
+export const updateAgentToolUnlock = async (agentId: number,
+    toolKey: string,
+    toolUnlockInput: ToolUnlockInput, options?: Parameters<typeof customFetch>[1]): Promise<ToolAccess> => {
+
+  return customFetch<ToolAccess>(getUpdateAgentToolUnlockUrl(agentId,toolKey),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(toolUnlockInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAgentToolUnlockMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentToolUnlock>>, TError,{agentId: number;toolKey: string;data: BodyType<ToolUnlockInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAgentToolUnlock>>, TError,{agentId: number;toolKey: string;data: BodyType<ToolUnlockInput>}, TContext> => {
+
+const mutationKey = ['updateAgentToolUnlock'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAgentToolUnlock>>, {agentId: number;toolKey: string;data: BodyType<ToolUnlockInput>}> = (props) => {
+          const {agentId,toolKey,data} = props ?? {};
+
+          return  updateAgentToolUnlock(agentId,toolKey,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAgentToolUnlockMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgentToolUnlock>>>
+    export type UpdateAgentToolUnlockMutationBody = BodyType<ToolUnlockInput>
+    export type UpdateAgentToolUnlockMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Grant or revoke one named contestant tool with an auditable reason
+ */
+export const useUpdateAgentToolUnlock = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentToolUnlock>>, TError,{agentId: number;toolKey: string;data: BodyType<ToolUnlockInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAgentToolUnlock>>,
+        TError,
+        {agentId: number;toolKey: string;data: BodyType<ToolUnlockInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAgentToolUnlockMutationOptions(options));
+    }
 

@@ -544,7 +544,20 @@ export const GetArenaResponse = zod.object({
   "progressPercent": zod.number().optional(),
   "scaleRevenueCents": zod.number().optional(),
   "assignedSkills": zod.array(zod.string()).optional(),
-  "tools": zod.array(zod.string()).optional()
+  "tools": zod.array(zod.string()).optional(),
+  "toolAccess": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "available": zod.boolean(),
+  "status": zod.enum(['available', 'locked']),
+  "unlockRound": zod.number().nullish(),
+  "unlockCondition": zod.string(),
+  "source": zod.enum(['free', 'round', 'locked', 'manual']),
+  "overrideAction": zod.union([zod.literal('grant'),zod.literal('revoke'),zod.literal(null)]).nullable(),
+  "overrideReason": zod.string().nullable(),
+  "lastChangedAt": zod.coerce.date().nullable()
+})).optional()
 }))
 })
 
@@ -575,7 +588,20 @@ export const AdvanceArenaResponse = zod.object({
   "progressPercent": zod.number().optional(),
   "scaleRevenueCents": zod.number().optional(),
   "assignedSkills": zod.array(zod.string()).optional(),
-  "tools": zod.array(zod.string()).optional()
+  "tools": zod.array(zod.string()).optional(),
+  "toolAccess": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "available": zod.boolean(),
+  "status": zod.enum(['available', 'locked']),
+  "unlockRound": zod.number().nullish(),
+  "unlockCondition": zod.string(),
+  "source": zod.enum(['free', 'round', 'locked', 'manual']),
+  "overrideAction": zod.union([zod.literal('grant'),zod.literal('revoke'),zod.literal(null)]).nullable(),
+  "overrideReason": zod.string().nullable(),
+  "lastChangedAt": zod.coerce.date().nullable()
+})).optional()
 }))
 })
 
@@ -676,6 +702,7 @@ export const GetAgentRunResponse = zod.object({
   "connectionId": zod.number(),
   "providerRunId": zod.string().nullable(),
   "task": zod.string(),
+  "allowedTools": zod.array(zod.string()),
   "status": zod.enum(['queued', 'running', 'paused', 'stopping', 'stopped', 'completed', 'failed']),
   "startedAt": zod.coerce.date().nullable(),
   "endedAt": zod.coerce.date().nullable(),
@@ -702,7 +729,8 @@ export const LaunchAgentRunParams = zod.object({
 
 export const LaunchAgentRunBody = zod.object({
   "task": zod.string().min(1),
-  "runtimeConnectionId": zod.number().optional()
+  "runtimeConnectionId": zod.number().optional(),
+  "tools": zod.array(zod.string()).optional()
 })
 
 export const LaunchAgentRunResponse = zod.object({
@@ -711,6 +739,7 @@ export const LaunchAgentRunResponse = zod.object({
   "connectionId": zod.number(),
   "providerRunId": zod.string().nullable(),
   "task": zod.string(),
+  "allowedTools": zod.array(zod.string()),
   "status": zod.enum(['queued', 'running', 'paused', 'stopping', 'stopped', 'completed', 'failed']),
   "startedAt": zod.coerce.date().nullable(),
   "endedAt": zod.coerce.date().nullable(),
@@ -738,6 +767,7 @@ export const PauseAgentRunResponse = zod.object({
   "connectionId": zod.number(),
   "providerRunId": zod.string().nullable(),
   "task": zod.string(),
+  "allowedTools": zod.array(zod.string()),
   "status": zod.enum(['queued', 'running', 'paused', 'stopping', 'stopped', 'completed', 'failed']),
   "startedAt": zod.coerce.date().nullable(),
   "endedAt": zod.coerce.date().nullable(),
@@ -765,6 +795,7 @@ export const ResumeAgentRunResponse = zod.object({
   "connectionId": zod.number(),
   "providerRunId": zod.string().nullable(),
   "task": zod.string(),
+  "allowedTools": zod.array(zod.string()),
   "status": zod.enum(['queued', 'running', 'paused', 'stopping', 'stopped', 'completed', 'failed']),
   "startedAt": zod.coerce.date().nullable(),
   "endedAt": zod.coerce.date().nullable(),
@@ -792,6 +823,7 @@ export const StopAgentRunResponse = zod.object({
   "connectionId": zod.number(),
   "providerRunId": zod.string().nullable(),
   "task": zod.string(),
+  "allowedTools": zod.array(zod.string()),
   "status": zod.enum(['queued', 'running', 'paused', 'stopping', 'stopped', 'completed', 'failed']),
   "startedAt": zod.coerce.date().nullable(),
   "endedAt": zod.coerce.date().nullable(),
@@ -822,5 +854,72 @@ export const ListAgentActivityResponseItem = zod.object({
   "createdAt": zod.coerce.date()
 })
 export const ListAgentActivityResponse = zod.array(ListAgentActivityResponseItem)
+
+
+/**
+ * @summary Get a contestant's current Season 0 tool permissions and audit trail
+ */
+export const GetAgentToolAccessParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const GetAgentToolAccessResponse = zod.object({
+  "agentId": zod.number(),
+  "currentRound": zod.number(),
+  "tools": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "available": zod.boolean(),
+  "status": zod.enum(['available', 'locked']),
+  "unlockRound": zod.number().nullish(),
+  "unlockCondition": zod.string(),
+  "source": zod.enum(['free', 'round', 'locked', 'manual']),
+  "overrideAction": zod.union([zod.literal('grant'),zod.literal('revoke'),zod.literal(null)]).nullable(),
+  "overrideReason": zod.string().nullable(),
+  "lastChangedAt": zod.coerce.date().nullable()
+})),
+  "audit": zod.array(zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "toolKey": zod.string(),
+  "action": zod.enum(['grant', 'revoke']),
+  "reason": zod.string(),
+  "actor": zod.string(),
+  "round": zod.number(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Grant or revoke one named contestant tool with an auditable reason
+ */
+export const UpdateAgentToolUnlockParams = zod.object({
+  "agentId": zod.coerce.number(),
+  "toolKey": zod.coerce.string()
+})
+
+
+
+
+export const UpdateAgentToolUnlockBody = zod.object({
+  "action": zod.enum(['grant', 'revoke']),
+  "reason": zod.string().min(1)
+})
+
+export const UpdateAgentToolUnlockResponse = zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "description": zod.string(),
+  "available": zod.boolean(),
+  "status": zod.enum(['available', 'locked']),
+  "unlockRound": zod.number().nullish(),
+  "unlockCondition": zod.string(),
+  "source": zod.enum(['free', 'round', 'locked', 'manual']),
+  "overrideAction": zod.union([zod.literal('grant'),zod.literal('revoke'),zod.literal(null)]).nullable(),
+  "overrideReason": zod.string().nullable(),
+  "lastChangedAt": zod.coerce.date().nullable()
+})
 
 

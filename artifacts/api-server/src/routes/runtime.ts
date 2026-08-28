@@ -33,6 +33,7 @@ import {
 } from "@workspace/db";
 import { createCipheriv, createHash, randomBytes } from "node:crypto";
 import { adapterError, checkRuntime, controlRuntimeRun, launchRuntimeRun, type RuntimeHealthResult } from "../lib/runtime-adapters";
+import { getAgentToolAccess, getUnavailableTools } from "../lib/tool-unlocks";
 import { ensureSeeded } from "./mission-control";
 
 const router: IRouter = Router();
@@ -254,6 +255,22 @@ router.post("/agents/:agentId/run", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Agent not found." });
     return;
   }
+  const requestedTools = body.data.tools ?? [];
+  const unavailableTools = await getUnavailableTools(agent.id, requestedTools);
+  if (unavailableTools.length > 0) {
+    const details = unavailableTools
+      .map((tool) => `${tool.label}: ${tool.reason} ${tool.unlockCondition}`)
+      .join(" ");
+    res.status(409).json({
+      error: `Run rejected because ${unavailableTools.length === 1 ? "a requested tool is" : "requested tools are"} unavailable. ${details}`,
+      unavailableTools,
+    });
+    return;
+  }
+  const access = await getAgentToolAccess(agent.id);
+  const allowedTools = requestedTools.length > 0
+    ? [...new Set(requestedTools)]
+    : access.tools.filter((tool) => tool.available).map((tool) => tool.key);
   if (!connection) {
     res.status(409).json({ error: `No ${agent.provider} runtime is linked to this staff member. Add a runtime link first.` });
     return;
@@ -264,13 +281,14 @@ router.post("/agents/:agentId/run", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const started = await launchRuntimeRun(connection, body.data.task.trim(), agent.id);
+    const started = await launchRuntimeRun(connection, body.data.task.trim(), agent.id, allowedTools);
     const now = new Date();
     const [run] = await db.insert(liveRunsTable).values({
       agentId: agent.id,
       connectionId: connection.id,
       providerRunId: started.providerRunId,
       task: body.data.task.trim(),
+      allowedTools,
       status: started.status,
       startedAt: now,
       lastEventAt: now,

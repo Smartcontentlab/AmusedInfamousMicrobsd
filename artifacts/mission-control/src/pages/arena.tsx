@@ -1,7 +1,7 @@
 import { useGetArena, useAdvanceArena, getGetArenaQueryKey, useCreateAgent, useListProjects, useListSkills, useEquipAgentSkill, getListAgentsQueryKey } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
-import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Code2, MapPin, Zap, UserPlus, Loader2, RefreshCw, Wrench } from "lucide-react";
+import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Code2, MapPin, Zap, UserPlus, Loader2, RefreshCw, Wrench, LockKeyhole, UnlockKeyhole } from "lucide-react";
 import { useState } from "react";
 
 export function Arena() {
@@ -215,6 +215,19 @@ export function Arena() {
                             </div>
                             <div className="font-mono text-xs text-muted-foreground"><span className="font-black uppercase text-foreground">Tool lanes:</span> {(score.tools || []).length > 0 ? score.tools?.join(" / ") : "none reported"}</div>
                         </div>
+
+                         <div className="space-y-2 md:col-span-2">
+                            <div className="flex items-center justify-between gap-2 border-b-4 border-border pb-1 text-xs font-bold uppercase text-muted-foreground"><span className="flex items-center gap-2"><UnlockKeyhole size={14} /> Round tool access</span><span>{score.toolAccess?.filter((tool) => tool.available).length ?? 0} / {score.toolAccess?.length ?? 0} allowed</span></div>
+                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                               {score.toolAccess?.map((tool) => (
+                                  <div key={tool.key} data-testid={`arena-tool-${score.agentId}-${tool.key}`} className={`border-2 p-2 ${tool.available ? "border-primary bg-primary/5" : "border-destructive/60 bg-destructive/5"}`} title={tool.description}>
+                                     <div className="flex items-center gap-1.5 font-mono text-xs font-black">{tool.available ? <UnlockKeyhole size={13} className="text-primary" /> : <LockKeyhole size={13} className="text-destructive" />}{tool.label}</div>
+                                     <div className="mt-1 font-mono text-[10px] text-muted-foreground">{tool.available ? `Allowed via ${tool.source}` : tool.unlockCondition}</div>
+                                     {tool.overrideReason && <div className="mt-1 font-mono text-[10px]">GM reason: {tool.overrideReason}</div>}
+                                  </div>
+                               ))}
+                            </div>
+                         </div>
                         
                         <div className="space-y-2">
                            <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground border-b-4 border-border pb-1">

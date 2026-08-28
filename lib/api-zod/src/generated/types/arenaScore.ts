@@ -5,6 +5,7 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+import type { ToolAccess } from './toolAccess';
 
 export interface ArenaScore {
   agentId: number;
@@ -20,4 +21,5 @@ export interface ArenaScore {
   scaleRevenueCents?: number;
   assignedSkills?: string[];
   tools?: string[];
+  toolAccess?: ToolAccess[];
 }

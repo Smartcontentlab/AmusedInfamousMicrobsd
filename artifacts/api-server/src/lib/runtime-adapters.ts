@@ -262,11 +262,11 @@ export async function checkRuntime(connection: RuntimeConnection): Promise<Runti
   return { status, capabilities, latencyMs: health.latencyMs, errorCode, errorMessage };
 }
 
-export async function launchRuntimeRun(connection: RuntimeConnection, task: string, agentId: number): Promise<RuntimeRunResult> {
+export async function launchRuntimeRun(connection: RuntimeConnection, task: string, agentId: number, allowedTools: string[]): Promise<RuntimeRunResult> {
   const paths = restPaths(connection.provider);
   const response = connection.provider === "openclaw"
-    ? { data: await openClawRequest(connection, "chat.send", { sessionKey: `mission-control:${agentId}`, message: task }) }
-    : await requestJson(connection, paths.launch, { method: "POST", body: JSON.stringify({ prompt: task, task, agentId }) });
+    ? { data: await openClawRequest(connection, "chat.send", { sessionKey: `mission-control:${agentId}`, message: task, allowedTools }) }
+    : await requestJson(connection, paths.launch, { method: "POST", body: JSON.stringify({ prompt: task, task, agentId, allowedTools }) });
   const capabilities = capabilitiesFrom(response.data);
   return {
     providerRunId: providerRunId(response.data),

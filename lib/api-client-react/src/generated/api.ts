@@ -35,6 +35,7 @@ import type {
   ArenaAdvanceInput,
   Dashboard,
   EquipAgentSkillResult,
+  ErrorResponse,
   HealthStatus,
   MissionPlan,
   MissionPlanInput,
@@ -339,7 +340,7 @@ export const createMissionPlan = async (missionPlanInput: MissionPlanInput, opti
 
 
 
-export const getCreateMissionPlanMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateMissionPlanMutationOptions = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMissionPlan>>, TError,{data: BodyType<MissionPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createMissionPlan>>, TError,{data: BodyType<MissionPlanInput>}, TContext> => {
 
@@ -368,12 +369,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateMissionPlanMutationResult = NonNullable<Awaited<ReturnType<typeof createMissionPlan>>>
     export type CreateMissionPlanMutationBody = BodyType<MissionPlanInput>
-    export type CreateMissionPlanMutationError = ErrorType<unknown>
+    export type CreateMissionPlanMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Turn a brain dump into an actionable mission plan
  */
-export const useCreateMissionPlan = <TError = ErrorType<unknown>,
+export const useCreateMissionPlan = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMissionPlan>>, TError,{data: BodyType<MissionPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createMissionPlan>>,

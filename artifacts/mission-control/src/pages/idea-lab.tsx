@@ -103,14 +103,15 @@ export function IdeaLab() {
           </p>
           <textarea
             data-testid="idea-brain-dump"
+            aria-describedby="idea-brain-dump-help"
             value={brainDump}
             onChange={(event) => setBrainDump(event.target.value)}
             rows={8}
             placeholder="Example: I want a lightweight way for independent creators to understand which sponsorship invoices are late and what to chase first..."
             className="w-full resize-y border-4 border-border bg-card p-4 font-mono text-sm leading-relaxed focus:outline-none focus:ring-4 focus:ring-primary/20"
           />
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 font-mono text-xs text-muted-foreground">
-            <span>{brainDump.trim().length}/12 minimum characters</span>
+          <div id="idea-brain-dump-help" className="mt-3 flex flex-wrap items-center justify-between gap-3 font-mono text-xs text-muted-foreground">
+            <span data-testid="idea-brain-dump-validation">{brainDump.trim().length}/12 minimum characters</span>
             <button type="button" data-testid="idea-details-toggle" onClick={() => setShowDetails((open) => !open)} className="font-black uppercase underline">
               {showDetails ? "Hide optional shaping" : "Add optional names"}
             </button>
@@ -155,12 +156,12 @@ export function IdeaLab() {
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b-4 border-border pb-2">
           <div><h2 className="text-2xl font-black uppercase tracking-tight">Saved idea plans</h2><p className="mt-1 font-mono text-sm text-muted-foreground">Every plan remains visible after reload so you can pick up the next loop later.</p></div>
-          <span className="font-mono text-xs font-black uppercase text-muted-foreground">{plans.length} recorded</span>
+          <span data-testid="idea-plan-count" className="font-mono text-xs font-black uppercase text-muted-foreground">{plans.length} recorded</span>
         </div>
         {plansQuery.isLoading && <div className="flex items-center gap-2 border-4 border-dashed border-border p-6 font-mono text-sm"><Loader2 size={16} className="animate-spin" /> Reading the planning desk...</div>}
         {plansQuery.isError && <div className="border-4 border-destructive bg-destructive/10 p-5 font-mono text-sm text-destructive">Saved plans are unavailable right now. Your existing projects and approvals are unchanged.</div>}
         {!plansQuery.isLoading && !plansQuery.isError && plans.length === 0 && <div data-testid="idea-plans-empty" className="border-4 border-dashed border-border bg-muted/30 p-10 text-center font-mono text-sm text-muted-foreground">NO IDEAS SHAPED YET. YOUR NEXT ROUGH NOTE CAN START THE FIRST LOOP.</div>}
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div data-testid="idea-plans-list" className="grid gap-5 lg:grid-cols-2">
           {plans.map((plan) => (
             <div key={plan.id} data-testid={`idea-plan-${plan.id}`} className="border-4 border-border bg-card p-4 shadow-[4px_4px_0px_0px_hsl(var(--border))]">
               <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-xl font-black uppercase">{plan.projectName}</h3><p className="mt-1 font-mono text-xs text-muted-foreground">{new Date(plan.createdAt).toLocaleString()}</p></div><BrutalBadge variant="secondary">CHECKPOINT PENDING</BrutalBadge></div>

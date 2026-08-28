@@ -409,6 +409,11 @@ router.post("/mission-plans", async (req, res): Promise<void> => {
   }
 
   const brainDump = parsed.data.brainDump.trim();
+  if (brainDump.length < 12) {
+    req.log.warn("Invalid mission plan input: brain dump is blank or too short after trimming");
+    res.status(400).json({ error: "Add at least a sentence describing the idea you want to shape." });
+    return;
+  }
   const firstSentence = brainDump.split(/[.!?]/)[0]?.trim() || brainDump;
   const fallbackProjectName = firstSentence
     .replace(/^(i want to|we should|build|create|make)\s+/i, "")

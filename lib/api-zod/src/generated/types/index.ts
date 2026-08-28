@@ -31,6 +31,7 @@ export * from './arenaScore';
 export * from './arenaStatus';
 export * from './dashboard';
 export * from './equipAgentSkillResult';
+export * from './errorResponse';
 export * from './healthStatus';
 export * from './missionPlan';
 export * from './missionPlanInput';

@@ -89,6 +89,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MissionPlan"
+        "400":
+          description: The brain dump is missing or too short after trimming
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /projects:
     get:
       operationId: listProjects
@@ -653,6 +659,12 @@ components:
           type: string
       required:
         - status
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
     Project:
       type: object
       required: [id, name, status, incomeCents, updatedAt]

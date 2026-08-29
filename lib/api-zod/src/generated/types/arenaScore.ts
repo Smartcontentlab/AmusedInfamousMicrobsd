@@ -22,4 +22,9 @@ export interface ArenaScore {
   assignedSkills?: string[];
   tools?: string[];
   toolAccess?: ToolAccess[];
+  verifiedScore?: number;
+  evidenceCount?: number;
+  verifiedMetrics?: string[];
+  /** @nullable */
+  lastVerifiedAt?: Date | null;
 }

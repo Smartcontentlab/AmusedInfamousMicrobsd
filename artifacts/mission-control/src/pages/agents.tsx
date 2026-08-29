@@ -217,7 +217,7 @@ function RuntimeLinkPanel() {
   );
 }
 
-function RunPanel({ agentId, agentName }: { agentId: number; agentName: string }) {
+function RunPanel({ agentId, agentName, provider }: { agentId: number; agentName: string; provider: string }) {
   const queryClient = useQueryClient();
   const runQuery = useGetAgentRun(agentId, { query: { queryKey: ["agent-run", agentId], refetchInterval: 5000 } });
   const activityQuery = useListAgentActivity(agentId, { query: { queryKey: ["agent-activity", agentId], refetchInterval: 5000 } });
@@ -242,6 +242,7 @@ function RunPanel({ agentId, agentName }: { agentId: number; agentName: string }
   const canStop = Boolean(run?.supportsStop && ["running", "paused", "queued", "stopping"].includes(runStatus));
   const disabledReason = runStatus === "not_running" ? "No live run exists for this operative." : `Action unavailable while run is ${runStatus}.`;
   const availableTools = toolAccessQuery.data?.tools.filter((tool) => tool.available) ?? [];
+  const compatibleConnections = asList(connectionsQuery.data).filter((connection) => String(connection.provider ?? "").toLowerCase() === provider.toLowerCase());
 
   useEffect(() => {
     if (availableTools.length === 0 || requestedTools.length > 0) return;
@@ -314,7 +315,7 @@ function RunPanel({ agentId, agentName }: { agentId: number; agentName: string }
                 )}
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                {asList(connectionsQuery.data).length > 0 && <select data-testid={`run-connection-${agentId}`} value={connectionId} onChange={(event) => setConnectionId(event.target.value)} className="border-4 border-border bg-card p-2 font-mono text-xs focus:outline-none sm:max-w-48"><option value="">AUTO LINK</option>{asList(connectionsQuery.data).map((connection) => <option key={String(connection.id ?? connection.connectionId)} value={String(connection.id ?? connection.connectionId)}>{connection.name ?? connection.provider ?? "runtime link"}</option>)}</select>}
+                 {compatibleConnections.length > 0 && <select data-testid={`run-connection-${agentId}`} value={connectionId} onChange={(event) => setConnectionId(event.target.value)} className="border-4 border-border bg-card p-2 font-mono text-xs focus:outline-none sm:max-w-48"><option value="">AUTO LINK</option>{compatibleConnections.map((connection) => <option key={String(connection.id ?? connection.connectionId)} value={String(connection.id ?? connection.connectionId)}>{connection.name ?? connection.provider ?? "runtime link"}</option>)}</select>}
                 <input data-testid={`run-instruction-${agentId}`} value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="Describe the next run directive..." className="min-w-0 flex-1 border-4 border-border bg-card p-2 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/20" />
                 <BrutalButton data-testid={`run-launch-${agentId}`} disabled={busy || !instruction.trim()} onClick={launch}>
                   {launchRun.isPending ? <><Loader2 size={15} className="animate-spin" /> Launching...</> : <><Play size={15} /> Launch run</>}
@@ -463,10 +464,10 @@ function AgentCard({ agent, projects, skills, runtimeConnections }: { agent: any
        <div className="border-4 border-border bg-muted/50 p-3">
          <div className="flex items-center gap-2 text-xs font-black uppercase"><Radio size={14} className="text-primary" /> Live state is controlled by the run panel</div>
         <label className="mt-3 block text-xs font-black uppercase">Assignment<select data-testid={`agent-project-${agent.id}`} className="mt-1 w-full border-4 border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.projectId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { projectId: event.target.value ? Number(event.target.value) : undefined } })}><option value="">-- UNASSIGNED --</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-        <label className="mt-3 block text-xs font-black uppercase">Runtime link<select data-testid={`agent-runtime-${agent.id}`} className="mt-1 w-full border-4 border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.runtimeConnectionId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { runtimeConnectionId: event.target.value ? Number(event.target.value) : undefined } })}><option value="">-- AUTO BY PROVIDER --</option>{runtimeConnections.map((connection) => <option key={String(connection.id)} value={String(connection.id)}>{connection.name} ({connection.provider})</option>)}</select></label>
+         <label className="mt-3 block text-xs font-black uppercase">Runtime link<select data-testid={`agent-runtime-${agent.id}`} className="mt-1 w-full border-4 border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.runtimeConnectionId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { runtimeConnectionId: event.target.value ? Number(event.target.value) : undefined } })}><option value="">-- AUTO BY PROVIDER --</option>{runtimeConnections.filter((connection) => String(connection.provider ?? "").toLowerCase() === String(agent.provider ?? "").toLowerCase()).map((connection) => <option key={String(connection.id)} value={String(connection.id)}>{connection.name} ({connection.provider})</option>)}</select></label>
         {updateAgent.isError && <p className="mt-2 font-mono text-xs text-destructive">{messageFor(updateAgent.error, "Agent update failed.")}</p>}
       </div>
-      <RunPanel agentId={agent.id} agentName={agent.name} />
+      <RunPanel agentId={agent.id} agentName={agent.name} provider={agent.provider || ""} />
     </BrutalCard></div>
   );
 }

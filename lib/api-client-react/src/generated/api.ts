@@ -33,6 +33,9 @@ import type {
   ApprovalUpdate,
   Arena,
   ArenaAdvanceInput,
+  ArenaEvidenceInput,
+  ArenaEvidenceList,
+  ArenaEvidenceResult,
   Dashboard,
   EquipAgentSkillResult,
   ErrorResponse,
@@ -1854,6 +1857,154 @@ export const useAdvanceArena = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAdvanceArenaMutationOptions(options));
+    }
+
+export const getListArenaEvidenceUrl = () => {
+
+
+
+
+  return `/api/arena/evidence`
+}
+
+/**
+ * @summary List verified BuildOff business evidence
+ */
+export const listArenaEvidence = async ( options?: Parameters<typeof customFetch>[1]): Promise<ArenaEvidenceList> => {
+
+  return customFetch<ArenaEvidenceList>(getListArenaEvidenceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListArenaEvidenceQueryKey = () => {
+    return [
+    `/api/arena/evidence`
+    ] as const;
+    }
+
+
+export const getListArenaEvidenceQueryOptions = <TData = Awaited<ReturnType<typeof listArenaEvidence>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listArenaEvidence>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListArenaEvidenceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listArenaEvidence>>> = ({ signal }) => listArenaEvidence({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listArenaEvidence>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListArenaEvidenceQueryResult = NonNullable<Awaited<ReturnType<typeof listArenaEvidence>>>
+export type ListArenaEvidenceQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List verified BuildOff business evidence
+ */
+
+export function useListArenaEvidence<TData = Awaited<ReturnType<typeof listArenaEvidence>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listArenaEvidence>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListArenaEvidenceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateArenaEvidenceUrl = () => {
+
+
+
+
+  return `/api/arena/evidence`
+}
+
+/**
+ * @summary Record a Game Master verified business result
+ */
+export const createArenaEvidence = async (arenaEvidenceInput: ArenaEvidenceInput, options?: Parameters<typeof customFetch>[1]): Promise<ArenaEvidenceResult> => {
+
+  return customFetch<ArenaEvidenceResult>(getCreateArenaEvidenceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(arenaEvidenceInput)
+  }
+);}
+
+
+
+
+
+export const getCreateArenaEvidenceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createArenaEvidence>>, TError,{data: BodyType<ArenaEvidenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createArenaEvidence>>, TError,{data: BodyType<ArenaEvidenceInput>}, TContext> => {
+
+const mutationKey = ['createArenaEvidence'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createArenaEvidence>>, {data: BodyType<ArenaEvidenceInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createArenaEvidence(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateArenaEvidenceMutationResult = NonNullable<Awaited<ReturnType<typeof createArenaEvidence>>>
+    export type CreateArenaEvidenceMutationBody = BodyType<ArenaEvidenceInput>
+    export type CreateArenaEvidenceMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Record a Game Master verified business result
+ */
+export const useCreateArenaEvidence = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createArenaEvidence>>, TError,{data: BodyType<ArenaEvidenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createArenaEvidence>>,
+        TError,
+        {data: BodyType<ArenaEvidenceInput>},
+        TContext
+      > => {
+      return useMutation(getCreateArenaEvidenceMutationOptions(options));
     }
 
 export const getListRuntimeConnectionsUrl = () => {

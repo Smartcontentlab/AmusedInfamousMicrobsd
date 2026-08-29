@@ -25,7 +25,17 @@ export type RuntimeHealthResult = {
 
 export type RuntimeRunResult = {
   providerRunId: string | null;
-  status: "queued" | "running";
+  status: RuntimeRunStatus;
+  supportsPause: boolean;
+  supportsResume: boolean;
+  supportsStop: boolean;
+};
+
+export type RuntimeRunStatus = "queued" | "running" | "paused" | "stopping" | "stopped" | "completed" | "failed";
+
+export type RuntimeRunSnapshot = {
+  status: RuntimeRunStatus;
+  lastEvent: string | null;
   supportsPause: boolean;
   supportsResume: boolean;
   supportsStop: boolean;
@@ -128,13 +138,37 @@ function capabilitiesFrom(data: Record<string, unknown>, defaults = DEFAULT_CAPA
   return candidate.filter((item): item is string => typeof item === "string");
 }
 
+function hermesCapabilities(data: Record<string, unknown>, defaults = DEFAULT_CAPABILITIES): string[] {
+  const explicit = capabilitiesFrom(data, []);
+  if (explicit.length > 0) {
+    const aliases: Record<string, string> = {
+      run_submission: "launch",
+      run_status: "status",
+      run_events_sse: "events",
+      run_stop: "stop",
+      run_pause: "pause",
+      run_resume: "resume",
+    };
+    return [...new Set(explicit.map((capability) => aliases[capability] ?? capability))];
+  }
+  const features = data.features as Record<string, unknown> | undefined;
+  if (!features || typeof features !== "object") return defaults;
+  const capabilities: string[] = [];
+  if (features.run_submission === true) capabilities.push("launch");
+  if (features.run_status === true) capabilities.push("status");
+  if (features.run_stop === true) capabilities.push("stop");
+  if (features.run_pause === true) capabilities.push("pause");
+  if (features.run_resume === true) capabilities.push("resume");
+  return capabilities.length > 0 ? capabilities : defaults;
+}
+
 function providerRunId(data: Record<string, unknown>): string | null {
-  return stringValue(data.runId) ?? stringValue(data.id) ?? stringValue(data.sessionId) ?? null;
+  return stringValue(data.runId) ?? stringValue(data.run_id) ?? stringValue(data.id) ?? stringValue(data.sessionId) ?? stringValue(data.session_id) ?? null;
 }
 
 function restPaths(provider: RuntimeConnection["provider"]) {
   return provider === "hermes"
-    ? { health: "health", capabilities: "v1/models", launch: "v1/runs", pause: "v1/runs/{id}/pause", resume: "v1/runs/{id}/resume", stop: "v1/runs/{id}" }
+    ? { health: "v1/health", capabilities: "v1/capabilities", launch: "v1/runs", status: "v1/runs/{id}", pause: "v1/runs/{id}/pause", resume: "v1/runs/{id}/resume", stop: "v1/runs/{id}/stop" }
     : { health: "health", capabilities: "gateway/capabilities", launch: "rpc", pause: "rpc", resume: "rpc", stop: "rpc" };
 }
 
@@ -171,7 +205,7 @@ async function openClawRequest(connection: RuntimeConnection, method?: string, p
         id: connectId,
         method: "connect",
         params: {
-          minProtocol: 3,
+          minProtocol: 4,
           maxProtocol: 4,
           client: { id: "mission-control", version: "1.0.0", platform: "server", mode: "backend" },
           role: "operator",
@@ -207,7 +241,18 @@ async function openClawRequest(connection: RuntimeConnection, method?: string, p
       }
       if (id !== requestId) return;
       if (frame.ok !== true) {
-        finish(new RuntimeAdapterError("runtime_request_failed", "The OpenClaw gateway rejected the control request.", false));
+        const error = frame.error as Record<string, unknown> | undefined;
+        const errorCode = stringValue(error?.code);
+        const errorMessage = stringValue(error?.message);
+        finish(new RuntimeAdapterError(
+          errorCode === "FORBIDDEN" || errorCode === "UNAUTHORIZED" ? "authentication_required" : "runtime_request_failed",
+          errorCode === "FORBIDDEN" || errorCode === "UNAUTHORIZED"
+            ? "The OpenClaw gateway rejected the saved credential or operator scope."
+            : errorMessage && !/token|secret|authorization|credential/i.test(errorMessage)
+              ? `The OpenClaw gateway rejected the request: ${errorMessage}`
+              : "The OpenClaw gateway rejected the control request.",
+          false,
+        ));
         return;
       }
       finish(undefined, (frame.payload as Record<string, unknown>) ?? {});
@@ -231,12 +276,13 @@ function gatewayCapabilities(hello: Record<string, unknown>): string[] {
 export async function checkRuntime(connection: RuntimeConnection): Promise<RuntimeHealthResult> {
   const paths = restPaths(connection.provider);
   if (connection.provider === "openclaw") {
+    const startedAt = Date.now();
     const hello = await openClawRequest(connection);
     const capabilities = gatewayCapabilities(hello);
     return {
       status: capabilities.includes("launch") ? "healthy" : "degraded",
       capabilities,
-      latencyMs: 0,
+      latencyMs: Date.now() - startedAt,
       errorCode: capabilities.includes("launch") ? null : "function_unavailable",
       errorMessage: capabilities.includes("launch") ? null : "The gateway is reachable, but no agent launch method was advertised.",
     };
@@ -249,7 +295,7 @@ export async function checkRuntime(connection: RuntimeConnection): Promise<Runti
 
   try {
     const capabilityResponse = await requestJson(connection, paths.capabilities);
-    capabilities = capabilitiesFrom(capabilityResponse.data, capabilities);
+    capabilities = hermesCapabilities(capabilityResponse.data, capabilities);
   } catch (error) {
     if (error instanceof RuntimeAdapterError && error.code === "function_unavailable") {
       status = "degraded";
@@ -265,15 +311,81 @@ export async function checkRuntime(connection: RuntimeConnection): Promise<Runti
 export async function launchRuntimeRun(connection: RuntimeConnection, task: string, agentId: number, allowedTools: string[]): Promise<RuntimeRunResult> {
   const paths = restPaths(connection.provider);
   const response = connection.provider === "openclaw"
-    ? { data: await openClawRequest(connection, "chat.send", { sessionKey: `mission-control:${agentId}`, message: task, allowedTools }) }
-    : await requestJson(connection, paths.launch, { method: "POST", body: JSON.stringify({ prompt: task, task, agentId, allowedTools }) });
-  const capabilities = capabilitiesFrom(response.data);
+    ? { data: await openClawRequest(connection, "chat.send", { sessionKey: `mission-control:${agentId}`, message: task, idempotencyKey: `mission-control-${randomUUID()}` }) }
+    : await requestJson(connection, paths.launch, { method: "POST", body: JSON.stringify({ input: task, session_id: `mission-control:${agentId}` }) });
+  const capabilities = connection.provider === "hermes" ? hermesCapabilities(response.data) : capabilitiesFrom(response.data, ["launch", "stop"]);
   return {
     providerRunId: providerRunId(response.data),
-    status: response.data.status === "queued" ? "queued" : "running",
+    status: normalizeRunStatus(response.data.status ?? response.data.state),
     supportsPause: capabilities.includes("pause"),
     supportsResume: capabilities.includes("resume"),
-    supportsStop: capabilities.includes("stop") || !capabilities.length,
+    supportsStop: capabilities.includes("stop") && Boolean(providerRunId(response.data)),
+  };
+}
+
+function normalizeRunStatus(value: unknown): RuntimeRunStatus {
+  switch (String(value ?? "").toLowerCase()) {
+    case "queued":
+    case "pending":
+    case "created":
+      return "queued";
+    case "paused":
+      return "paused";
+    case "stopping":
+    case "cancelling":
+    case "canceling":
+      return "stopping";
+    case "stopped":
+    case "cancelled":
+    case "canceled":
+      return "stopped";
+    case "completed":
+    case "complete":
+    case "succeeded":
+    case "success":
+    case "done":
+      return "completed";
+    case "failed":
+    case "failure":
+    case "error":
+      return "failed";
+    default:
+      return "running";
+  }
+}
+
+export async function getRuntimeRun(connection: RuntimeConnection, providerRunId: string): Promise<RuntimeRunSnapshot> {
+  if (connection.provider === "openclaw") {
+    const response = await openClawRequest(connection, "agent.wait", { runId: providerRunId, timeoutMs: 250 });
+    const waitStatus = String(response.status ?? "").toLowerCase();
+    const status = waitStatus === "timeout"
+      ? "running"
+      : waitStatus === "error"
+        ? "failed"
+        : waitStatus === "ok"
+          ? "completed"
+            : normalizeRunStatus(response.status ?? response.state);
+    const errorMessage = stringValue(response.error);
+    return {
+      status,
+      lastEvent: errorMessage ?? (status === "completed" ? "OpenClaw completed the run." : status === "failed" ? "OpenClaw reported that the run failed." : "OpenClaw run is still active."),
+      supportsPause: false,
+      supportsResume: false,
+      supportsStop: true,
+    };
+  }
+  const response = await requestJson(connection, `v1/runs/${encodeURIComponent(providerRunId)}`);
+  const status = normalizeRunStatus(response.data.status ?? response.data.state);
+  const message = stringValue(response.data.lastEvent)
+    ?? stringValue(response.data.message)
+    ?? (status === "completed" ? "Runtime completed the run." : status === "failed" ? "Runtime reported that the run failed." : `Runtime reports the run is ${status}.`);
+  const capabilities = hermesCapabilities(response.data);
+  return {
+    status,
+    lastEvent: message,
+    supportsPause: capabilities.includes("pause"),
+    supportsResume: capabilities.includes("resume"),
+    supportsStop: capabilities.includes("stop"),
   };
 }
 
@@ -299,17 +411,18 @@ export async function controlRuntimeRun(
   connection: RuntimeConnection,
   action: Exclude<RuntimeAction, "launch">,
   providerRunId: string,
-): Promise<void> {
+): Promise<{ status?: RuntimeRunStatus }> {
   const paths = restPaths(connection.provider);
   if (connection.provider === "openclaw") {
     if (action !== "stop") throw new RuntimeAdapterError("function_unavailable", `OpenClaw does not advertise ${action} for live runs.`, false);
-    await openClawRequest(connection, "chat.abort", { runId: providerRunId, sessionKey: providerRunId });
-    return;
+    await openClawRequest(connection, "chat.abort", { runId: providerRunId });
+    return { status: "stopped" };
   }
-  await requestJson(connection, paths[action].replace("{id}", encodeURIComponent(providerRunId)), {
-    method: action === "stop" ? "DELETE" : "POST",
-    body: JSON.stringify({ runId: providerRunId }),
+  const response = await requestJson(connection, paths[action].replace("{id}", encodeURIComponent(providerRunId)), {
+    method: "POST",
+    body: action === "stop" ? undefined : JSON.stringify({ run_id: providerRunId }),
   });
+  return { status: response.data.status ? normalizeRunStatus(response.data.status) : undefined };
 }
 
 export function adapterError(error: unknown): RuntimeAdapterError {

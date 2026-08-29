@@ -1,11 +1,18 @@
-import { useGetArena, useAdvanceArena, getGetArenaQueryKey, useCreateAgent, useListProjects, useListSkills, useEquipAgentSkill, useDetachAgentCapability, getListAgentsQueryKey, getListSkillsQueryKey, getListAgentCapabilitiesQueryKey, useListAgentCapabilities } from "@workspace/api-client-react";
+import { useGetArena, useAdvanceArena, getGetArenaQueryKey, useCreateAgent, useListProjects, useListSkills, useEquipAgentSkill, useDetachAgentCapability, getListAgentsQueryKey, getListSkillsQueryKey, getListAgentCapabilitiesQueryKey, useListAgentCapabilities, useCreateArenaEvidence, getListArenaEvidenceQueryKey, useListArenaEvidence } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
-import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Code2, MapPin, Zap, UserPlus, Loader2, RefreshCw, Wrench, LockKeyhole, UnlockKeyhole, X } from "lucide-react";
+import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Code2, MapPin, Zap, UserPlus, Loader2, RefreshCw, Wrench, LockKeyhole, UnlockKeyhole, X, Check } from "lucide-react";
 import { useState } from "react";
 
 const messageFor = (error: unknown, fallback: string) =>
    error && typeof error === "object" && "message" in error ? String((error as { message?: unknown }).message || fallback) : fallback;
+
+function installationVariant(status: string): "primary" | "secondary" | "accent" | "destructive" | "default" {
+   if (status === "installed") return "primary";
+   if (status === "awaiting_approval") return "secondary";
+   if (status === "failed" || status === "blocked") return "destructive";
+   return "default";
+}
 
 function ContestantLoadoutEditor({ score, skills }: { score: { agentId: number }; skills: Array<{ id: number; name: string; category: string }> }) {
    const queryClient = useQueryClient();
@@ -99,15 +106,135 @@ function ContestantLoadoutEditor({ score, skills }: { score: { agentId: number }
                {equipSkill.isPending ? <><Loader2 size={14} className="animate-spin" /> Equipping...</> : <><Zap size={14} /> Equip</>}
             </BrutalButton>
          </div>
-         {equipSkill.isSuccess && <div data-testid={`arena-equip-success-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">Skill equipped. Tool lanes are refreshing from the saved loadout.</div>}
+          {equipSkill.data && <div data-testid={`arena-equip-status-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">
+             <div className="flex flex-wrap items-center gap-2 font-black uppercase"><Check size={13} /> Local capability equipped <BrutalBadge variant={installationVariant(equipSkill.data.installation.status)} className="border-2 px-2 py-0.5 text-[10px]">{equipSkill.data.installation.status.replaceAll("_", " ")}</BrutalBadge></div>
+             <p className="mt-2">{equipSkill.data.installation.message}</p>
+             {equipSkill.data.installation.status === "awaiting_approval" && <a href="/approvals" className="mt-2 inline-block font-black uppercase text-accent underline">Open approval inbox →</a>}
+          </div>}
          {detachSkill.isSuccess && <div data-testid={`arena-remove-success-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">Skill removed. Tool lanes are refreshing from the saved loadout.</div>}
          {(capabilitiesQuery.isError || equipSkill.isError || detachSkill.isError) && <div data-testid={`arena-loadout-error-${score.agentId}`} className="mt-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-[11px] text-destructive">{messageFor(equipSkill.error || detachSkill.error || capabilitiesQuery.error, "This contestant's loadout could not be updated.")}</div>}
       </div>
    );
 }
 
+const evidenceOptions = [
+   { value: "website_exists", label: "Website exists", placeholder: "0 or 1" },
+   { value: "website_works", label: "Website works", placeholder: "0 to 5" },
+   { value: "traffic", label: "Verified visitors", placeholder: "Visitor count" },
+   { value: "signups", label: "Verified signups", placeholder: "Customer count" },
+   { value: "revenue_cents", label: "Revenue", placeholder: "Cents, e.g. 12500" },
+   { value: "conversion_bps", label: "Conversion rate", placeholder: "Basis points, 650 = 6.5%" },
+   { value: "cost_efficiency", label: "Cost efficiency", placeholder: "0 to 10" },
+   { value: "first_customer_hours", label: "Time to first customer", placeholder: "Hours" },
+   { value: "adaptability", label: "Adaptability", placeholder: "0 to 10" },
+] as const;
+
+type ArenaEvidenceRow = {
+   id: number;
+   round: number;
+   metric: string;
+   value: number;
+   source: string;
+   verifiedBy: string;
+   verifiedAt: string;
+   note?: string | null;
+};
+
+function formatEvidenceValue(metric: string, value: number) {
+   if (metric === "revenue_cents") return `$${(value / 100).toFixed(2)}`;
+   if (metric === "conversion_bps") return `${(value / 100).toFixed(2)}%`;
+   if (metric === "website_exists") return value > 0 ? "YES" : "NO";
+   return value.toLocaleString();
+}
+
+function VerifiedEvidenceEditor({
+   score,
+   round,
+   evidence,
+}: {
+   score: { agentId: number; score: number; verifiedScore?: number; evidenceCount?: number; verifiedMetrics?: string[] };
+   round: number;
+   evidence: ArenaEvidenceRow[];
+}) {
+   const queryClient = useQueryClient();
+   const recordEvidence = useCreateArenaEvidence({
+      mutation: {
+         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: getGetArenaQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getListArenaEvidenceQueryKey() });
+         },
+      },
+   });
+   const [metric, setMetric] = useState<(typeof evidenceOptions)[number]["value"]>("revenue_cents");
+   const [value, setValue] = useState("");
+   const [source, setSource] = useState("Game Master verification");
+
+   const submit = (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!value.trim() || !source.trim()) return;
+      recordEvidence.mutate({
+         data: {
+            agentId: score.agentId,
+            round,
+            metric,
+            value: Number(value),
+            source: source.trim(),
+         },
+      }, {
+         onSuccess: () => setValue(""),
+      });
+   };
+   const selectedOption = evidenceOptions.find((option) => option.value === metric);
+
+   return (
+      <div className="mt-4 border-t-2 border-border pt-3">
+         <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-black uppercase"><Trophy size={14} className="text-accent" /> Verified scorecard</div>
+            <div className="font-mono text-xs font-black text-accent">{score.verifiedScore ?? score.score} PTS <span className="text-muted-foreground">/ {score.evidenceCount ?? 0} checks</span></div>
+         </div>
+         <p className="mt-1 font-mono text-[10px] text-muted-foreground">Only the latest verified result for each metric counts. Record infrastructure or provider evidence, not contestant claims.</p>
+         {score.verifiedMetrics?.length ? <div className="mt-2 flex flex-wrap gap-1">{score.verifiedMetrics.map((item) => <BrutalBadge key={item} variant="default" className="border-2 px-2 py-0.5 text-[10px]">{item}</BrutalBadge>)}</div> : null}
+         <div className="mt-3 border-2 border-border bg-muted/20">
+            <div className="border-b-2 border-border px-2 py-1 font-mono text-[10px] font-black uppercase">Evidence trail</div>
+            {evidence.length ? (
+               <div className="max-h-40 overflow-y-auto">
+                  {evidence.map((item) => (
+                     <div key={item.id} data-testid={`arena-evidence-row-${item.id}`} className="grid gap-1 border-b border-border px-2 py-2 last:border-b-0 sm:grid-cols-[1.2fr_auto_1fr] sm:items-center">
+                        <div>
+                           <div className="font-mono text-[11px] font-black uppercase">{evidenceOptions.find((option) => option.value === item.metric)?.label ?? item.metric}</div>
+                           <div className="font-mono text-[10px] text-muted-foreground">Round {item.round} · {new Date(item.verifiedAt).toLocaleString()}</div>
+                        </div>
+                        <div className="font-mono text-sm font-black text-primary">{formatEvidenceValue(item.metric, item.value)}</div>
+                        <div className="font-mono text-[10px] text-muted-foreground sm:text-right">Verified by {item.verifiedBy} via {item.source}</div>
+                     </div>
+                  ))}
+               </div>
+            ) : (
+               <div data-testid={`arena-evidence-empty-${score.agentId}`} className="px-2 py-3 font-mono text-[10px] text-muted-foreground">No verified results yet. The score stays at zero until the Game Master records infrastructure or provider evidence.</div>
+            )}
+         </div>
+         <form onSubmit={submit} className="mt-3 grid gap-2 md:grid-cols-[1.3fr_0.8fr_1.3fr_auto]">
+            <label className="sr-only" htmlFor={`arena-evidence-metric-${score.agentId}`}>Verified metric</label>
+            <select id={`arena-evidence-metric-${score.agentId}`} data-testid={`arena-evidence-metric-${score.agentId}`} value={metric} onChange={(event) => setMetric(event.target.value as typeof metric)} className="border-2 border-border bg-background p-2 font-mono text-xs font-bold focus:outline-none">
+               {evidenceOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+            <label className="sr-only" htmlFor={`arena-evidence-value-${score.agentId}`}>Verified value</label>
+            <input id={`arena-evidence-value-${score.agentId}`} data-testid={`arena-evidence-value-${score.agentId}`} type="number" min="0" step="1" value={value} onChange={(event) => setValue(event.target.value)} placeholder={selectedOption?.placeholder} className="border-2 border-border bg-background p-2 font-mono text-xs focus:outline-none" />
+            <label className="sr-only" htmlFor={`arena-evidence-source-${score.agentId}`}>Evidence source</label>
+            <input id={`arena-evidence-source-${score.agentId}`} data-testid={`arena-evidence-source-${score.agentId}`} value={source} onChange={(event) => setSource(event.target.value)} placeholder="Source or provider receipt" className="border-2 border-border bg-background p-2 font-mono text-xs focus:outline-none" />
+            <BrutalButton data-testid={`arena-evidence-submit-${score.agentId}`} type="submit" variant="accent" disabled={recordEvidence.isPending || !value.trim() || !source.trim()} className="justify-center px-3 text-xs">
+               {recordEvidence.isPending ? <Loader2 size={14} className="animate-spin" /> : "Verify + score"}
+            </BrutalButton>
+         </form>
+         {recordEvidence.isSuccess && <div data-testid={`arena-evidence-success-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px]">Evidence recorded. The Game Master score is now {recordEvidence.data.verifiedScore} points.</div>}
+         {recordEvidence.isError && <div data-testid={`arena-evidence-error-${score.agentId}`} className="mt-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-[11px] text-destructive">{messageFor(recordEvidence.error, "Evidence could not be recorded. Check the value and try again.")}</div>}
+      </div>
+   );
+}
+
 export function Arena() {
    const { data: arena, isLoading, isError, error, refetch } = useGetArena({ query: { queryKey: getGetArenaQueryKey(), refetchInterval: 5000 } });
+   const evidenceQuery = useListArenaEvidence({ query: { queryKey: getListArenaEvidenceQueryKey(), refetchInterval: 5000 } });
    const projectsQuery = useListProjects();
    const skillsQuery = useListSkills({ query: { queryKey: getListSkillsQueryKey(), refetchOnMount: "always" } });
    const queryClient = useQueryClient();
@@ -317,6 +444,7 @@ export function Arena() {
                             </div>
                             <div className="font-mono text-xs text-muted-foreground"><span className="font-black uppercase text-foreground">Tool lanes:</span> {(score.tools || []).length > 0 ? score.tools?.join(" / ") : "none reported"}</div>
                              <ContestantLoadoutEditor score={score} skills={skillsQuery.data ?? []} />
+                             <VerifiedEvidenceEditor score={score} round={arena?.round ?? 1} evidence={(evidenceQuery.data?.evidence ?? []).filter((item) => item.agentId === score.agentId)} />
                         </div>
 
                          <div className="space-y-2 md:col-span-2">

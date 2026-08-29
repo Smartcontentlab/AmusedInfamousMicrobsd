@@ -460,6 +460,77 @@ export interface ArenaScore {
   assignedSkills?: string[];
   tools?: string[];
   toolAccess?: ToolAccess[];
+  verifiedScore?: number;
+  evidenceCount?: number;
+  verifiedMetrics?: string[];
+  /** @nullable */
+  lastVerifiedAt?: string | null;
+}
+
+export type ArenaEvidenceMetric = typeof ArenaEvidenceMetric[keyof typeof ArenaEvidenceMetric];
+
+
+export const ArenaEvidenceMetric = {
+  website_exists: 'website_exists',
+  website_works: 'website_works',
+  traffic: 'traffic',
+  signups: 'signups',
+  revenue_cents: 'revenue_cents',
+  conversion_bps: 'conversion_bps',
+  cost_efficiency: 'cost_efficiency',
+  first_customer_hours: 'first_customer_hours',
+  adaptability: 'adaptability',
+} as const;
+
+export interface ArenaEvidence {
+  id: number;
+  agentId: number;
+  round: number;
+  metric: ArenaEvidenceMetric;
+  value: number;
+  source: string;
+  /** @nullable */
+  evidenceRef?: string | null;
+  /** @nullable */
+  note?: string | null;
+  verifiedBy: string;
+  verifiedAt: string;
+  createdAt: string;
+}
+
+export type ArenaEvidenceInputMetric = typeof ArenaEvidenceInputMetric[keyof typeof ArenaEvidenceInputMetric];
+
+
+export const ArenaEvidenceInputMetric = {
+  website_exists: 'website_exists',
+  website_works: 'website_works',
+  traffic: 'traffic',
+  signups: 'signups',
+  revenue_cents: 'revenue_cents',
+  conversion_bps: 'conversion_bps',
+  cost_efficiency: 'cost_efficiency',
+  first_customer_hours: 'first_customer_hours',
+  adaptability: 'adaptability',
+} as const;
+
+export interface ArenaEvidenceInput {
+  agentId: number;
+  round: number;
+  metric: ArenaEvidenceInputMetric;
+  value: number;
+  /** @minLength 1 */
+  source: string;
+  evidenceRef?: string;
+  note?: string;
+}
+
+export interface ArenaEvidenceList {
+  evidence: ArenaEvidence[];
+}
+
+export interface ArenaEvidenceResult {
+  evidence: ArenaEvidence;
+  verifiedScore: number;
 }
 
 export type ToolUnlockAuditAction = typeof ToolUnlockAuditAction[keyof typeof ToolUnlockAuditAction];

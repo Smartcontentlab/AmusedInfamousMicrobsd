@@ -1,1 +1,2 @@
 - [OpenAPI Zod compatibility](openapi-zod-compatibility.md) — API integer schemas need a generator/version compatibility check before codegen is considered complete.
+- [Live runtime protocols](live-runtime-protocols.md) — Hermes lifecycle state is polled over `/v1/runs`; OpenClaw uses gateway RPC plus bounded `agent.wait`.

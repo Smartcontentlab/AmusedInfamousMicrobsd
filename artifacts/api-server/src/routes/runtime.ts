@@ -32,7 +32,7 @@ import {
   type RuntimeConnection,
 } from "@workspace/db";
 import { createCipheriv, createHash, randomBytes } from "node:crypto";
-import { adapterError, checkRuntime, controlRuntimeRun, launchRuntimeRun, type RuntimeHealthResult } from "../lib/runtime-adapters";
+import { adapterError, checkRuntime, controlRuntimeRun, getRuntimeRun, launchRuntimeRun, type RuntimeHealthResult, type RuntimeRunStatus } from "../lib/runtime-adapters";
 import { getAgentToolAccess, getUnavailableTools } from "../lib/tool-unlocks";
 import { ensureSeeded } from "./mission-control";
 
@@ -49,14 +49,15 @@ function encryptToken(token: string): string {
   return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${encrypted.toString("base64url")}`;
 }
 
-function validateEndpoint(endpoint: string): string {
+function validateEndpoint(endpoint: string, provider: "hermes" | "openclaw"): string {
   let parsed: URL;
   try {
     parsed = new URL(endpoint);
   } catch {
     throw new Error("Enter a valid runtime URL.");
   }
-  if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Runtime URL must use HTTP or HTTPS.");
+  const allowedProtocols = provider === "openclaw" ? ["http:", "https:", "ws:", "wss:"] : ["http:", "https:"];
+  if (!allowedProtocols.includes(parsed.protocol)) throw new Error(`Runtime URL must use ${provider === "openclaw" ? "HTTP(S) or WebSocket(S)" : "HTTP or HTTPS"}.`);
   return parsed.toString().replace(/\/+$/, "");
 }
 
@@ -97,7 +98,7 @@ function safeHealth(connection: RuntimeConnection, extra: Partial<RuntimeHealthR
 async function ensureEnvironmentConnections(): Promise<void> {
   if (!envConnectionPromise) {
     envConnectionPromise = (async () => {
-      const configured = [
+      const configured: Array<{ provider: "hermes" | "openclaw"; name: string; url: string | undefined; token: string | undefined }> = [
         { provider: "hermes", name: "Hermes (server config)", url: process.env.RUNTIME_HERMES_URL ?? process.env.HERMES_API_URL, token: process.env.RUNTIME_HERMES_TOKEN ?? process.env.HERMES_API_TOKEN },
         { provider: "openclaw", name: "OpenClaw (server config)", url: process.env.RUNTIME_OPENCLAW_URL ?? process.env.OPENCLAW_GATEWAY_URL, token: process.env.RUNTIME_OPENCLAW_TOKEN ?? process.env.OPENCLAW_GATEWAY_TOKEN },
       ];
@@ -108,7 +109,7 @@ async function ensureEnvironmentConnections(): Promise<void> {
         await db.insert(runtimeConnectionsTable).values({
           name: item.name,
           provider: item.provider,
-          endpointUrl: validateEndpoint(item.url),
+           endpointUrl: validateEndpoint(item.url, item.provider),
           encryptedToken: item.token ? encryptToken(item.token) : null,
         });
       }
@@ -131,11 +132,55 @@ async function getConnectionForAgent(agentId: number, requestedConnectionId?: nu
   if (!agent) return { agent: undefined, connection: undefined };
   if (requestedConnectionId || agent.runtimeConnectionId) {
     const [connection] = await db.select().from(runtimeConnectionsTable).where(eq(runtimeConnectionsTable.id, requestedConnectionId ?? agent.runtimeConnectionId!));
-    return { agent, connection };
+    if (connection && connection.provider.toLowerCase() !== agent.provider.toLowerCase()) return { agent, connection: undefined, mismatch: true };
+    return { agent, connection, mismatch: false };
   }
   const connections = await db.select().from(runtimeConnectionsTable);
-  const connection = connections.find((item) => item.provider.toLowerCase() === agent.provider.toLowerCase());
-  return { agent, connection };
+  const connection = connections.find((item) => ["hermes", "openclaw"].includes(item.provider.toLowerCase()) && item.provider.toLowerCase() === agent.provider.toLowerCase());
+  return { agent, connection, mismatch: false };
+}
+
+function normalizedProvider(provider: string): string {
+  return provider.trim().toLowerCase();
+}
+
+function isSupportedProvider(provider: string): provider is "hermes" | "openclaw" {
+  return normalizedProvider(provider) === "hermes" || normalizedProvider(provider) === "openclaw";
+}
+
+function agentStatusForRun(status: RuntimeRunStatus): "waiting" | "working" | "blocked" {
+  if (status === "failed") return "blocked";
+  if (["queued", "running", "stopping"].includes(status)) return "working";
+  return "waiting";
+}
+
+async function reconcileRun(run: typeof liveRunsTable.$inferSelect) {
+  const [connection] = await db.select().from(runtimeConnectionsTable).where(eq(runtimeConnectionsTable.id, run.connectionId));
+  if (!connection || !run.providerRunId || connection.provider !== "hermes") return run;
+  try {
+    const snapshot = await getRuntimeRun(connection, run.providerRunId);
+    const changed = snapshot.status !== run.status || (snapshot.lastEvent && snapshot.lastEvent !== run.lastEvent);
+    if (!changed) return run;
+    const terminal = ["stopped", "completed", "failed"].includes(snapshot.status);
+    const [updated] = await db.update(liveRunsTable).set({
+      status: snapshot.status,
+      endedAt: terminal ? run.endedAt ?? new Date() : run.endedAt,
+      lastEventAt: new Date(),
+      lastEvent: snapshot.lastEvent,
+      supportsPause: snapshot.supportsPause,
+      supportsResume: snapshot.supportsResume,
+      supportsStop: snapshot.supportsStop,
+    }).where(eq(liveRunsTable.id, run.id)).returning();
+    await db.update(agentsTable).set({
+      status: agentStatusForRun(snapshot.status),
+      ...(terminal ? { currentTask: null } : {}),
+      lastActivity: snapshot.lastEvent ?? `Live run is ${snapshot.status}.`,
+    }).where(eq(agentsTable.id, run.agentId));
+    if (snapshot.status !== run.status) await recordActivity(run.agentId, run.id, `run_${snapshot.status}`, snapshot.lastEvent ?? `Live run is ${snapshot.status}.`);
+    return updated ?? run;
+  } catch {
+    return run;
+  }
 }
 
 async function updateFailedConnection(connection: RuntimeConnection, error: ReturnType<typeof adapterError>) {
@@ -165,7 +210,7 @@ router.post("/runtime-connections", async (req, res): Promise<void> => {
   }
   let endpointUrl: string;
   try {
-    endpointUrl = validateEndpoint(parsed.data.endpointUrl);
+     endpointUrl = validateEndpoint(parsed.data.endpointUrl, parsed.data.provider);
   } catch (error) {
     res.status(400).json({ error: error instanceof Error ? error.message : "Runtime URL is invalid." });
     return;
@@ -234,7 +279,8 @@ router.get("/agents/:agentId/run", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Agent identifier is invalid." });
     return;
   }
-  const run = await getRunForAgent(params.data.agentId);
+   const foundRun = await getRunForAgent(params.data.agentId);
+   const run = foundRun ? await reconcileRun(foundRun) : foundRun;
   if (!run) {
     res.status(204).send();
     return;
@@ -250,12 +296,20 @@ router.post("/agents/:agentId/run", async (req, res): Promise<void> => {
     res.status(400).json({ error: "A non-empty task is required to launch a run." });
     return;
   }
-  const { agent, connection } = await getConnectionForAgent(params.data.agentId, body.data.runtimeConnectionId);
+   const { agent, connection, mismatch } = await getConnectionForAgent(params.data.agentId, body.data.runtimeConnectionId);
   if (!agent) {
     res.status(404).json({ error: "Agent not found." });
     return;
   }
-  const requestedTools = body.data.tools ?? [];
+   if (!isSupportedProvider(agent.provider)) {
+     res.status(409).json({ error: "This staff member uses an unsupported runtime provider. Choose Hermes or OpenClaw before launching a live run." });
+     return;
+   }
+   if (mismatch) {
+     res.status(409).json({ error: "The selected runtime provider does not match this staff member's provider." });
+     return;
+   }
+   const requestedTools = body.data.tools ?? [];
   const unavailableTools = await getUnavailableTools(agent.id, requestedTools);
   if (unavailableTools.length > 0) {
     const details = unavailableTools
@@ -310,7 +364,8 @@ router.post("/agents/:agentId/run", async (req, res): Promise<void> => {
 });
 
 async function controlAgentRun(agentId: number, action: "pause" | "resume" | "stop", res: Response): Promise<void> {
-  const run = await getRunForAgent(agentId);
+  const foundRun = await getRunForAgent(agentId);
+  const run = foundRun ? await reconcileRun(foundRun) : foundRun;
   if (!run) {
     res.status(404).json({ error: "No live run exists for this staff member." });
     return;
@@ -326,9 +381,9 @@ async function controlAgentRun(agentId: number, action: "pause" | "resume" | "st
     return;
   }
   try {
-    await controlRuntimeRun(connection, action, run.providerRunId);
-    const status = action === "pause" ? "paused" : action === "resume" ? "running" : "stopped";
-    const endedAt = action === "stop" ? new Date() : null;
+    const controlResult = await controlRuntimeRun(connection, action, run.providerRunId);
+    const status = controlResult.status ?? (action === "pause" ? "paused" : action === "resume" ? "running" : "stopped");
+    const endedAt = ["stopped", "completed", "failed"].includes(status) ? new Date() : null;
     const [updated] = await db.update(liveRunsTable).set({
       status,
       endedAt,
@@ -373,6 +428,8 @@ router.get("/agents/:agentId/activity", async (req, res): Promise<void> => {
   await ensureSeeded();
   const params = ListAgentActivityParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Agent identifier is invalid." }); return; }
+  const currentRun = await getRunForAgent(params.data.agentId);
+  if (currentRun) await reconcileRun(currentRun);
   const events = await db.select().from(activityTable).where(eq(activityTable.agentId, params.data.agentId)).orderBy(desc(activityTable.createdAt)).limit(20);
   res.json(ListAgentActivityResponse.parse(events));
 });

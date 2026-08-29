@@ -1,8 +1,10 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
   AdvanceArenaBody,
   AdvanceArenaResponse,
+  CreateArenaEvidenceBody,
+  CreateArenaEvidenceResponse,
   AttachAgentCapabilityBody,
   AttachAgentCapabilityParams,
   AttachAgentCapabilityResponse,
@@ -21,6 +23,7 @@ import {
   GetDashboardResponse,
   ListAgentCapabilitiesParams,
   ListAgentCapabilitiesResponse,
+  ListArenaEvidenceResponse,
   ListAgentsResponse,
   ListApprovalsResponse,
   ListProjectsResponse,
@@ -54,6 +57,7 @@ import {
   agentsTable,
   approvalsTable,
   arenaTable,
+  arenaEvidenceTable,
   db,
   projectsTable,
   skillsTable,
@@ -283,6 +287,38 @@ async function ensureFeatureRecords(): Promise<void> {
           .where(eq(arenaTable.id, arena.id));
       }
 
+      const existingEvidence = await db.select({ id: arenaEvidenceTable.id }).from(arenaEvidenceTable).limit(1);
+      if (existingEvidence.length === 0 && agents.length > 0) {
+        await db.insert(arenaEvidenceTable).values(
+          agents.flatMap((agent, index) => [
+            {
+              agentId: agent.id,
+              round: Math.max(1, arena?.round ?? 1),
+              metric: "website_exists",
+              value: 1,
+              source: "Game Master demo telemetry",
+              note: "Seeded baseline evidence for the local Arena demo.",
+            },
+            {
+              agentId: agent.id,
+              round: Math.max(1, arena?.round ?? 1),
+              metric: "website_works",
+              value: Math.max(0, Math.min(5, 5 - index)),
+              source: "Game Master demo telemetry",
+              note: "Seeded baseline smoke-test result for the local Arena demo.",
+            },
+            {
+              agentId: agent.id,
+              round: Math.max(1, arena?.round ?? 1),
+              metric: "revenue_cents",
+              value: Math.max(0, agent.arenaIncomeCents),
+              source: "Game Master demo telemetry",
+              note: "Seeded baseline revenue result; replace with a connected provider receipt.",
+            },
+          ]),
+        );
+      }
+
       if (capabilities.length === 0 && agents.length > 0 && catalogSkills.length > 0) {
         await db.insert(agentSkillsTable).values(
           agents.flatMap((agent, agentIndex) =>
@@ -340,6 +376,89 @@ async function ensureFeatureRecords(): Promise<void> {
     })();
   }
   await featureSeedPromise;
+}
+
+type ArenaEvidenceMetric =
+  | "website_exists"
+  | "website_works"
+  | "traffic"
+  | "signups"
+  | "revenue_cents"
+  | "conversion_bps"
+  | "cost_efficiency"
+  | "first_customer_hours"
+  | "adaptability";
+
+const arenaEvidenceLabels: Record<ArenaEvidenceMetric, string> = {
+  website_exists: "Website exists",
+  website_works: "Website works",
+  traffic: "Verified visitors",
+  signups: "Verified signups",
+  revenue_cents: "Revenue",
+  conversion_bps: "Conversion rate",
+  cost_efficiency: "Cost efficiency",
+  first_customer_hours: "Time to first customer",
+  adaptability: "Adaptability",
+};
+
+function pointsForArenaEvidence(metric: ArenaEvidenceMetric, value: number): number {
+  switch (metric) {
+    case "website_exists":
+      return value > 0 ? 10 : 0;
+    case "website_works":
+      return Math.min(5, Math.max(0, value));
+    case "traffic":
+      return value > 0 ? Math.min(10, Math.floor(Math.log10(value) * 3) + 1) : 0;
+    case "signups":
+      return Math.min(10, Math.max(0, value * 2));
+    case "revenue_cents":
+      return Math.max(0, Math.floor(value / 1000));
+    case "conversion_bps":
+      return Math.min(15, Math.max(0, Math.floor(value / 100)));
+    case "cost_efficiency":
+      return Math.min(10, Math.max(0, value));
+    case "first_customer_hours":
+      return value <= 0 ? 0 : Math.max(0, Math.min(10, 10 - Math.floor(value / 24)));
+    case "adaptability":
+      return Math.min(10, Math.max(0, value));
+  }
+}
+
+function getLatestArenaEvidence(evidence: Array<{ metric: string; value: number }>) {
+  const latest = new Map<ArenaEvidenceMetric, { metric: ArenaEvidenceMetric; value: number }>();
+  for (const item of evidence) {
+    if (item.metric in arenaEvidenceLabels && !latest.has(item.metric as ArenaEvidenceMetric)) {
+      latest.set(item.metric as ArenaEvidenceMetric, {
+        metric: item.metric as ArenaEvidenceMetric,
+        value: item.value,
+      });
+    }
+  }
+  return [...latest.values()];
+}
+
+function calculateArenaScore(evidence: Array<{ metric: string; value: number }>) {
+  const latest = getLatestArenaEvidence(evidence);
+  return {
+    score: latest.reduce((total, item) => total + pointsForArenaEvidence(item.metric, item.value), 0),
+    revenueCents: latest.find((item) => item.metric === "revenue_cents")?.value ?? 0,
+    metrics: latest.map((item) => arenaEvidenceLabels[item.metric]),
+  };
+}
+
+async function getArenaScorecards(agentIds: number[]) {
+  const allEvidence = agentIds.length
+    ? await db.select().from(arenaEvidenceTable).where(inArray(arenaEvidenceTable.agentId, agentIds)).orderBy(desc(arenaEvidenceTable.verifiedAt))
+    : [];
+  const grouped = new Map<number, typeof allEvidence>();
+  for (const item of allEvidence) {
+    grouped.set(item.agentId, [...(grouped.get(item.agentId) ?? []), item]);
+  }
+  return new Map(agentIds.map((agentId) => {
+    const entries = grouped.get(agentId) ?? [];
+    const score = calculateArenaScore(entries);
+    return [agentId, { ...score, evidenceCount: entries.length, lastVerifiedAt: entries[0]?.verifiedAt ?? null }];
+  }));
 }
 
 router.get("/dashboard", async (_req, res): Promise<void> => {
@@ -1055,27 +1174,33 @@ async function getArenaState() {
   const agents = await db.select().from(agentsTable).orderBy(desc(agentsTable.arenaScore));
   const capabilities = await Promise.all(agents.map((agent) => getAgentCapabilities(agent.id)));
   const toolAccess = await Promise.all(agents.map((agent) => getAgentToolAccess(agent.id, arena?.round ?? 1)));
+  const scorecards = await getArenaScorecards(agents.map((agent) => agent.id));
   return GetArenaResponse.parse({
     ...arena,
     scores: agents.map((agent, index) => ({
       ...(() => {
         const loadout = capabilities[index] ?? [];
+        const scorecard = scorecards.get(agent.id) ?? { score: 0, revenueCents: 0, metrics: [], evidenceCount: 0, lastVerifiedAt: null };
         return {
           assignedSkills: loadout.map((item) => item.name),
           tools: [...new Set(loadout.map((item) => item.category))],
           toolAccess: toolAccess[index]?.tools ?? [],
+          verifiedScore: scorecard.score,
+          evidenceCount: scorecard.evidenceCount,
+          verifiedMetrics: scorecard.metrics,
+          lastVerifiedAt: scorecard.lastVerifiedAt,
         };
       })(),
       agentId: agent.id,
       agentName: agent.name,
-      score: agent.arenaScore,
-      incomeCents: agent.arenaIncomeCents,
+      score: scorecards.get(agent.id)?.score ?? 0,
+      incomeCents: scorecards.get(agent.id)?.revenueCents ?? 0,
       businessIdea: agent.businessIdea ?? "A fresh business idea is being shaped.",
       room: agent.room,
       computerStatus: agent.computerStatus,
       phase: agent.phase,
       nextMove: agent.nextMove ?? "Choose the next experiment.",
-      progressPercent: Math.min(100, Math.round((agent.arenaIncomeCents / 10000) * 100)),
+       progressPercent: Math.min(100, Math.round(((scorecards.get(agent.id)?.revenueCents ?? 0) / 10000) * 100)),
       scaleRevenueCents: agent.scaleRevenueCents,
     })),
   });
@@ -1083,6 +1208,90 @@ async function getArenaState() {
 
 router.get("/arena", async (_req, res): Promise<void> => {
   res.json(await getArenaState());
+});
+
+router.get("/arena/evidence", async (_req, res): Promise<void> => {
+  await ensureSeeded();
+  const evidence = await db
+    .select()
+    .from(arenaEvidenceTable)
+    .orderBy(desc(arenaEvidenceTable.verifiedAt))
+    .limit(100);
+  res.json(ListArenaEvidenceResponse.parse({ evidence }));
+});
+
+router.post("/arena/evidence", async (req, res): Promise<void> => {
+  const parsed = CreateArenaEvidenceBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Provide a contestant, round, metric, integer result, and evidence source." });
+    return;
+  }
+  await ensureSeeded();
+  const [arena] = await db.select().from(arenaTable).limit(1);
+  const [agent] = await db
+    .select({ id: agentsTable.id, name: agentsTable.name })
+    .from(agentsTable)
+    .where(eq(agentsTable.id, parsed.data.agentId));
+  const source = parsed.data.source.trim();
+  const evidenceRef = parsed.data.evidenceRef?.trim() || null;
+  const note = parsed.data.note?.trim() || null;
+  if (!arena || !agent) {
+    res.status(404).json({ error: "Contestant or Arena not found." });
+    return;
+  }
+  if (!source || !Number.isInteger(parsed.data.value) || parsed.data.value < 0 || parsed.data.round < 1 || parsed.data.round > arena.totalRounds) {
+    res.status(400).json({ error: `Use a non-negative integer result and a round from 1 to ${arena.totalRounds}.` });
+    return;
+  }
+  if (parsed.data.metric === "website_exists" && parsed.data.value > 1) {
+    res.status(400).json({ error: "Website exists must be 0 or 1." });
+    return;
+  }
+  if (parsed.data.metric === "website_works" && parsed.data.value > 5) {
+    res.status(400).json({ error: "Website works must be scored from 0 to 5." });
+    return;
+  }
+  if (parsed.data.metric === "conversion_bps" && parsed.data.value > 10000) {
+    res.status(400).json({ error: "Conversion rate cannot exceed 100%." });
+    return;
+  }
+
+  const [evidence] = await db
+    .insert(arenaEvidenceTable)
+    .values({
+      agentId: agent.id,
+      round: parsed.data.round,
+      metric: parsed.data.metric,
+      value: parsed.data.value,
+      source: source.slice(0, 160),
+      evidenceRef: evidenceRef?.slice(0, 500) ?? null,
+      note: note?.slice(0, 500) ?? null,
+    })
+    .returning();
+  const scorecard = (await getArenaScorecards([agent.id])).get(agent.id) ?? {
+    score: 0,
+    revenueCents: 0,
+    metrics: [],
+    evidenceCount: 0,
+    lastVerifiedAt: null,
+  };
+  await db
+    .update(agentsTable)
+    .set({
+      arenaScore: scorecard.score,
+      arenaIncomeCents: scorecard.revenueCents,
+      phase: scorecard.revenueCents >= arena.winConditionCents ? "scale" : "first_100",
+      nextMove: scorecard.revenueCents >= arena.winConditionCents
+        ? "Double down on the channel that reached the first $100."
+        : "Run the next small experiment toward the first $100.",
+    })
+    .where(eq(agentsTable.id, agent.id));
+  await db.insert(activityTable).values({
+    agentId: agent.id,
+    kind: "arena_evidence_verified",
+    message: `Game Master verified ${arenaEvidenceLabels[parsed.data.metric as ArenaEvidenceMetric]} for ${agent.name} via ${source.slice(0, 80)}. Score is now ${scorecard.score}.`,
+  });
+  res.status(201).json(CreateArenaEvidenceResponse.parse({ evidence, verifiedScore: scorecard.score }));
 });
 
 router.post("/arena/advance", async (req, res): Promise<void> => {
@@ -1115,28 +1324,23 @@ router.post("/arena/advance", async (req, res): Promise<void> => {
       })
       .where(eq(arenaTable.id, arena.id));
     const agents = await db.select().from(agentsTable);
+    const scorecards = await getArenaScorecards(agents.map((agent) => agent.id));
     await Promise.all(
-      agents.map((agent, index) =>
-        {
-          const scoreGain = 6 - index;
-          const newRevenue = agent.arenaIncomeCents + scoreGain * 1200;
-          return (
-        db
+      agents.map((agent, index) => {
+        const scorecard = scorecards.get(agent.id) ?? { score: 0, revenueCents: 0 };
+        return db
           .update(agentsTable)
           .set({
-            arenaScore: agent.arenaScore + scoreGain,
-            arenaIncomeCents: newRevenue,
-            scaleRevenueCents: agent.scaleRevenueCents + scoreGain * 450,
-            phase: newRevenue >= arena.winConditionCents ? "scale" : "first_100",
+            arenaScore: scorecard.score,
+            arenaIncomeCents: scorecard.revenueCents,
+            phase: scorecard.revenueCents >= arena.winConditionCents ? "scale" : "first_100",
             computerStatus: index === 0 ? "selling" : "building",
-            nextMove: newRevenue >= arena.winConditionCents
+            nextMove: scorecard.revenueCents >= arena.winConditionCents
               ? "Double down on the channel that reached the first $100."
               : "Run the next small experiment toward the first $100.",
           })
-          .where(and(eq(agentsTable.id, agent.id)))
-          );
-        },
-      ),
+          .where(eq(agentsTable.id, agent.id));
+      }),
     );
   }
 

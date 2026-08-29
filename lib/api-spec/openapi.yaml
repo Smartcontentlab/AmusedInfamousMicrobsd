@@ -422,6 +422,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Arena"
+  /arena/evidence:
+    get:
+      operationId: listArenaEvidence
+      tags: [arena]
+      summary: List verified BuildOff business evidence
+      responses:
+        "200":
+          description: Verified evidence records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArenaEvidenceList"
+    post:
+      operationId: createArenaEvidence
+      tags: [arena]
+      summary: Record a Game Master verified business result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArenaEvidenceInput"
+      responses:
+        "201":
+          description: Recorded evidence and recalculated score
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArenaEvidenceResult"
   /runtime-connections:
     get:
       operationId: listRuntimeConnections
@@ -1049,6 +1078,82 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ToolAccess"
+        verifiedScore:
+          type: number
+        evidenceCount:
+          type: number
+        verifiedMetrics:
+          type: array
+          items:
+            type: string
+        lastVerifiedAt:
+          type: [string, "null"]
+          format: date-time
+    ArenaEvidence:
+      type: object
+      required: [id, agentId, round, metric, value, source, verifiedBy, verifiedAt, createdAt]
+      properties:
+        id:
+          type: number
+        agentId:
+          type: number
+        round:
+          type: number
+        metric:
+          type: string
+          enum: [website_exists, website_works, traffic, signups, revenue_cents, conversion_bps, cost_efficiency, first_customer_hours, adaptability]
+        value:
+          type: number
+        source:
+          type: string
+        evidenceRef:
+          type: [string, "null"]
+        note:
+          type: [string, "null"]
+        verifiedBy:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    ArenaEvidenceInput:
+      type: object
+      required: [agentId, round, metric, value, source]
+      properties:
+        agentId:
+          type: number
+        round:
+          type: number
+        metric:
+          type: string
+          enum: [website_exists, website_works, traffic, signups, revenue_cents, conversion_bps, cost_efficiency, first_customer_hours, adaptability]
+        value:
+          type: number
+        source:
+          type: string
+          minLength: 1
+        evidenceRef:
+          type: string
+        note:
+          type: string
+    ArenaEvidenceList:
+      type: object
+      required: [evidence]
+      properties:
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArenaEvidence"
+    ArenaEvidenceResult:
+      type: object
+      required: [evidence, verifiedScore]
+      properties:
+        evidence:
+          $ref: "#/components/schemas/ArenaEvidence"
+        verifiedScore:
+          type: number
     ToolAccess:
       type: object
       required: [key, label, description, available, status, unlockCondition, source, overrideAction, overrideReason, lastChangedAt]

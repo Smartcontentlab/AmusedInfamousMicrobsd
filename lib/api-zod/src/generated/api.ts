@@ -557,7 +557,11 @@ export const GetArenaResponse = zod.object({
   "overrideAction": zod.union([zod.literal('grant'),zod.literal('revoke'),zod.literal(null)]).nullable(),
   "overrideReason": zod.string().nullable(),
   "lastChangedAt": zod.coerce.date().nullable()
-})).optional()
+})).optional(),
+  "verifiedScore": zod.number().optional(),
+  "evidenceCount": zod.number().optional(),
+  "verifiedMetrics": zod.array(zod.string()).optional(),
+  "lastVerifiedAt": zod.coerce.date().nullish()
 }))
 })
 
@@ -601,8 +605,66 @@ export const AdvanceArenaResponse = zod.object({
   "overrideAction": zod.union([zod.literal('grant'),zod.literal('revoke'),zod.literal(null)]).nullable(),
   "overrideReason": zod.string().nullable(),
   "lastChangedAt": zod.coerce.date().nullable()
-})).optional()
+})).optional(),
+  "verifiedScore": zod.number().optional(),
+  "evidenceCount": zod.number().optional(),
+  "verifiedMetrics": zod.array(zod.string()).optional(),
+  "lastVerifiedAt": zod.coerce.date().nullish()
 }))
+})
+
+
+/**
+ * @summary List verified BuildOff business evidence
+ */
+export const ListArenaEvidenceResponse = zod.object({
+  "evidence": zod.array(zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "round": zod.number(),
+  "metric": zod.enum(['website_exists', 'website_works', 'traffic', 'signups', 'revenue_cents', 'conversion_bps', 'cost_efficiency', 'first_customer_hours', 'adaptability']),
+  "value": zod.number(),
+  "source": zod.string(),
+  "evidenceRef": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "verifiedBy": zod.string(),
+  "verifiedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Record a Game Master verified business result
+ */
+
+
+
+export const CreateArenaEvidenceBody = zod.object({
+  "agentId": zod.number(),
+  "round": zod.number(),
+  "metric": zod.enum(['website_exists', 'website_works', 'traffic', 'signups', 'revenue_cents', 'conversion_bps', 'cost_efficiency', 'first_customer_hours', 'adaptability']),
+  "value": zod.number(),
+  "source": zod.string().min(1),
+  "evidenceRef": zod.string().optional(),
+  "note": zod.string().optional()
+})
+
+export const CreateArenaEvidenceResponse = zod.object({
+  "evidence": zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "round": zod.number(),
+  "metric": zod.enum(['website_exists', 'website_works', 'traffic', 'signups', 'revenue_cents', 'conversion_bps', 'cost_efficiency', 'first_customer_hours', 'adaptability']),
+  "value": zod.number(),
+  "source": zod.string(),
+  "evidenceRef": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "verifiedBy": zod.string(),
+  "verifiedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date()
+}),
+  "verifiedScore": zod.number()
 })
 
 

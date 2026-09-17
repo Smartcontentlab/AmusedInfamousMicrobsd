@@ -985,3 +985,163 @@ export const UpdateAgentToolUnlockResponse = zod.object({
 })
 
 
+/**
+ * @summary List the operator's personal to-do items
+ */
+export const ListPersonalTodosResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "done": zod.boolean(),
+  "dueDate": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "completedAt": zod.string().nullish()
+})
+export const ListPersonalTodosResponse = zod.array(ListPersonalTodosResponseItem)
+
+
+/**
+ * @summary Add a personal to-do item
+ */
+
+
+
+export const CreatePersonalTodoBody = zod.object({
+  "title": zod.string().min(1),
+  "dueDate": zod.string().nullish()
+})
+
+export const CreatePersonalTodoResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "done": zod.boolean(),
+  "dueDate": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "completedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Complete, reopen or rename a personal to-do item
+ */
+export const UpdatePersonalTodoParams = zod.object({
+  "todoId": zod.coerce.number()
+})
+
+
+
+
+export const UpdatePersonalTodoBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "done": zod.boolean().optional(),
+  "dueDate": zod.string().nullish()
+})
+
+export const UpdatePersonalTodoResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "done": zod.boolean(),
+  "dueDate": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "completedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Remove a personal to-do item
+ */
+export const DeletePersonalTodoParams = zod.object({
+  "todoId": zod.coerce.number()
+})
+
+export const DeletePersonalTodoResponse = zod.void()
+
+
+/**
+ * @summary Get the unified inbox grouped into attention, approvals and messages
+ */
+export const GetInboxResponse = zod.object({
+  "needsYou": zod.array(zod.object({
+  "id": zod.number(),
+  "kind": zod.enum(['task', 'approval', 'agent']),
+  "title": zod.string(),
+  "detail": zod.string(),
+  "risk": zod.string().nullish(),
+  "projectId": zod.number().nullish(),
+  "projectName": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "agentName": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
+  "needsApproval": zod.array(zod.object({
+  "id": zod.number(),
+  "kind": zod.enum(['task', 'approval', 'agent']),
+  "title": zod.string(),
+  "detail": zod.string(),
+  "risk": zod.string().nullish(),
+  "projectId": zod.number().nullish(),
+  "projectName": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "agentName": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
+  "directMessages": zod.array(zod.object({
+  "id": zod.number(),
+  "sender": zod.string(),
+  "body": zod.string(),
+  "projectId": zod.number().nullish(),
+  "projectName": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "agentName": zod.string().nullish(),
+  "needsReply": zod.boolean(),
+  "readAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Send a message to Atlas
+ */
+
+
+
+export const CreateDirectMessageBody = zod.object({
+  "body": zod.string().min(1),
+  "projectId": zod.number().nullish()
+})
+
+export const CreateDirectMessageResponse = zod.object({
+  "id": zod.number(),
+  "sender": zod.string(),
+  "body": zod.string(),
+  "projectId": zod.number().nullish(),
+  "projectName": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "agentName": zod.string().nullish(),
+  "needsReply": zod.boolean(),
+  "readAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Mark a message as read
+ */
+export const MarkDirectMessageReadParams = zod.object({
+  "messageId": zod.coerce.number()
+})
+
+export const MarkDirectMessageReadResponse = zod.object({
+  "id": zod.number(),
+  "sender": zod.string(),
+  "body": zod.string(),
+  "projectId": zod.number().nullish(),
+  "projectName": zod.string().nullish(),
+  "agentId": zod.number().nullish(),
+  "agentName": zod.string().nullish(),
+  "needsReply": zod.boolean(),
+  "readAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+

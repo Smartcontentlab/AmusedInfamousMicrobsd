@@ -5,6 +5,75 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+export interface PersonalTodo {
+  id: number;
+  title: string;
+  done: boolean;
+  dueDate?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+}
+
+export interface PersonalTodoInput {
+  /** @minLength 1 */
+  title: string;
+  dueDate?: string | null;
+}
+
+export interface PersonalTodoUpdate {
+  /** @minLength 1 */
+  title?: string;
+  done?: boolean;
+  dueDate?: string | null;
+}
+
+export interface DirectMessage {
+  id: number;
+  sender: string;
+  body: string;
+  projectId?: number | null;
+  projectName?: string | null;
+  agentId?: number | null;
+  agentName?: string | null;
+  needsReply: boolean;
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface DirectMessageInput {
+  /** @minLength 1 */
+  body: string;
+  projectId?: number | null;
+}
+
+export type InboxAttentionItemKind = typeof InboxAttentionItemKind[keyof typeof InboxAttentionItemKind];
+
+
+export const InboxAttentionItemKind = {
+  task: 'task',
+  approval: 'approval',
+  agent: 'agent',
+} as const;
+
+export interface InboxAttentionItem {
+  id: number;
+  kind: InboxAttentionItemKind;
+  title: string;
+  detail: string;
+  risk?: string | null;
+  projectId?: number | null;
+  projectName?: string | null;
+  agentId?: number | null;
+  agentName?: string | null;
+  createdAt: string;
+}
+
+export interface Inbox {
+  needsYou: InboxAttentionItem[];
+  needsApproval: InboxAttentionItem[];
+  directMessages: DirectMessage[];
+}
+
 export interface HealthStatus {
   status: string;
 }

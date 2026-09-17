@@ -37,11 +37,17 @@ import type {
   ArenaEvidenceList,
   ArenaEvidenceResult,
   Dashboard,
+  DirectMessage,
+  DirectMessageInput,
   EquipAgentSkillResult,
   ErrorResponse,
   HealthStatus,
+  Inbox,
   MissionPlan,
   MissionPlanInput,
+  PersonalTodo,
+  PersonalTodoInput,
+  PersonalTodoUpdate,
   Project,
   ProjectInput,
   ProjectUpdate,
@@ -2891,5 +2897,515 @@ export const useUpdateAgentToolUnlock = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateAgentToolUnlockMutationOptions(options));
+    }
+
+export const getListPersonalTodosUrl = () => {
+
+
+
+
+  return `/api/personal-todos`
+}
+
+/**
+ * @summary List the operator's personal to-do items
+ */
+export const listPersonalTodos = async ( options?: Parameters<typeof customFetch>[1]): Promise<PersonalTodo[]> => {
+
+  return customFetch<PersonalTodo[]>(getListPersonalTodosUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPersonalTodosQueryKey = () => {
+    return [
+    `/api/personal-todos`
+    ] as const;
+    }
+
+
+export const getListPersonalTodosQueryOptions = <TData = Awaited<ReturnType<typeof listPersonalTodos>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPersonalTodos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPersonalTodosQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPersonalTodos>>> = ({ signal }) => listPersonalTodos({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPersonalTodos>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPersonalTodosQueryResult = NonNullable<Awaited<ReturnType<typeof listPersonalTodos>>>
+export type ListPersonalTodosQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the operator's personal to-do items
+ */
+
+export function useListPersonalTodos<TData = Awaited<ReturnType<typeof listPersonalTodos>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPersonalTodos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPersonalTodosQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePersonalTodoUrl = () => {
+
+
+
+
+  return `/api/personal-todos`
+}
+
+/**
+ * @summary Add a personal to-do item
+ */
+export const createPersonalTodo = async (personalTodoInput: PersonalTodoInput, options?: Parameters<typeof customFetch>[1]): Promise<PersonalTodo> => {
+
+  return customFetch<PersonalTodo>(getCreatePersonalTodoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(personalTodoInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePersonalTodoMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersonalTodo>>, TError,{data: BodyType<PersonalTodoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPersonalTodo>>, TError,{data: BodyType<PersonalTodoInput>}, TContext> => {
+
+const mutationKey = ['createPersonalTodo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPersonalTodo>>, {data: BodyType<PersonalTodoInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPersonalTodo(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePersonalTodoMutationResult = NonNullable<Awaited<ReturnType<typeof createPersonalTodo>>>
+    export type CreatePersonalTodoMutationBody = BodyType<PersonalTodoInput>
+    export type CreatePersonalTodoMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Add a personal to-do item
+ */
+export const useCreatePersonalTodo = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersonalTodo>>, TError,{data: BodyType<PersonalTodoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPersonalTodo>>,
+        TError,
+        {data: BodyType<PersonalTodoInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePersonalTodoMutationOptions(options));
+    }
+
+export const getUpdatePersonalTodoUrl = (todoId: number,) => {
+
+
+
+
+  return `/api/personal-todos/${todoId}`
+}
+
+/**
+ * @summary Complete, reopen or rename a personal to-do item
+ */
+export const updatePersonalTodo = async (todoId: number,
+    personalTodoUpdate: PersonalTodoUpdate, options?: Parameters<typeof customFetch>[1]): Promise<PersonalTodo> => {
+
+  return customFetch<PersonalTodo>(getUpdatePersonalTodoUrl(todoId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(personalTodoUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdatePersonalTodoMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePersonalTodo>>, TError,{todoId: number;data: BodyType<PersonalTodoUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePersonalTodo>>, TError,{todoId: number;data: BodyType<PersonalTodoUpdate>}, TContext> => {
+
+const mutationKey = ['updatePersonalTodo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePersonalTodo>>, {todoId: number;data: BodyType<PersonalTodoUpdate>}> = (props) => {
+          const {todoId,data} = props ?? {};
+
+          return  updatePersonalTodo(todoId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePersonalTodoMutationResult = NonNullable<Awaited<ReturnType<typeof updatePersonalTodo>>>
+    export type UpdatePersonalTodoMutationBody = BodyType<PersonalTodoUpdate>
+    export type UpdatePersonalTodoMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Complete, reopen or rename a personal to-do item
+ */
+export const useUpdatePersonalTodo = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePersonalTodo>>, TError,{todoId: number;data: BodyType<PersonalTodoUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePersonalTodo>>,
+        TError,
+        {todoId: number;data: BodyType<PersonalTodoUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdatePersonalTodoMutationOptions(options));
+    }
+
+export const getDeletePersonalTodoUrl = (todoId: number,) => {
+
+
+
+
+  return `/api/personal-todos/${todoId}`
+}
+
+/**
+ * @summary Remove a personal to-do item
+ */
+export const deletePersonalTodo = async (todoId: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeletePersonalTodoUrl(todoId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeletePersonalTodoMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePersonalTodo>>, TError,{todoId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePersonalTodo>>, TError,{todoId: number}, TContext> => {
+
+const mutationKey = ['deletePersonalTodo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePersonalTodo>>, {todoId: number}> = (props) => {
+          const {todoId} = props ?? {};
+
+          return  deletePersonalTodo(todoId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePersonalTodoMutationResult = NonNullable<Awaited<ReturnType<typeof deletePersonalTodo>>>
+
+    export type DeletePersonalTodoMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Remove a personal to-do item
+ */
+export const useDeletePersonalTodo = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePersonalTodo>>, TError,{todoId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deletePersonalTodo>>,
+        TError,
+        {todoId: number},
+        TContext
+      > => {
+      return useMutation(getDeletePersonalTodoMutationOptions(options));
+    }
+
+export const getGetInboxUrl = () => {
+
+
+
+
+  return `/api/inbox`
+}
+
+/**
+ * @summary Get the unified inbox grouped into attention, approvals and messages
+ */
+export const getInbox = async ( options?: Parameters<typeof customFetch>[1]): Promise<Inbox> => {
+
+  return customFetch<Inbox>(getGetInboxUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInboxQueryKey = () => {
+    return [
+    `/api/inbox`
+    ] as const;
+    }
+
+
+export const getGetInboxQueryOptions = <TData = Awaited<ReturnType<typeof getInbox>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInbox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInboxQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInbox>>> = ({ signal }) => getInbox({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInbox>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInboxQueryResult = NonNullable<Awaited<ReturnType<typeof getInbox>>>
+export type GetInboxQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the unified inbox grouped into attention, approvals and messages
+ */
+
+export function useGetInbox<TData = Awaited<ReturnType<typeof getInbox>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInbox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInboxQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateDirectMessageUrl = () => {
+
+
+
+
+  return `/api/direct-messages`
+}
+
+/**
+ * @summary Send a message to Atlas
+ */
+export const createDirectMessage = async (directMessageInput: DirectMessageInput, options?: Parameters<typeof customFetch>[1]): Promise<DirectMessage> => {
+
+  return customFetch<DirectMessage>(getCreateDirectMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(directMessageInput)
+  }
+);}
+
+
+
+
+
+export const getCreateDirectMessageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDirectMessage>>, TError,{data: BodyType<DirectMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDirectMessage>>, TError,{data: BodyType<DirectMessageInput>}, TContext> => {
+
+const mutationKey = ['createDirectMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDirectMessage>>, {data: BodyType<DirectMessageInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createDirectMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateDirectMessageMutationResult = NonNullable<Awaited<ReturnType<typeof createDirectMessage>>>
+    export type CreateDirectMessageMutationBody = BodyType<DirectMessageInput>
+    export type CreateDirectMessageMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Send a message to Atlas
+ */
+export const useCreateDirectMessage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDirectMessage>>, TError,{data: BodyType<DirectMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createDirectMessage>>,
+        TError,
+        {data: BodyType<DirectMessageInput>},
+        TContext
+      > => {
+      return useMutation(getCreateDirectMessageMutationOptions(options));
+    }
+
+export const getMarkDirectMessageReadUrl = (messageId: number,) => {
+
+
+
+
+  return `/api/direct-messages/${messageId}/read`
+}
+
+/**
+ * @summary Mark a message as read
+ */
+export const markDirectMessageRead = async (messageId: number, options?: Parameters<typeof customFetch>[1]): Promise<DirectMessage> => {
+
+  return customFetch<DirectMessage>(getMarkDirectMessageReadUrl(messageId),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkDirectMessageReadMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markDirectMessageRead>>, TError,{messageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markDirectMessageRead>>, TError,{messageId: number}, TContext> => {
+
+const mutationKey = ['markDirectMessageRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markDirectMessageRead>>, {messageId: number}> = (props) => {
+          const {messageId} = props ?? {};
+
+          return  markDirectMessageRead(messageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkDirectMessageReadMutationResult = NonNullable<Awaited<ReturnType<typeof markDirectMessageRead>>>
+
+    export type MarkDirectMessageReadMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Mark a message as read
+ */
+export const useMarkDirectMessageRead = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markDirectMessageRead>>, TError,{messageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markDirectMessageRead>>,
+        TError,
+        {messageId: number},
+        TContext
+      > => {
+      return useMutation(getMarkDirectMessageReadMutationOptions(options));
     }
 

@@ -32,6 +32,10 @@ tags:
     description: AI employee capabilities and human approvals
   - name: runtimes
     description: Secure runtime connections and live staff controls
+  - name: personal
+    description: The operator's own to-do list, separate from project work
+  - name: inbox
+    description: Unified Atlas inbox — attention, approvals and messages
 paths:
   /healthz:
     get:
@@ -642,8 +646,154 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ToolAccess"
+  /personal-todos:
+    get:
+      operationId: listPersonalTodos
+      tags: [personal]
+      summary: List the operator's personal to-do items
+      responses:
+        "200":
+          description: Personal to-do items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PersonalTodo"
+    post:
+      operationId: createPersonalTodo
+      tags: [personal]
+      summary: Add a personal to-do item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonalTodoInput"
+      responses:
+        "201":
+          description: Created to-do
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonalTodo"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /personal-todos/{todoId}:
+    patch:
+      operationId: updatePersonalTodo
+      tags: [personal]
+      summary: Complete, reopen or rename a personal to-do item
+      parameters:
+        - $ref: "#/components/parameters/TodoId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonalTodoUpdate"
+      responses:
+        "200":
+          description: Updated to-do
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonalTodo"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deletePersonalTodo
+      tags: [personal]
+      summary: Remove a personal to-do item
+      parameters:
+        - $ref: "#/components/parameters/TodoId"
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /inbox:
+    get:
+      operationId: getInbox
+      tags: [inbox]
+      summary: Get the unified inbox grouped into attention, approvals and messages
+      responses:
+        "200":
+          description: Inbox contents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inbox"
+  /direct-messages:
+    post:
+      operationId: createDirectMessage
+      tags: [inbox]
+      summary: Send a message to Atlas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DirectMessageInput"
+      responses:
+        "201":
+          description: Created message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DirectMessage"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /direct-messages/{messageId}/read:
+    patch:
+      operationId: markDirectMessageRead
+      tags: [inbox]
+      summary: Mark a message as read
+      parameters:
+        - $ref: "#/components/parameters/MessageId"
+      responses:
+        "200":
+          description: Updated message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DirectMessage"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   parameters:
+    TodoId:
+      in: path
+      name: todoId
+      required: true
+      schema:
+        type: number
+    MessageId:
+      in: path
+      name: messageId
+      required: true
+      schema:
+        type: number
     ProjectId:
       in: path
       name: projectId
@@ -681,6 +831,130 @@ components:
       schema:
         type: number
   schemas:
+    PersonalTodo:
+      type: object
+      required: [id, title, done, createdAt]
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        done:
+          type: boolean
+        dueDate:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        completedAt:
+          type: string
+          nullable: true
+    PersonalTodoInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        dueDate:
+          type: string
+          nullable: true
+    PersonalTodoUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        done:
+          type: boolean
+        dueDate:
+          type: string
+          nullable: true
+    DirectMessage:
+      type: object
+      required: [id, sender, body, needsReply, createdAt]
+      properties:
+        id:
+          type: number
+        sender:
+          type: string
+        body:
+          type: string
+        projectId:
+          type: number
+          nullable: true
+        projectName:
+          type: string
+          nullable: true
+        agentId:
+          type: number
+          nullable: true
+        agentName:
+          type: string
+          nullable: true
+        needsReply:
+          type: boolean
+        readAt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+    DirectMessageInput:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          minLength: 1
+        projectId:
+          type: number
+          nullable: true
+    InboxAttentionItem:
+      type: object
+      required: [id, kind, title, detail, createdAt]
+      properties:
+        id:
+          type: number
+        kind:
+          type: string
+          enum: [task, approval, agent]
+        title:
+          type: string
+        detail:
+          type: string
+        risk:
+          type: string
+          nullable: true
+        projectId:
+          type: number
+          nullable: true
+        projectName:
+          type: string
+          nullable: true
+        agentId:
+          type: number
+          nullable: true
+        agentName:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+    Inbox:
+      type: object
+      required: [needsYou, needsApproval, directMessages]
+      properties:
+        needsYou:
+          type: array
+          items:
+            $ref: "#/components/schemas/InboxAttentionItem"
+        needsApproval:
+          type: array
+          items:
+            $ref: "#/components/schemas/InboxAttentionItem"
+        directMessages:
+          type: array
+          items:
+            $ref: "#/components/schemas/DirectMessage"
     HealthStatus:
       type: object
       properties:

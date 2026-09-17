@@ -12,6 +12,8 @@ import {
 } from 'wouter';
 
 import { Layout } from './components/layout';
+import { Home } from './pages/home';
+import { Inbox } from './pages/inbox';
 import { Dashboard } from './pages/dashboard';
 import { Projects } from './pages/projects';
 import { Agents } from './pages/agents';
@@ -27,7 +29,9 @@ function Router() {
     <Layout>
       <RoutedErrorBoundary>
         <Switch>
-          <Route path="/" component={Dashboard} />
+          <Route path="/" component={Home} />
+          <Route path="/inbox" component={Inbox} />
+          <Route path="/overview" component={Dashboard} />
           <Route path="/projects" component={Projects} />
           <Route path="/agents" component={Agents} />
           <Route path="/skills" component={Skills} />

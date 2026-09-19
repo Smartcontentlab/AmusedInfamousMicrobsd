@@ -724,6 +724,108 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /projects/{projectId}/detail:
+    get:
+      operationId: getProjectDetail
+      tags: [projects]
+      summary: Everything needed to run one project on a single screen
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Project detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /agents/{agentId}/loops:
+    get:
+      operationId: listAgentLoops
+      tags: [agents]
+      summary: List an agent's repeatable loops
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      responses:
+        "200":
+          description: Agent loops
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgentLoop"
+    post:
+      operationId: createAgentLoop
+      tags: [agents]
+      summary: Add a repeatable loop to an agent
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentLoopInput"
+      responses:
+        "201":
+          description: Created loop
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentLoop"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /agent-loops/{loopId}:
+    patch:
+      operationId: updateAgentLoop
+      tags: [agents]
+      summary: Enable, disable or edit a repeatable loop
+      parameters:
+        - $ref: "#/components/parameters/LoopId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentLoopUpdate"
+      responses:
+        "200":
+          description: Updated loop
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentLoop"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAgentLoop
+      tags: [agents]
+      summary: Remove a repeatable loop
+      parameters:
+        - $ref: "#/components/parameters/LoopId"
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /inbox:
     get:
       operationId: getInbox
@@ -794,6 +896,12 @@ components:
       required: true
       schema:
         type: number
+    LoopId:
+      in: path
+      name: loopId
+      required: true
+      schema:
+        type: number
     ProjectId:
       in: path
       name: projectId
@@ -831,6 +939,132 @@ components:
       schema:
         type: number
   schemas:
+    AgentLoop:
+      type: object
+      required: [id, agentId, name, cadence, enabled, createdAt]
+      properties:
+        id:
+          type: number
+        agentId:
+          type: number
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        cadence:
+          type: string
+        enabled:
+          type: boolean
+        lastRunAt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+    AgentLoopInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+        cadence:
+          type: string
+    AgentLoopUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+        cadence:
+          type: string
+        enabled:
+          type: boolean
+    ProjectStaffMember:
+      type: object
+      required: [id, name, role, status, provider, capabilities, loops, skillCount, openTaskCount, doneTaskCount]
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+        provider:
+          type: string
+        currentTask:
+          type: string
+          nullable: true
+        nextMove:
+          type: string
+          nullable: true
+        lastActivity:
+          type: string
+          nullable: true
+        room:
+          type: string
+          nullable: true
+        skillCount:
+          type: number
+        capabilities:
+          type: array
+          items:
+            type: string
+        openTaskCount:
+          type: number
+        doneTaskCount:
+          type: number
+        loops:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentLoop"
+    ProjectProgress:
+      type: object
+      required: [totalTasks, doneTasks, activeTasks, reviewTasks, queuedTasks, percentComplete]
+      properties:
+        totalTasks:
+          type: number
+        doneTasks:
+          type: number
+        activeTasks:
+          type: number
+        reviewTasks:
+          type: number
+        queuedTasks:
+          type: number
+        percentComplete:
+          type: number
+    ProjectDetail:
+      type: object
+      required: [project, staff, tasks, approvals, progress]
+      properties:
+        project:
+          $ref: "#/components/schemas/Project"
+        description:
+          type: string
+          nullable: true
+        staff:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectStaffMember"
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        approvals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Approval"
+        progress:
+          $ref: "#/components/schemas/ProjectProgress"
     PersonalTodo:
       type: object
       required: [id, title, done, createdAt]

@@ -1,4 +1,4 @@
-import {
+﻿import {
   getListAgentsQueryKey,
   getListApprovalsQueryKey,
   getListMissionPlansQueryKey,
@@ -83,8 +83,8 @@ export function IdeaLab() {
           <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black uppercase tracking-widest text-primary">
             <Lightbulb size={15} /> main-agent planning desk
           </div>
-          <h1 className="text-4xl font-black uppercase tracking-tighter md:text-5xl">Idea Lab</h1>
-          <p className="mt-2 font-mono text-lg text-muted-foreground">
+          <h1 className="text-2xl font-black uppercase tracking-tighter">Idea Lab</h1>
+          <p className="mt-2 font-mono text-xs text-muted-foreground">
             Drop in the rough thought. The main agent will shape it into a project, a lead, a starter loop, and a checkpoint for you to approve.
           </p>
         </div>

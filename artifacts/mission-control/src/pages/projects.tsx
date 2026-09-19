@@ -1,6 +1,7 @@
 import { useListProjects, useCreateProject, useUpdateProject, getListProjectsQueryKey, useListAgents, useListApprovals, useListTasks, useListRuntimeHealth } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { useState } from "react";
 import { Plus, Users, ShieldAlert, Activity, CircleAlert, Radio, RotateCcw } from "lucide-react";
 
@@ -37,8 +38,8 @@ export function Projects() {
      <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
            <div>
-             <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Project Portfolio</h1>
-             <p className="text-muted-foreground font-mono mt-2 text-lg">Manage active deployments, staff assignments, and revenue streams.</p>
+             <h1 className="text-2xl font-black uppercase tracking-tighter">Project Portfolio</h1>
+             <p className="text-muted-foreground font-mono mt-1 text-xs">Manage active deployments, staff assignments, and revenue streams.</p>
            </div>
            <BrutalButton onClick={() => setShowNew(!showNew)} className="flex items-center gap-2">
              <Plus size={18} /> New Project
@@ -87,7 +88,9 @@ export function Projects() {
               return (
                  <BrutalCard key={project.id} className="group flex flex-col h-full">
                     <div className="flex justify-between items-start mb-4">
-                       <h2 className="text-2xl font-black uppercase tracking-tight truncate pr-4">{project.name}</h2>
+                       <Link href={`/projects/${project.id}`} className="min-w-0 flex-1 pr-4">
+                          <h2 className="text-xl font-black uppercase tracking-tight truncate hover:text-primary hover:underline">{project.name}</h2>
+                       </Link>
                        <BrutalBadge variant={project.status === 'live' ? 'primary' : project.status === 'paused' ? 'destructive' : 'secondary'}>
                           {project.status}
                        </BrutalBadge>

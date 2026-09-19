@@ -1,4 +1,4 @@
-import { useGetAgentRun, useListApprovals, useListRuntimeHealth, useUpdateApproval, getListApprovalsQueryKey } from "@workspace/api-client-react";
+﻿import { useGetAgentRun, useListApprovals, useListRuntimeHealth, useUpdateApproval, getListApprovalsQueryKey } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, X, Edit3, ArrowRight, ShieldAlert, Loader2, RefreshCw } from "lucide-react";
@@ -46,8 +46,8 @@ export function Approvals() {
       <div className="space-y-8">
          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="max-w-xl">
-               <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Human Clearance</h1>
-               <p className="text-muted-foreground font-mono mt-2 text-lg">High-risk agent actions requiring explicit founder authorization.</p>
+               <h1 className="text-2xl font-black uppercase tracking-tighter">Human Clearance</h1>
+               <p className="text-muted-foreground font-mono mt-1 text-xs">High-risk agent actions requiring explicit founder authorization.</p>
             </div>
             <div className="bg-destructive text-destructive-foreground font-black uppercase text-xl px-4 py-2 border-4 border-border shadow-[4px_4px_0px_0px_hsl(var(--border))]">
                {pending.length} PENDING

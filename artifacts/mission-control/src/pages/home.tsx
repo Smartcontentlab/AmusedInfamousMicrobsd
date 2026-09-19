@@ -170,7 +170,7 @@ export function Home() {
     <div className="space-y-8 py-6">
       <div className="text-center">
         <p className="font-mono text-xs font-black uppercase tracking-widest text-muted-foreground">Mission control</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tighter md:text-5xl">{greeting(now)}.</h1>
+        <h1 className="mt-2 text-3xl font-black tracking-tighter">{greeting(now)}.</h1>
         <p className="mt-3 font-mono text-sm text-muted-foreground">
           {dashboard.data
             ? `${dashboard.data.activeAgentCount} agents active · ${waiting} waiting on you`

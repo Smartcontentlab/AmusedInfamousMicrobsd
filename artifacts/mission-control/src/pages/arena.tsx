@@ -109,7 +109,7 @@ function ContestantLoadoutEditor({ score, skills }: { score: { agentId: number }
           {equipSkill.data && <div data-testid={`arena-equip-status-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">
              <div className="flex flex-wrap items-center gap-2 font-black uppercase"><Check size={13} /> Local capability equipped <BrutalBadge variant={installationVariant(equipSkill.data.installation.status)} className="border-2 px-2 py-0.5 text-[10px]">{equipSkill.data.installation.status.replaceAll("_", " ")}</BrutalBadge></div>
              <p className="mt-2">{equipSkill.data.installation.message}</p>
-             {equipSkill.data.installation.status === "awaiting_approval" && <a href="/approvals" className="mt-2 inline-block font-black uppercase text-accent underline">Open approval inbox →</a>}
+             {equipSkill.data.installation.status === "awaiting_approval" && <a href="/approvals" className="mt-2 inline-block font-black uppercase text-accent underline">Open approval inbox †’</a>}
           </div>}
          {detachSkill.isSuccess && <div data-testid={`arena-remove-success-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">Skill removed. Tool lanes are refreshing from the saved loadout.</div>}
          {(capabilitiesQuery.isError || equipSkill.isError || detachSkill.isError) && <div data-testid={`arena-loadout-error-${score.agentId}`} className="mt-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-[11px] text-destructive">{messageFor(equipSkill.error || detachSkill.error || capabilitiesQuery.error, "This contestant's loadout could not be updated.")}</div>}
@@ -279,14 +279,14 @@ export function Arena() {
       });
    };
 
-   if (isLoading) return <div className="p-8 font-mono font-bold animate-pulse text-2xl uppercase">Connecting to Arena Server...</div>;
-   if (isError) return <div data-testid="arena-error" className="border-4 border-destructive bg-destructive/10 p-8"><h1 className="text-2xl font-black uppercase">Arena feed interrupted</h1><p className="mt-2 font-mono text-sm">{error instanceof Error ? error.message : "The BuildOff state could not be loaded."}</p><BrutalButton data-testid="arena-retry-button" variant="destructive" className="mt-5" onClick={() => refetch()}><RefreshCw size={16} /> Retry feed</BrutalButton></div>;
+   if (isLoading) return <div className="p-4 font-mono font-bold animate-pulse text-2xl uppercase">Connecting to Arena Server...</div>;
+   if (isError) return <div data-testid="arena-error" className="border-4 border-destructive bg-destructive/10 p-4"><h1 className="text-2xl font-black uppercase">Arena feed interrupted</h1><p className="mt-2 font-mono text-sm">{error instanceof Error ? error.message : "The BuildOff state could not be loaded."}</p><BrutalButton data-testid="arena-retry-button" variant="destructive" className="mt-5" onClick={() => refetch()}><RefreshCw size={16} /> Retry feed</BrutalButton></div>;
 
    return (
-      <div className="space-y-8 pb-12">
+      <div className="space-y-4 pb-12">
           <div className="flex flex-col justify-between items-start gap-4 md:flex-row md:items-center">
             <div className="max-w-3xl">
-              <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter flex items-center gap-4">
+              <h1 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-4">
                  <Swords className="text-destructive drop-shadow-md" size={48} /> BuildOff Arena
               </h1>
               <p className="text-muted-foreground font-mono mt-4 text-lg border-l-4 border-destructive pl-4">
@@ -298,9 +298,9 @@ export function Arena() {
 
          {/* Arena Status Panel */}
          <BrutalCard className="bg-destructive/10 border-destructive border-t-8">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b-4 border-destructive pb-6 mb-6 gap-6">
-               <div className="flex items-center gap-6">
-                  <div className="text-6xl md:text-8xl font-black font-mono text-destructive tracking-tighter shadow-[4px_4px_0_hsl(var(--border))]">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b-4 border-destructive pb-6 mb-3 gap-3">
+               <div className="flex items-center gap-3">
+                  <div className="text-2xl font-black font-mono text-destructive tracking-tighter shadow-[4px_4px_0_hsl(var(--border))]">
                      {Math.floor((arena?.secondsRemaining || 0) / 60)}:{((arena?.secondsRemaining || 0) % 60).toString().padStart(2, '0')}
                   </div>
                   <div className="flex flex-col gap-3">
@@ -367,13 +367,13 @@ export function Arena() {
           )}
 
          {/* The House / Contestants */}
-         <div className="mt-12 space-y-6">
-            <h2 className="text-3xl font-black uppercase tracking-tighter border-b-4 border-border pb-2 flex justify-between items-end">
+         <div className="mt-12 space-y-3">
+            <h2 className="text-base font-black uppercase tracking-tighter border-b-2 border-border pb-2 flex justify-between items-end">
                Contestant Houses
                <span className="text-base font-mono text-muted-foreground">LIVE FEED</span>
             </h2>
             
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {[...(arena?.scores || [])].sort((a, b) => b.score - a.score).map((score, idx) => (
                  <div key={score.agentId} className={`border-8 ${idx === 0 && arena?.status !== 'ready' ? 'border-accent shadow-[8px_8px_0_hsl(var(--accent))]' : 'border-border shadow-[8px_8px_0_hsl(var(--border))]'} bg-card relative overflow-hidden transition-all hover:-translate-y-1`}>
                      
@@ -386,11 +386,11 @@ export function Arena() {
 
                      {/* Room Header */}
                      <div className="flex border-b-8 border-border">
-                        <div className={`p-6 flex-1 flex flex-col justify-center ${idx === 0 && arena?.status !== 'ready' ? 'bg-accent/10' : 'bg-muted/30'}`}>
+                        <div className={`p-3 flex-1 flex flex-col justify-center ${idx === 0 && arena?.status !== 'ready' ? 'bg-accent/10' : 'bg-muted/30'}`}>
                            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase mb-1">
                               <MapPin size={14} /> {score.room || 'MAIN HALL'}
                            </div>
-                           <h3 className="text-4xl font-black uppercase tracking-tighter truncate" title={score.agentName}>{score.agentName}</h3>
+                           <h3 className="text-lg font-black uppercase tracking-tighter truncate" title={score.agentName}>{score.agentName}</h3>
                             <div className="flex items-center gap-3 mt-3 flex-wrap">
                               <BrutalBadge variant="primary" className="border-4 shadow-[2px_2px_0_hsl(var(--border))] px-3 py-1 text-sm">{score.phase || 'IDLE'}</BrutalBadge>
                               <div className="flex items-center gap-1 font-mono text-xs font-bold bg-background border-2 border-border px-2 py-1">
@@ -401,9 +401,9 @@ export function Arena() {
                            </div>
                         </div>
                         
-                        <div className="w-48 shrink-0 border-l-8 border-border bg-card p-6 flex flex-col items-end justify-center">
+                        <div className="w-48 shrink-0 border-l-8 border-border bg-card p-3 flex flex-col items-end justify-center">
                            <div className="text-sm font-bold uppercase text-muted-foreground mb-1 text-right">Match Score</div>
-                           <div className="text-6xl font-mono font-black tracking-tighter">{score.score}</div>
+                           <div className="text-2xl font-mono font-black tracking-tighter">{score.score}</div>
                         </div>
                      </div>
 
@@ -423,12 +423,12 @@ export function Arena() {
                         </div>
                         <div className="p-4 flex flex-col justify-center items-end bg-primary/5">
                            <div className="text-xs font-bold uppercase text-muted-foreground mb-1">Total Scale Rev</div>
-                           <div className="text-3xl font-mono font-black text-primary">${((score.scaleRevenueCents || score.incomeCents) / 100).toFixed(2)}</div>
+                           <div className="text-base font-mono font-black text-primary">${((score.scaleRevenueCents || score.incomeCents) / 100).toFixed(2)}</div>
                         </div>
                      </div>
 
                      {/* Action & Status */}
-                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-card">
+                     <div className="p-3 grid grid-cols-1 md:grid-cols-2 gap-3 bg-card">
                          <div className="space-y-2">
                            <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground border-b-4 border-border pb-1">
                               <Code2 size={14} /> Startup Idea

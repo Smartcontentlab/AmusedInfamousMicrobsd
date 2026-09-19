@@ -493,7 +493,7 @@ export function Agents() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <div className="max-w-2xl"><div className="mb-2 flex items-center gap-2 font-mono text-xs font-black uppercase tracking-widest text-primary"><Radio size={14} className="animate-pulse" /> live staff control</div><h1 className="text-4xl font-black uppercase tracking-tighter md:text-5xl">Operative roster</h1><p className="mt-2 font-mono text-lg text-muted-foreground">Equip the staff. Dispatch the work. Watch every run move.</p></div>
+        <div className="max-w-2xl"><div className="mb-2 flex items-center gap-2 font-mono text-xs font-black uppercase tracking-widest text-primary"><Radio size={14} className="animate-pulse" /> live staff control</div><h1 className="text-2xl font-black uppercase tracking-tighter">Operative roster</h1><p className="mt-2 font-mono text-xs text-muted-foreground">Equip the staff. Dispatch the work. Watch every run move.</p></div>
         <BrutalButton data-testid="spawn-agent-button" onClick={() => setShowNew((open) => !open)} className="flex items-center gap-2"><UserPlus size={18} /> Spawn operative</BrutalButton>
       </div>
       <RuntimeLinkPanel />

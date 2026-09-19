@@ -5,12 +5,12 @@ export function BrutalCard({ title, children, className, action }: { title?: Rea
    return (
       <div className={cn("border-4 border-border bg-card shadow-[6px_6px_0px_0px_hsl(var(--border))] flex flex-col transition-all hover:translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_hsl(var(--border))]", className)}>
          {title && (
-            <div className="border-b-4 border-border px-4 py-3 bg-muted/50 flex justify-between items-center">
-               <h3 className="font-black uppercase tracking-tight text-lg">{title}</h3>
+            <div className="border-b-2 border-border px-3 py-2 bg-muted/50 flex justify-between items-center">
+               <h3 className="font-black uppercase tracking-tight text-sm">{title}</h3>
                {action && <div>{action}</div>}
             </div>
          )}
-         <div className="p-4 flex-1 flex flex-col">{children}</div>
+         <div className="p-3 flex-1 flex flex-col">{children}</div>
       </div>
    );
 }
@@ -26,8 +26,8 @@ export function BrutalButton({ children, className, variant = 'primary', ...prop
    };
    
    return (
-      <button 
-         className={cn("font-bold uppercase px-4 py-2 transition-all disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-4 focus:ring-primary/20", variants[variant], className)}
+      <button
+         className={cn("font-bold uppercase text-xs px-3 py-1.5 transition-all disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-4 focus:ring-primary/20", variants[variant], className)}
          {...props}
       >
          {children}
@@ -45,7 +45,7 @@ export function BrutalBadge({ children, className, variant = 'default' }: { chil
    };
    
    return (
-      <span className={cn("text-xs font-black uppercase px-2 py-0.5 inline-flex items-center justify-center", variants[variant], className)}>
+      <span className={cn("text-[10px] font-black uppercase px-1.5 py-0.5 inline-flex items-center justify-center", variants[variant], className)}>
          {children}
       </span>
    );

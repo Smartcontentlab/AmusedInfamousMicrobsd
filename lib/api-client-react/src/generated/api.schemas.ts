@@ -5,6 +5,152 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+export interface AgentLoop {
+  id: number;
+  agentId: number;
+  name: string;
+  description?: string | null;
+  cadence: string;
+  enabled: boolean;
+  lastRunAt?: string | null;
+  createdAt: string;
+}
+
+export interface AgentLoopInput {
+  /** @minLength 1 */
+  name: string;
+  description?: string | null;
+  cadence?: string;
+}
+
+export interface AgentLoopUpdate {
+  /** @minLength 1 */
+  name?: string;
+  description?: string | null;
+  cadence?: string;
+  enabled?: boolean;
+}
+
+export interface ProjectStaffMember {
+  id: number;
+  name: string;
+  role: string;
+  status: string;
+  provider: string;
+  currentTask?: string | null;
+  nextMove?: string | null;
+  lastActivity?: string | null;
+  room?: string | null;
+  skillCount: number;
+  capabilities: string[];
+  openTaskCount: number;
+  doneTaskCount: number;
+  loops: AgentLoop[];
+}
+
+export interface ProjectProgress {
+  totalTasks: number;
+  doneTasks: number;
+  activeTasks: number;
+  reviewTasks: number;
+  queuedTasks: number;
+  percentComplete: number;
+}
+
+export type ProjectStatus = typeof ProjectStatus[keyof typeof ProjectStatus];
+
+
+export const ProjectStatus = {
+  planning: 'planning',
+  building: 'building',
+  review: 'review',
+  live: 'live',
+  paused: 'paused',
+} as const;
+
+export interface Project {
+  id: number;
+  name: string;
+  status: ProjectStatus;
+  incomeCents: number;
+  updatedAt: string;
+  /** @nullable */
+  description?: string | null;
+}
+
+export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
+
+
+export const TaskStatus = {
+  queued: 'queued',
+  active: 'active',
+  review: 'review',
+  done: 'done',
+} as const;
+
+export type TaskPriority = typeof TaskPriority[keyof typeof TaskPriority];
+
+
+export const TaskPriority = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export interface Task {
+  id: number;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  projectId: number;
+  /** @nullable */
+  agentId?: number | null;
+  createdAt: string;
+}
+
+export type ApprovalRisk = typeof ApprovalRisk[keyof typeof ApprovalRisk];
+
+
+export const ApprovalRisk = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export type ApprovalStatus = typeof ApprovalStatus[keyof typeof ApprovalStatus];
+
+
+export const ApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+  changes_requested: 'changes_requested',
+  handed_off: 'handed_off',
+} as const;
+
+export interface Approval {
+  id: number;
+  projectId: number;
+  agentId: number;
+  title: string;
+  action: string;
+  details: string;
+  risk: ApprovalRisk;
+  status: ApprovalStatus;
+  createdAt: string;
+  /** @nullable */
+  resolvedAt?: string | null;
+}
+
+export interface ProjectDetail {
+  project: Project;
+  description?: string | null;
+  staff: ProjectStaffMember[];
+  tasks: Task[];
+  approvals: Approval[];
+  progress: ProjectProgress;
+}
+
 export interface PersonalTodo {
   id: number;
   title: string;
@@ -80,27 +226,6 @@ export interface HealthStatus {
 
 export interface ErrorResponse {
   error: string;
-}
-
-export type ProjectStatus = typeof ProjectStatus[keyof typeof ProjectStatus];
-
-
-export const ProjectStatus = {
-  planning: 'planning',
-  building: 'building',
-  review: 'review',
-  live: 'live',
-  paused: 'paused',
-} as const;
-
-export interface Project {
-  id: number;
-  name: string;
-  status: ProjectStatus;
-  incomeCents: number;
-  updatedAt: string;
-  /** @nullable */
-  description?: string | null;
 }
 
 export type ProjectInputStatus = typeof ProjectInputStatus[keyof typeof ProjectInputStatus];
@@ -206,36 +331,6 @@ export interface AgentUpdate {
   nextMove?: string;
   runtimeConnectionId?: number;
   runtime?: string;
-}
-
-export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
-
-
-export const TaskStatus = {
-  queued: 'queued',
-  active: 'active',
-  review: 'review',
-  done: 'done',
-} as const;
-
-export type TaskPriority = typeof TaskPriority[keyof typeof TaskPriority];
-
-
-export const TaskPriority = {
-  low: 'low',
-  medium: 'medium',
-  high: 'high',
-} as const;
-
-export interface Task {
-  id: number;
-  title: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  projectId: number;
-  /** @nullable */
-  agentId?: number | null;
-  createdAt: string;
 }
 
 export type TaskInputPriority = typeof TaskInputPriority[keyof typeof TaskInputPriority];
@@ -417,40 +512,6 @@ export interface SkillCatalogRefreshResult {
 
 export interface AgentCapabilityInput {
   skillId: number;
-}
-
-export type ApprovalRisk = typeof ApprovalRisk[keyof typeof ApprovalRisk];
-
-
-export const ApprovalRisk = {
-  low: 'low',
-  medium: 'medium',
-  high: 'high',
-} as const;
-
-export type ApprovalStatus = typeof ApprovalStatus[keyof typeof ApprovalStatus];
-
-
-export const ApprovalStatus = {
-  pending: 'pending',
-  approved: 'approved',
-  rejected: 'rejected',
-  changes_requested: 'changes_requested',
-  handed_off: 'handed_off',
-} as const;
-
-export interface Approval {
-  id: number;
-  projectId: number;
-  agentId: number;
-  title: string;
-  action: string;
-  details: string;
-  risk: ApprovalRisk;
-  status: ApprovalStatus;
-  createdAt: string;
-  /** @nullable */
-  resolvedAt?: string | null;
 }
 
 export type ApprovalUpdateStatus = typeof ApprovalUpdateStatus[keyof typeof ApprovalUpdateStatus];

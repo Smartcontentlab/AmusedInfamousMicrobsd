@@ -3,6 +3,7 @@ import healthRouter from "./health";
 import inboxRouter from "./inbox";
 import missionControlRouter from "./mission-control";
 import personalTodosRouter from "./personal-todos";
+import projectDetailRouter from "./project-detail";
 import runtimeRouter from "./runtime";
 
 const router: IRouter = Router();
@@ -12,5 +13,6 @@ router.use(missionControlRouter);
 router.use(runtimeRouter);
 router.use(personalTodosRouter);
 router.use(inboxRouter);
+router.use(projectDetailRouter);
 
 export default router;

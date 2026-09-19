@@ -16,3 +16,4 @@ export * from "./agent-tool-unlocks";
 export * from "./arena-evidence";
 export * from "./personal-todos";
 export * from "./direct-messages";
+export * from "./agent-loops";

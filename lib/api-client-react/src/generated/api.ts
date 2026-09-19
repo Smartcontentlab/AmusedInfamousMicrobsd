@@ -25,6 +25,9 @@ import type {
   AgentCapability,
   AgentCapabilityInput,
   AgentInput,
+  AgentLoop,
+  AgentLoopInput,
+  AgentLoopUpdate,
   AgentRun,
   AgentRunInput,
   AgentToolAccess,
@@ -49,6 +52,7 @@ import type {
   PersonalTodoInput,
   PersonalTodoUpdate,
   Project,
+  ProjectDetail,
   ProjectInput,
   ProjectUpdate,
   RuntimeConnectionInput,
@@ -3188,6 +3192,375 @@ export const useDeletePersonalTodo = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getDeletePersonalTodoMutationOptions(options));
+    }
+
+export const getGetProjectDetailUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/detail`
+}
+
+/**
+ * @summary Everything needed to run one project on a single screen
+ */
+export const getProjectDetail = async (projectId: number, options?: Parameters<typeof customFetch>[1]): Promise<ProjectDetail> => {
+
+  return customFetch<ProjectDetail>(getGetProjectDetailUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectDetailQueryKey = (projectId: number,) => {
+    return [
+    `/api/projects/${projectId}/detail`
+    ] as const;
+    }
+
+
+export const getGetProjectDetailQueryOptions = <TData = Awaited<ReturnType<typeof getProjectDetail>>, TError = ErrorType<ErrorResponse>>(projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProjectDetail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectDetailQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectDetail>>> = ({ signal }) => getProjectDetail(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectDetail>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProjectDetailQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectDetail>>>
+export type GetProjectDetailQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Everything needed to run one project on a single screen
+ */
+
+export function useGetProjectDetail<TData = Awaited<ReturnType<typeof getProjectDetail>>, TError = ErrorType<ErrorResponse>>(
+ projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProjectDetail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProjectDetailQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAgentLoopsUrl = (agentId: number,) => {
+
+
+
+
+  return `/api/agents/${agentId}/loops`
+}
+
+/**
+ * @summary List an agent's repeatable loops
+ */
+export const listAgentLoops = async (agentId: number, options?: Parameters<typeof customFetch>[1]): Promise<AgentLoop[]> => {
+
+  return customFetch<AgentLoop[]>(getListAgentLoopsUrl(agentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAgentLoopsQueryKey = (agentId: number,) => {
+    return [
+    `/api/agents/${agentId}/loops`
+    ] as const;
+    }
+
+
+export const getListAgentLoopsQueryOptions = <TData = Awaited<ReturnType<typeof listAgentLoops>>, TError = ErrorType<unknown>>(agentId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentLoops>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAgentLoopsQueryKey(agentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgentLoops>>> = ({ signal }) => listAgentLoops(agentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: agentId !== null && agentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAgentLoops>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAgentLoopsQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentLoops>>>
+export type ListAgentLoopsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List an agent's repeatable loops
+ */
+
+export function useListAgentLoops<TData = Awaited<ReturnType<typeof listAgentLoops>>, TError = ErrorType<unknown>>(
+ agentId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentLoops>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAgentLoopsQueryOptions(agentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAgentLoopUrl = (agentId: number,) => {
+
+
+
+
+  return `/api/agents/${agentId}/loops`
+}
+
+/**
+ * @summary Add a repeatable loop to an agent
+ */
+export const createAgentLoop = async (agentId: number,
+    agentLoopInput: AgentLoopInput, options?: Parameters<typeof customFetch>[1]): Promise<AgentLoop> => {
+
+  return customFetch<AgentLoop>(getCreateAgentLoopUrl(agentId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentLoopInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAgentLoopMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentLoop>>, TError,{agentId: number;data: BodyType<AgentLoopInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAgentLoop>>, TError,{agentId: number;data: BodyType<AgentLoopInput>}, TContext> => {
+
+const mutationKey = ['createAgentLoop'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgentLoop>>, {agentId: number;data: BodyType<AgentLoopInput>}> = (props) => {
+          const {agentId,data} = props ?? {};
+
+          return  createAgentLoop(agentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAgentLoopMutationResult = NonNullable<Awaited<ReturnType<typeof createAgentLoop>>>
+    export type CreateAgentLoopMutationBody = BodyType<AgentLoopInput>
+    export type CreateAgentLoopMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Add a repeatable loop to an agent
+ */
+export const useCreateAgentLoop = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgentLoop>>, TError,{agentId: number;data: BodyType<AgentLoopInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAgentLoop>>,
+        TError,
+        {agentId: number;data: BodyType<AgentLoopInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAgentLoopMutationOptions(options));
+    }
+
+export const getUpdateAgentLoopUrl = (loopId: number,) => {
+
+
+
+
+  return `/api/agent-loops/${loopId}`
+}
+
+/**
+ * @summary Enable, disable or edit a repeatable loop
+ */
+export const updateAgentLoop = async (loopId: number,
+    agentLoopUpdate: AgentLoopUpdate, options?: Parameters<typeof customFetch>[1]): Promise<AgentLoop> => {
+
+  return customFetch<AgentLoop>(getUpdateAgentLoopUrl(loopId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentLoopUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAgentLoopMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentLoop>>, TError,{loopId: number;data: BodyType<AgentLoopUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAgentLoop>>, TError,{loopId: number;data: BodyType<AgentLoopUpdate>}, TContext> => {
+
+const mutationKey = ['updateAgentLoop'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAgentLoop>>, {loopId: number;data: BodyType<AgentLoopUpdate>}> = (props) => {
+          const {loopId,data} = props ?? {};
+
+          return  updateAgentLoop(loopId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAgentLoopMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgentLoop>>>
+    export type UpdateAgentLoopMutationBody = BodyType<AgentLoopUpdate>
+    export type UpdateAgentLoopMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Enable, disable or edit a repeatable loop
+ */
+export const useUpdateAgentLoop = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgentLoop>>, TError,{loopId: number;data: BodyType<AgentLoopUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAgentLoop>>,
+        TError,
+        {loopId: number;data: BodyType<AgentLoopUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAgentLoopMutationOptions(options));
+    }
+
+export const getDeleteAgentLoopUrl = (loopId: number,) => {
+
+
+
+
+  return `/api/agent-loops/${loopId}`
+}
+
+/**
+ * @summary Remove a repeatable loop
+ */
+export const deleteAgentLoop = async (loopId: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteAgentLoopUrl(loopId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAgentLoopMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAgentLoop>>, TError,{loopId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAgentLoop>>, TError,{loopId: number}, TContext> => {
+
+const mutationKey = ['deleteAgentLoop'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAgentLoop>>, {loopId: number}> = (props) => {
+          const {loopId} = props ?? {};
+
+          return  deleteAgentLoop(loopId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAgentLoopMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAgentLoop>>>
+
+    export type DeleteAgentLoopMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Remove a repeatable loop
+ */
+export const useDeleteAgentLoop = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAgentLoop>>, TError,{loopId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAgentLoop>>,
+        TError,
+        {loopId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteAgentLoopMutationOptions(options));
     }
 
 export const getGetInboxUrl = () => {

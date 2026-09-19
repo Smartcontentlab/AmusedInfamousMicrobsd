@@ -1057,6 +1057,167 @@ export const DeletePersonalTodoResponse = zod.void()
 
 
 /**
+ * @summary Everything needed to run one project on a single screen
+ */
+export const GetProjectDetailParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const GetProjectDetailResponse = zod.object({
+  "project": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "status": zod.enum(['planning', 'building', 'review', 'live', 'paused']),
+  "incomeCents": zod.number(),
+  "updatedAt": zod.coerce.date(),
+  "description": zod.string().nullish()
+}),
+  "description": zod.string().nullish(),
+  "staff": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "status": zod.string(),
+  "provider": zod.string(),
+  "currentTask": zod.string().nullish(),
+  "nextMove": zod.string().nullish(),
+  "lastActivity": zod.string().nullish(),
+  "room": zod.string().nullish(),
+  "skillCount": zod.number(),
+  "capabilities": zod.array(zod.string()),
+  "openTaskCount": zod.number(),
+  "doneTaskCount": zod.number(),
+  "loops": zod.array(zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "cadence": zod.string(),
+  "enabled": zod.boolean(),
+  "lastRunAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})),
+  "tasks": zod.array(zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "status": zod.enum(['queued', 'active', 'review', 'done']),
+  "priority": zod.enum(['low', 'medium', 'high']),
+  "projectId": zod.number(),
+  "agentId": zod.number().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "approvals": zod.array(zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "agentId": zod.number(),
+  "title": zod.string(),
+  "action": zod.string(),
+  "details": zod.string(),
+  "risk": zod.enum(['low', 'medium', 'high']),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'changes_requested', 'handed_off']),
+  "createdAt": zod.coerce.date(),
+  "resolvedAt": zod.string().nullish()
+})),
+  "progress": zod.object({
+  "totalTasks": zod.number(),
+  "doneTasks": zod.number(),
+  "activeTasks": zod.number(),
+  "reviewTasks": zod.number(),
+  "queuedTasks": zod.number(),
+  "percentComplete": zod.number()
+})
+})
+
+
+/**
+ * @summary List an agent's repeatable loops
+ */
+export const ListAgentLoopsParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const ListAgentLoopsResponseItem = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "cadence": zod.string(),
+  "enabled": zod.boolean(),
+  "lastRunAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListAgentLoopsResponse = zod.array(ListAgentLoopsResponseItem)
+
+
+/**
+ * @summary Add a repeatable loop to an agent
+ */
+export const CreateAgentLoopParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+
+
+
+export const CreateAgentLoopBody = zod.object({
+  "name": zod.string().min(1),
+  "description": zod.string().nullish(),
+  "cadence": zod.string().optional()
+})
+
+export const CreateAgentLoopResponse = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "cadence": zod.string(),
+  "enabled": zod.boolean(),
+  "lastRunAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Enable, disable or edit a repeatable loop
+ */
+export const UpdateAgentLoopParams = zod.object({
+  "loopId": zod.coerce.number()
+})
+
+
+
+
+export const UpdateAgentLoopBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "description": zod.string().nullish(),
+  "cadence": zod.string().optional(),
+  "enabled": zod.boolean().optional()
+})
+
+export const UpdateAgentLoopResponse = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "cadence": zod.string(),
+  "enabled": zod.boolean(),
+  "lastRunAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Remove a repeatable loop
+ */
+export const DeleteAgentLoopParams = zod.object({
+  "loopId": zod.coerce.number()
+})
+
+export const DeleteAgentLoopResponse = zod.void()
+
+
+/**
  * @summary Get the unified inbox grouped into attention, approvals and messages
  */
 export const GetInboxResponse = zod.object({

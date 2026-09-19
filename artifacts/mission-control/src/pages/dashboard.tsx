@@ -89,7 +89,7 @@ function SectionIntro({
         <h2 className="text-2xl font-black uppercase tracking-tight">{title}</h2>
         <p className="mt-1 max-w-2xl font-mono text-xs leading-relaxed text-muted-foreground">{explanation}</p>
       </div>
-      {typeof count === "number" && <div className="font-mono text-4xl font-black leading-none text-primary">{count.toString().padStart(2, "0")}</div>}
+      {typeof count === "number" && <div className="font-mono text-2xl font-black leading-none text-primary">{count.toString().padStart(2, "0")}</div>}
     </div>
   );
 }
@@ -323,7 +323,7 @@ export function Dashboard() {
           <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black uppercase tracking-[0.18em] text-primary">
             <Command size={15} /> Mission Control / daily operating home
           </div>
-          <h1 data-testid="text-dashboard-title" className="text-4xl font-black uppercase tracking-[-0.06em] sm:text-6xl">Make today move.</h1>
+          <h1 data-testid="text-dashboard-title" className="text-2xl font-black uppercase tracking-[-0.06em] sm:text-xl">Make today move.</h1>
           <p className="mt-2 font-mono text-sm font-bold text-muted-foreground">{todayLabel} · decisions first, telemetry second.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -579,15 +579,15 @@ export function Dashboard() {
 
       <section data-testid="dashboard-snapshot" className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <BrutalCard title="Monthly income" className="border-l-8 border-l-primary">
-          <div data-testid="metric-monthly-income" className="font-mono text-3xl font-black text-primary">${((dashboard?.monthlyIncomeCents || 0) / 100).toFixed(2)}</div>
+          <div data-testid="metric-monthly-income" className="font-mono text-xl font-black text-primary">${((dashboard?.monthlyIncomeCents || 0) / 100).toFixed(2)}</div>
           <p className="mt-2 font-mono text-xs text-muted-foreground">Revenue generated this month.</p>
         </BrutalCard>
         <BrutalCard title="Runway" className="border-l-8 border-l-secondary">
-          <div data-testid="metric-runway" className="font-mono text-3xl font-black text-secondary">{dashboard?.runwayDays ?? "—"} days</div>
+          <div data-testid="metric-runway" className="font-mono text-xl font-black text-secondary">{dashboard?.runwayDays ?? "—"} days</div>
           <p className="mt-2 font-mono text-xs text-muted-foreground">Estimated operating time remaining.</p>
         </BrutalCard>
         <BrutalCard title="Velocity" className="border-l-8 border-l-accent">
-          <div data-testid="metric-velocity" className="font-mono text-3xl font-black text-accent">{dashboard?.velocityPercent ?? "—"}%</div>
+          <div data-testid="metric-velocity" className="font-mono text-xl font-black text-accent">{dashboard?.velocityPercent ?? "—"}%</div>
           <p className="mt-2 font-mono text-xs text-muted-foreground">Task completion rate reported by the dashboard.</p>
         </BrutalCard>
         <BrutalCard title="Recent activity" className="border-l-8 border-l-primary">

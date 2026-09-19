@@ -16,6 +16,7 @@ import { Home } from './pages/home';
 import { Inbox } from './pages/inbox';
 import { Dashboard } from './pages/dashboard';
 import { Projects } from './pages/projects';
+import { ProjectDetail } from './pages/project-detail';
 import { Agents } from './pages/agents';
 import { Skills } from './pages/skills';
 import { Arena } from './pages/arena';
@@ -33,6 +34,7 @@ function Router() {
           <Route path="/inbox" component={Inbox} />
           <Route path="/overview" component={Dashboard} />
           <Route path="/projects" component={Projects} />
+          <Route path="/projects/:id" component={ProjectDetail} />
           <Route path="/agents" component={Agents} />
           <Route path="/skills" component={Skills} />
           <Route path="/approvals" component={Approvals} />

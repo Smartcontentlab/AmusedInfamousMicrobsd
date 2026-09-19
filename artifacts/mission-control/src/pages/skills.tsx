@@ -1,4 +1,4 @@
-import {
+﻿import {
   getListAgentCapabilitiesQueryKey,
   getListAgentsQueryKey,
   getListSkillsQueryKey,
@@ -82,8 +82,8 @@ export function Skills() {
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div className="max-w-3xl">
           <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black uppercase tracking-widest text-primary"><ShieldCheck size={14} /> trusted capability catalog</div>
-          <h1 className="text-4xl font-black uppercase tracking-tighter md:text-5xl">Skill Repository</h1>
-          <p className="mt-2 font-mono text-lg text-muted-foreground">Discover approved Hermes and OpenClaw skills, inspect their safety boundary, then equip a staff member without silently running third-party code.</p>
+          <h1 className="text-2xl font-black uppercase tracking-tighter">Skill Repository</h1>
+          <p className="mt-2 font-mono text-xs text-muted-foreground">Discover approved Hermes and OpenClaw skills, inspect their safety boundary, then equip a staff member without silently running third-party code.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <BrutalButton data-testid="refresh-skill-catalog" variant="outline" disabled={refreshCatalog.isPending} onClick={() => refreshCatalog.mutate()}>
@@ -94,9 +94,9 @@ export function Skills() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="border-4 border-primary bg-primary/10 p-4 shadow-[4px_4px_0px_0px_hsl(var(--primary))]"><div className="font-mono text-xs font-black uppercase text-muted-foreground">Visible packs</div><div className="mt-1 font-mono text-3xl font-black">{filteredSkills.length}</div></div>
-        <div className="border-4 border-accent bg-accent/10 p-4 shadow-[4px_4px_0px_0px_hsl(var(--accent))]"><div className="font-mono text-xs font-black uppercase text-muted-foreground">Trusted sources</div><div className="mt-1 font-mono text-3xl font-black">{new Set(skills.filter((skill) => skill.sourceKind === "catalog").map((skill) => skill.sourceName)).size}</div></div>
-        <div className="border-4 border-border bg-muted/40 p-4"><div className="font-mono text-xs font-black uppercase text-muted-foreground">Approval-gated</div><div className="mt-1 font-mono text-3xl font-black">{skills.filter((skill) => skill.requiresApproval).length}</div></div>
+        <div className="border-4 border-primary bg-primary/10 p-4 shadow-[4px_4px_0px_0px_hsl(var(--primary))]"><div className="font-mono text-xs font-black uppercase text-muted-foreground">Visible packs</div><div className="mt-1 font-mono text-xl font-black">{filteredSkills.length}</div></div>
+        <div className="border-4 border-accent bg-accent/10 p-4 shadow-[4px_4px_0px_0px_hsl(var(--accent))]"><div className="font-mono text-xs font-black uppercase text-muted-foreground">Trusted sources</div><div className="mt-1 font-mono text-xl font-black">{new Set(skills.filter((skill) => skill.sourceKind === "catalog").map((skill) => skill.sourceName)).size}</div></div>
+        <div className="border-4 border-border bg-muted/40 p-4"><div className="font-mono text-xs font-black uppercase text-muted-foreground">Approval-gated</div><div className="mt-1 font-mono text-xl font-black">{skills.filter((skill) => skill.requiresApproval).length}</div></div>
       </div>
 
       {refreshCatalog.data && (

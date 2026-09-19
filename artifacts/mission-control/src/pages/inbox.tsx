@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckSquare, MessageSquare, Send } from "lucide-react";
 import {
@@ -118,7 +118,7 @@ export function Inbox() {
   return (
     <div className="space-y-8 py-2">
       <div>
-        <h1 className="text-3xl font-black uppercase tracking-tighter md:text-4xl">Inbox</h1>
+        <h1 className="text-2xl font-black uppercase tracking-tighter">Inbox</h1>
         <p className="mt-1 font-mono text-sm text-muted-foreground">Everything Atlas needs from you, in one channel.</p>
       </div>
 

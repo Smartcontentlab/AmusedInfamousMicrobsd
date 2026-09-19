@@ -28,6 +28,7 @@ import type {
   AgentLoop,
   AgentLoopInput,
   AgentLoopUpdate,
+  AgentModelInput,
   AgentRun,
   AgentRunInput,
   AgentToolAccess,
@@ -48,6 +49,7 @@ import type {
   Inbox,
   MissionPlan,
   MissionPlanInput,
+  ModelCatalog,
   PersonalTodo,
   PersonalTodoInput,
   PersonalTodoUpdate,
@@ -3192,6 +3194,155 @@ export const useDeletePersonalTodo = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getDeletePersonalTodoMutationOptions(options));
+    }
+
+export const getListModelsUrl = () => {
+
+
+
+
+  return `/api/models`
+}
+
+/**
+ * @summary List models available from the configured inference provider
+ */
+export const listModels = async ( options?: Parameters<typeof customFetch>[1]): Promise<ModelCatalog> => {
+
+  return customFetch<ModelCatalog>(getListModelsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListModelsQueryKey = () => {
+    return [
+    `/api/models`
+    ] as const;
+    }
+
+
+export const getListModelsQueryOptions = <TData = Awaited<ReturnType<typeof listModels>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listModels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListModelsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listModels>>> = ({ signal }) => listModels({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listModels>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListModelsQueryResult = NonNullable<Awaited<ReturnType<typeof listModels>>>
+export type ListModelsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List models available from the configured inference provider
+ */
+
+export function useListModels<TData = Awaited<ReturnType<typeof listModels>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listModels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListModelsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetAgentModelUrl = (agentId: number,) => {
+
+
+
+
+  return `/api/agents/${agentId}/model`
+}
+
+/**
+ * @summary Choose which model an agent runs on
+ */
+export const setAgentModel = async (agentId: number,
+    agentModelInput: AgentModelInput, options?: Parameters<typeof customFetch>[1]): Promise<AgentModelInput> => {
+
+  return customFetch<AgentModelInput>(getSetAgentModelUrl(agentId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agentModelInput)
+  }
+);}
+
+
+
+
+
+export const getSetAgentModelMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAgentModel>>, TError,{agentId: number;data: BodyType<AgentModelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setAgentModel>>, TError,{agentId: number;data: BodyType<AgentModelInput>}, TContext> => {
+
+const mutationKey = ['setAgentModel'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setAgentModel>>, {agentId: number;data: BodyType<AgentModelInput>}> = (props) => {
+          const {agentId,data} = props ?? {};
+
+          return  setAgentModel(agentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetAgentModelMutationResult = NonNullable<Awaited<ReturnType<typeof setAgentModel>>>
+    export type SetAgentModelMutationBody = BodyType<AgentModelInput>
+    export type SetAgentModelMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Choose which model an agent runs on
+ */
+export const useSetAgentModel = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAgentModel>>, TError,{agentId: number;data: BodyType<AgentModelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setAgentModel>>,
+        TError,
+        {agentId: number;data: BodyType<AgentModelInput>},
+        TContext
+      > => {
+      return useMutation(getSetAgentModelMutationOptions(options));
     }
 
 export const getGetProjectDetailUrl = (projectId: number,) => {

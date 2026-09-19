@@ -5,6 +5,24 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+export interface ModelOption {
+  id: string;
+  provider: string;
+  displayName?: string | null;
+}
+
+export interface ModelCatalog {
+  provider: string;
+  configured: boolean;
+  message?: string | null;
+  models: ModelOption[];
+}
+
+export interface AgentModelInput {
+  model: string | null;
+  modelProvider?: string;
+}
+
 export interface AgentLoop {
   id: number;
   agentId: number;
@@ -37,6 +55,8 @@ export interface ProjectStaffMember {
   role: string;
   status: string;
   provider: string;
+  model?: string | null;
+  modelProvider?: string | null;
   currentTask?: string | null;
   nextMove?: string | null;
   lastActivity?: string | null;

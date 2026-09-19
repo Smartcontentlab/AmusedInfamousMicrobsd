@@ -21,6 +21,9 @@ export const agentsTable = pgTable("agents", {
   arenaIncomeCents: integer("arena_income_cents").notNull().default(0),
   scaleRevenueCents: integer("scale_revenue_cents").notNull().default(0),
   capabilities: text("capabilities").array().notNull().default([]),
+  // Model id as the provider names it, e.g. "meta/llama-3.3-70b-instruct" on NVIDIA NIM
+  model: text("model"),
+  modelProvider: text("model_provider").notNull().default("nvidia_nim"),
   lastActivity: text("last_activity"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

@@ -69,6 +69,8 @@ router.get("/projects/:projectId/detail", async (req, res): Promise<void> => {
           role: agent.role,
           status: agent.status,
           provider: agent.provider,
+          model: agent.model,
+          modelProvider: agent.modelProvider,
           currentTask: agent.currentTask,
           nextMove: agent.nextMove,
           lastActivity: agent.lastActivity,

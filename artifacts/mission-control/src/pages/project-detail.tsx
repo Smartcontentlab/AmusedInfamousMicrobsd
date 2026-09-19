@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import type { ProjectStaffMember } from "@workspace/api-client-react";
 import { BrutalBadge, BrutalCard } from "@/components/ui/brutal";
+import { ModelPicker } from "@/components/model-picker";
 
 const COLUMNS = [
   { key: "queued", label: "Queued" },
@@ -153,6 +154,7 @@ function StaffCard({ staff, projectId }: { staff: ProjectStaffMember; projectId:
             </div>
           )}
 
+          <ModelPicker agentId={staff.id} model={staff.model} invalidateKey={getGetProjectDetailQueryKey(projectId)} />
           <LoopList staff={staff} projectId={projectId} />
         </div>
       )}

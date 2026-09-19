@@ -36,6 +36,8 @@ tags:
     description: The operator's own to-do list, separate from project work
   - name: inbox
     description: Unified Atlas inbox — attention, approvals and messages
+  - name: models
+    description: Inference model catalog and per-agent model assignment
 paths:
   /healthz:
     get:
@@ -724,6 +726,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /models:
+    get:
+      operationId: listModels
+      tags: [models]
+      summary: List models available from the configured inference provider
+      responses:
+        "200":
+          description: Available models
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelCatalog"
+  /agents/{agentId}/model:
+    patch:
+      operationId: setAgentModel
+      tags: [models]
+      summary: Choose which model an agent runs on
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentModelInput"
+      responses:
+        "200":
+          description: Updated agent model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentModelInput"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /projects/{projectId}/detail:
     get:
       operationId: getProjectDetail
@@ -939,6 +979,41 @@ components:
       schema:
         type: number
   schemas:
+    ModelOption:
+      type: object
+      required: [id, provider]
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+    ModelCatalog:
+      type: object
+      required: [provider, configured, models]
+      properties:
+        provider:
+          type: string
+        configured:
+          type: boolean
+        message:
+          type: string
+          nullable: true
+        models:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelOption"
+    AgentModelInput:
+      type: object
+      required: [model]
+      properties:
+        model:
+          type: string
+          nullable: true
+        modelProvider:
+          type: string
     AgentLoop:
       type: object
       required: [id, agentId, name, cadence, enabled, createdAt]
@@ -1000,6 +1075,12 @@ components:
           type: string
         provider:
           type: string
+        model:
+          type: string
+          nullable: true
+        modelProvider:
+          type: string
+          nullable: true
         currentTask:
           type: string
           nullable: true

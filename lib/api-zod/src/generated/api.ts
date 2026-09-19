@@ -1057,6 +1057,39 @@ export const DeletePersonalTodoResponse = zod.void()
 
 
 /**
+ * @summary List models available from the configured inference provider
+ */
+export const ListModelsResponse = zod.object({
+  "provider": zod.string(),
+  "configured": zod.boolean(),
+  "message": zod.string().nullish(),
+  "models": zod.array(zod.object({
+  "id": zod.string(),
+  "provider": zod.string(),
+  "displayName": zod.string().nullish()
+}))
+})
+
+
+/**
+ * @summary Choose which model an agent runs on
+ */
+export const SetAgentModelParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const SetAgentModelBody = zod.object({
+  "model": zod.string().nullable(),
+  "modelProvider": zod.string().optional()
+})
+
+export const SetAgentModelResponse = zod.object({
+  "model": zod.string().nullable(),
+  "modelProvider": zod.string().optional()
+})
+
+
+/**
  * @summary Everything needed to run one project on a single screen
  */
 export const GetProjectDetailParams = zod.object({
@@ -1079,6 +1112,8 @@ export const GetProjectDetailResponse = zod.object({
   "role": zod.string(),
   "status": zod.string(),
   "provider": zod.string(),
+  "model": zod.string().nullish(),
+  "modelProvider": zod.string().nullish(),
   "currentTask": zod.string().nullish(),
   "nextMove": zod.string().nullish(),
   "lastActivity": zod.string().nullish(),

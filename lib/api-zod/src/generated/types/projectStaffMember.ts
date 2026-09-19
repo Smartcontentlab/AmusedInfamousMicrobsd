@@ -13,6 +13,8 @@ export interface ProjectStaffMember {
   role: string;
   status: string;
   provider: string;
+  model?: string | null;
+  modelProvider?: string | null;
   currentTask?: string | null;
   nextMove?: string | null;
   lastActivity?: string | null;

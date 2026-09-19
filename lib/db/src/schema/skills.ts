@@ -1,4 +1,4 @@
-import { boolean, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const skillsTable = pgTable("skills", {
@@ -18,7 +18,12 @@ export const skillsTable = pgTable("skills", {
   requiresApproval: boolean("requires_approval").notNull().default(false),
   sideEffectRisk: text("side_effect_risk").notNull().default("unknown"),
   importedAt: timestamp("imported_at", { withTimezone: true }),
-});
+}, (table) => [
+  // Catalog refresh upserts on this, and the library holds thousands of rows.
+  uniqueIndex("skills_external_id_unique").on(table.externalId),
+  index("skills_category_idx").on(table.category),
+  index("skills_source_name_idx").on(table.sourceName),
+]);
 
 export const insertSkillSchema = createInsertSchema(skillsTable).omit({
   id: true,

@@ -5,6 +5,17 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+export interface SkillFacetCount {
+  name: string;
+  count: number;
+}
+
+export interface SkillFacets {
+  total: number;
+  categories: SkillFacetCount[];
+  sources: SkillFacetCount[];
+}
+
 export interface ModelOption {
   id: string;
   provider: string;
@@ -943,4 +954,12 @@ export interface ActivityEvent {
   message: string;
   createdAt: string;
 }
+
+export type ListSkillsParams = {
+q?: string;
+category?: string;
+source?: string;
+limit?: number;
+offset?: number;
+};
 

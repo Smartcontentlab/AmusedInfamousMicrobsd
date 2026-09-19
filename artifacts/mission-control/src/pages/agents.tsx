@@ -475,7 +475,7 @@ function AgentCard({ agent, projects, skills, runtimeConnections }: { agent: any
 export function Agents() {
   const { data: agents, isLoading: agentsLoading, isError: agentsError, error: agentsErrorValue, refetch: refetchAgents } = useListAgents({ query: { queryKey: getListAgentsQueryKey(), refetchInterval: 10000 } });
   const { data: projects, isLoading: projectsLoading } = useListProjects();
-  const { data: skills, isLoading: skillsLoading } = useListSkills();
+  const { data: skills, isLoading: skillsLoading } = useListSkills({ limit: 300 });
    const { data: runtimeConnections } = useListRuntimeConnections({ query: { queryKey: ["runtime-connections"], refetchInterval: 15000 } });
   const queryClient = useQueryClient();
   const createAgent = useCreateAgent({ mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() }) } });

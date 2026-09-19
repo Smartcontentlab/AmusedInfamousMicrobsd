@@ -1,7 +1,7 @@
 import type { RuntimeConnection } from "@workspace/db";
 
 export type CatalogSource = {
-  key: "hermes" | "openclaw";
+  key: "voltagent" | "skilldb";
   name: string;
   repositoryUrl: string;
   skillsPath: string;
@@ -23,137 +23,246 @@ export type ImportedCatalogEntry = {
 
 export const APPROVED_CATALOG_SOURCES: CatalogSource[] = [
   {
-    key: "hermes",
-    name: "Hermes Skills",
-    repositoryUrl: "https://github.com/NousResearch/hermes-agent",
-    skillsPath: "https://github.com/NousResearch/hermes-agent/tree/main/skills",
+    key: "voltagent",
+    name: "Awesome Agent Skills",
+    repositoryUrl: "https://github.com/VoltAgent/awesome-agent-skills",
+    skillsPath: "https://raw.githubusercontent.com/VoltAgent/awesome-agent-skills/main/README.md",
   },
   {
-    key: "openclaw",
-    name: "OpenClaw Skills",
-    repositoryUrl: "https://github.com/openclaw/openclaw",
-    skillsPath: "https://github.com/openclaw/openclaw/tree/main/skills",
+    key: "skilldb",
+    name: "SkillDB",
+    repositoryUrl: "https://skilldb.dev",
+    skillsPath: "https://skilldb.dev/api/v1/skills",
   },
 ];
 
-// These entries are the safe bootstrap snapshot for the approved collections.
-// Refresh replaces/updates catalog entries from repository metadata; it never
-// imports operator-created skills and never runs a downloaded file.
+// Shown before the first catalog refresh so the library is never empty.
 export const BOOTSTRAP_CATALOG: ImportedCatalogEntry[] = [
   {
-    externalId: "hermes:research",
-    name: "Research Briefing",
-    description: "Turns a question into a sourced, decision-ready research brief with explicit uncertainty.",
-    category: "Research",
+    externalId: "voltagent:anthropics/skill-creator",
+    name: "Skill Creator",
+    description: "Guide for creating effective skills for AI coding agents.",
+    category: "Core",
     sourceKind: "catalog",
-    sourceName: "Hermes Skills",
-    sourceUrl: "https://github.com/NousResearch/hermes-agent/tree/main/skills/research",
-    compatibleRuntimes: ["hermes"],
-    installMethod: "skills.install",
-    requiresApproval: false,
-    sideEffectRisk: "low",
-  },
-  {
-    externalId: "hermes:browser",
-    name: "Browser Operator",
-    description: "Navigates web workflows and reports observed page state without taking irreversible actions.",
-    category: "Operations",
-    sourceKind: "catalog",
-    sourceName: "Hermes Skills",
-    sourceUrl: "https://github.com/NousResearch/hermes-agent/tree/main/skills/browser",
-    compatibleRuntimes: ["hermes"],
-    installMethod: "skills.install",
-    requiresApproval: true,
-    sideEffectRisk: "high",
-  },
-  {
-    externalId: "hermes:spreadsheet",
-    name: "Spreadsheet Analyst",
-    description: "Cleans tabular data and explains trends, anomalies, and next actions in plain language.",
-    category: "Analysis",
-    sourceKind: "catalog",
-    sourceName: "Hermes Skills",
-    sourceUrl: "https://github.com/NousResearch/hermes-agent/tree/main/skills/spreadsheet",
+    sourceName: "Awesome Agent Skills",
+    sourceUrl: "https://github.com/VoltAgent/awesome-agent-skills",
     compatibleRuntimes: ["hermes", "openclaw"],
     installMethod: "skills.install",
     requiresApproval: false,
     sideEffectRisk: "low",
   },
   {
-    externalId: "openclaw:github",
-    name: "GitHub Workbench",
-    description: "Inspects repository context and prepares changes while leaving the final write under operator control.",
-    category: "Engineering",
+    externalId: "skilldb:bootstrap/research",
+    name: "Research Briefing",
+    description: "Turns a question into a sourced, decision-ready brief with explicit uncertainty.",
+    category: "Research",
     sourceKind: "catalog",
-    sourceName: "OpenClaw Skills",
-    sourceUrl: "https://github.com/openclaw/openclaw/tree/main/skills/github",
-    compatibleRuntimes: ["openclaw"],
-    installMethod: "skills.install",
-    requiresApproval: true,
-    sideEffectRisk: "high",
-  },
-  {
-    externalId: "openclaw:document",
-    name: "Document Studio",
-    description: "Drafts structured documents from a brief and preserves a clear review boundary before sharing.",
-    category: "Content",
-    sourceKind: "catalog",
-    sourceName: "OpenClaw Skills",
-    sourceUrl: "https://github.com/openclaw/openclaw/tree/main/skills/document",
-    compatibleRuntimes: ["openclaw", "hermes"],
+    sourceName: "SkillDB",
+    sourceUrl: "https://skilldb.dev",
+    compatibleRuntimes: ["hermes", "openclaw"],
     installMethod: "skills.install",
     requiresApproval: false,
     sideEffectRisk: "low",
   },
-  {
-    externalId: "openclaw:outreach",
-    name: "Outbound Outreach",
-    description: "Prepares personalized outreach drafts and queues them for human approval before sending.",
-    category: "Growth",
-    sourceKind: "catalog",
-    sourceName: "OpenClaw Skills",
-    sourceUrl: "https://github.com/openclaw/openclaw/tree/main/skills/outreach",
-    compatibleRuntimes: ["openclaw"],
-    installMethod: "skills.install",
-    requiresApproval: true,
-    sideEffectRisk: "high",
-  },
 ];
 
-type GithubTreeItem = { path?: unknown; type?: unknown };
+const USER_AGENT = "mission-control-catalog-importer";
+const REQUEST_TIMEOUT_MS = 20_000;
+const SKILLDB_PAGE_SIZE = 50;
+const SKILLDB_MAX_PAGES = 400;
+// SkillDB throttles aggressively; sequential requests with a short gap sync the
+// whole catalog reliably, where concurrency silently loses pages.
+const SKILLDB_CONCURRENCY = 1;
+const SKILLDB_PAGE_RETRIES = 4;
+const SKILLDB_PAGE_DELAY_MS = 120;
 
-function safeName(value: string): string {
+// Words that imply the skill can touch the outside world irreversibly.
+const HIGH_RISK = /\b(send|publish|post|deploy|delete|remove|purchase|pay|payment|charge|transfer|credential|secret|token|api key)\b/i;
+const MEDIUM_RISK = /\b(write|create|update|edit|modify|commit|upload|email|message|schedule)\b/i;
+
+function riskFor(text: string): { requiresApproval: boolean; sideEffectRisk: ImportedCatalogEntry["sideEffectRisk"] } {
+  if (HIGH_RISK.test(text)) return { requiresApproval: true, sideEffectRisk: "high" };
+  if (MEDIUM_RISK.test(text)) return { requiresApproval: false, sideEffectRisk: "medium" };
+  return { requiresApproval: false, sideEffectRisk: "low" };
+}
+
+function titleize(value: string): string {
   return value
     .replace(/[-_]+/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
     .trim();
 }
 
-function extractDescription(markdown: string, fallback: string): string {
-  const paragraphs = markdown
-    .replace(/^---[\s\S]*?---/, "")
-    .split(/\n\s*\n/)
-    .map((part) => part.replace(/^#+\s*/, "").replace(/[`*_>]/g, "").replace(/\s+/g, " ").trim())
-    .filter((part) => part && !part.startsWith("#"));
-  return (paragraphs[0] || fallback).slice(0, 500);
+async function fetchWithTimeout(url: string, accept: string): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { headers: { accept, "user-agent": USER_AGENT }, signal: controller.signal });
+    if (!response.ok) throw new Error(`Request to ${new URL(url).host} returned ${response.status}.`);
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-async function fetchJson(url: string): Promise<unknown> {
-  const response = await fetch(url, { headers: { accept: "application/vnd.github+json", "user-agent": "mission-control-catalog-importer" } });
-  if (!response.ok) throw new Error(`Repository metadata request returned ${response.status}.`);
-  return response.json();
+/**
+ * VoltAgent publishes its catalog as one large README, not as SKILL.md folders.
+ * Entries look like: `- **[owner/name](url)** - description`
+ */
+async function importVoltAgent(source: CatalogSource): Promise<ImportedCatalogEntry[]> {
+  const markdown = await (await fetchWithTimeout(source.skillsPath, "text/plain")).text();
+  const entries: ImportedCatalogEntry[] = [];
+  const seen = new Set<string>();
+  let category = "Community";
+
+  const entryPattern = /^\s*-\s*\*\*\[([^\]]+)\]\(([^)]+)\)\*\*\s*[-–—]\s*(.+?)\s*$/;
+
+  for (const line of markdown.split("\n")) {
+    const heading = line.match(/^###\s+(.+?)\s*$/);
+    if (heading) {
+      category = heading[1].replace(/\s*Skills\s*$/i, "").trim() || "Community";
+      continue;
+    }
+
+    const match = line.match(entryPattern);
+    if (!match) continue;
+
+    const [, slug, url, description] = match;
+    // Real entries are `owner/skill-name`; prose links in the README are not.
+    if (!/^[\w.-]+\/[\w.-]+$/.test(slug)) continue;
+
+    const externalId = `${source.key}:${slug}`;
+    if (seen.has(externalId)) continue;
+    seen.add(externalId);
+
+    const risk = riskFor(`${slug} ${description}`);
+    entries.push({
+      externalId,
+      name: titleize(slug.split("/")[1] ?? slug),
+      description: description.slice(0, 500),
+      category,
+      sourceKind: "catalog",
+      sourceName: source.name,
+      sourceUrl: url,
+      compatibleRuntimes: ["hermes", "openclaw"],
+      installMethod: "skills.install",
+      ...risk,
+    });
+  }
+
+  if (entries.length === 0) throw new Error("No skill entries were found in the README.");
+  return entries;
 }
 
-async function fetchText(url: string): Promise<string> {
-  const response = await fetch(url, { headers: { accept: "text/plain", "user-agent": "mission-control-catalog-importer" } });
-  if (!response.ok) throw new Error(`Skill description request returned ${response.status}.`);
-  return response.text();
+type SkillDbSkill = {
+  id?: unknown;
+  name?: unknown;
+  title?: unknown;
+  description?: unknown;
+  category?: unknown;
+  packLabel?: unknown;
+};
+
+type SkillDbPage = {
+  skills?: SkillDbSkill[];
+  pagination?: { total?: unknown };
+};
+
+async function fetchSkillDbPage(source: CatalogSource, offset: number): Promise<SkillDbPage> {
+  const url = `${source.skillsPath}?limit=${SKILLDB_PAGE_SIZE}&offset=${offset}`;
+  return (await (await fetchWithTimeout(url, "application/json")).json()) as SkillDbPage;
 }
 
-function parseRepo(source: CatalogSource): { owner: string; repo: string } {
-  const match = source.repositoryUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
-  if (!match) throw new Error(`Approved source ${source.name} has an invalid repository URL.`);
-  return { owner: match[1], repo: match[2].replace(/\.git$/, "") };
+/** Transient failures here silently cost whole pages of the catalog, so retry before giving up. */
+async function fetchSkillDbPageWithRetry(source: CatalogSource, offset: number): Promise<SkillDbPage | null> {
+  for (let attempt = 0; attempt < SKILLDB_PAGE_RETRIES; attempt += 1) {
+    try {
+      return await fetchSkillDbPage(source, offset);
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+    }
+  }
+  return null;
+}
+
+function mapSkillDbEntry(source: CatalogSource, skill: SkillDbSkill): ImportedCatalogEntry | null {
+  const id = typeof skill.id === "string" ? skill.id : null;
+  if (!id) return null;
+
+  const title = typeof skill.title === "string" && skill.title ? skill.title : typeof skill.name === "string" ? skill.name : id;
+  const description = typeof skill.description === "string" ? skill.description : "";
+  const category = typeof skill.category === "string" && skill.category
+    ? skill.category
+    : typeof skill.packLabel === "string" && skill.packLabel
+      ? skill.packLabel
+      : "General";
+
+  return {
+    externalId: `${source.key}:${id}`,
+    name: title.slice(0, 200),
+    description: (description || `Imported from ${source.name}.`).slice(0, 500),
+    category,
+    sourceKind: "catalog",
+    sourceName: source.name,
+    sourceUrl: `${source.repositoryUrl}/skills/${encodeURIComponent(id)}`,
+    compatibleRuntimes: ["hermes", "openclaw"],
+    installMethod: "skills.install",
+    ...riskFor(`${title} ${description}`),
+  };
+}
+
+/** SkillDB exposes a paginated JSON API capped at 50 rows per request. */
+async function importSkillDb(source: CatalogSource): Promise<ImportedCatalogEntry[]> {
+  const first = await fetchSkillDbPage(source, 0);
+  const total = typeof first.pagination?.total === "number" ? first.pagination.total : 0;
+  if (!first.skills || first.skills.length === 0) throw new Error("The skill API returned no entries.");
+
+  const entries: ImportedCatalogEntry[] = [];
+  const seen = new Set<string>();
+
+  const collect = (page: SkillDbPage) => {
+    for (const skill of page.skills ?? []) {
+      const entry = mapSkillDbEntry(source, skill);
+      if (!entry || seen.has(entry.externalId)) continue;
+      seen.add(entry.externalId);
+      entries.push(entry);
+    }
+  };
+
+  collect(first);
+
+  const pageCount = Math.min(Math.ceil(total / SKILLDB_PAGE_SIZE), SKILLDB_MAX_PAGES);
+  const offsets: number[] = [];
+  for (let page = 1; page < pageCount; page += 1) offsets.push(page * SKILLDB_PAGE_SIZE);
+
+  // Modest concurrency so a full sync stays polite to a third-party API.
+  let failedPages = 0;
+  for (let index = 0; index < offsets.length; index += SKILLDB_CONCURRENCY) {
+    const batch = offsets.slice(index, index + SKILLDB_CONCURRENCY);
+    const pages = await Promise.all(batch.map((offset) => fetchSkillDbPageWithRetry(source, offset)));
+    for (const page of pages) {
+      if (page) collect(page);
+      else failedPages += 1;
+    }
+    await new Promise((resolve) => setTimeout(resolve, SKILLDB_PAGE_DELAY_MS));
+  }
+
+  if (failedPages > 0) {
+    throw new PartialImportError(entries, `${failedPages} of ${pageCount} pages could not be read after retries.`);
+  }
+
+  return entries;
+}
+
+/** Carries whatever was successfully read so a partial sync still populates the library. */
+export class PartialImportError extends Error {
+  constructor(
+    public readonly entries: ImportedCatalogEntry[],
+    message: string,
+  ) {
+    super(message);
+    this.name = "PartialImportError";
+  }
 }
 
 export async function importApprovedCatalogs(): Promise<{ entries: ImportedCatalogEntry[]; errors: string[] }> {
@@ -162,32 +271,15 @@ export async function importApprovedCatalogs(): Promise<{ entries: ImportedCatal
 
   for (const source of APPROVED_CATALOG_SOURCES) {
     try {
-      const { owner, repo } = parseRepo(source);
-      const tree = await fetchJson(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`) as { tree?: GithubTreeItem[] };
-      const skillFiles = (tree.tree ?? []).filter((item) => item.type === "blob" && typeof item.path === "string" && /(^|\/)SKILL\.md$/i.test(item.path as string)).slice(0, 100);
-      if (skillFiles.length === 0) throw new Error("No SKILL.md catalog entries were found.");
-      for (const item of skillFiles) {
-        const path = item.path as string;
-        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/${path}`;
-        const markdown = await fetchText(rawUrl);
-        const slug = path.replace(/\/SKILL\.md$/i, "");
-        const folder = slug.split("/").pop() || slug;
-        entries.push({
-          externalId: `${source.key}:${slug}`,
-          name: safeName(folder),
-          description: extractDescription(markdown, `Imported from the approved ${source.name} collection.`),
-          category: source.key === "hermes" ? "Hermes" : "OpenClaw",
-          sourceKind: "catalog",
-          sourceName: source.name,
-          sourceUrl: `${source.repositoryUrl}/tree/main/${slug}`,
-          compatibleRuntimes: [source.key],
-          installMethod: "skills.install",
-          requiresApproval: /\b(send|publish|delete|write|credential|payment|outreach)\b/i.test(markdown),
-          sideEffectRisk: /\b(send|publish|delete|credential|payment)\b/i.test(markdown) ? "high" : "unknown",
-        });
-      }
+      const imported = source.key === "voltagent" ? await importVoltAgent(source) : await importSkillDb(source);
+      entries.push(...imported);
     } catch (error) {
-      errors.push(`${source.name}: ${error instanceof Error ? error.message : "Unknown import error."}`);
+      if (error instanceof PartialImportError) {
+        entries.push(...error.entries);
+        errors.push(`${source.name}: imported ${error.entries.length} entries, but ${error.message}`);
+      } else {
+        errors.push(`${source.name}: ${error instanceof Error ? error.message : "Unknown import error."}`);
+      }
     }
   }
 

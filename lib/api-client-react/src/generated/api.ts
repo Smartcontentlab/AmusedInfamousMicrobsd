@@ -47,6 +47,7 @@ import type {
   ErrorResponse,
   HealthStatus,
   Inbox,
+  ListSkillsParams,
   MissionPlan,
   MissionPlanInput,
   ModelCatalog,
@@ -62,6 +63,7 @@ import type {
   RuntimeHealth,
   Skill,
   SkillCatalogRefreshResult,
+  SkillFacets,
   SkillInput,
   Task,
   TaskInput,
@@ -1431,20 +1433,20 @@ export const useUpdateTask = <TError = ErrorType<unknown>,
       return useMutation(getUpdateTaskMutationOptions(options));
     }
 
-export const getListSkillsUrl = () => {
+export const getGetSkillFacetsUrl = () => {
 
 
 
 
-  return `/api/skills`
+  return `/api/skills/facets`
 }
 
 /**
- * @summary List reusable skill packs
+ * @summary Counts and filter options for the skill library
  */
-export const listSkills = async ( options?: Parameters<typeof customFetch>[1]): Promise<Skill[]> => {
+export const getSkillFacets = async ( options?: Parameters<typeof customFetch>[1]): Promise<SkillFacets> => {
 
-  return customFetch<Skill[]>(getListSkillsUrl(),
+  return customFetch<SkillFacets>(getGetSkillFacetsUrl(),
   {
     ...options,
     method: 'GET'
@@ -1457,23 +1459,107 @@ export const listSkills = async ( options?: Parameters<typeof customFetch>[1]): 
 
 
 
-export const getListSkillsQueryKey = () => {
+export const getGetSkillFacetsQueryKey = () => {
     return [
-    `/api/skills`
+    `/api/skills/facets`
     ] as const;
     }
 
 
-export const getListSkillsQueryOptions = <TData = Awaited<ReturnType<typeof listSkills>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSkills>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetSkillFacetsQueryOptions = <TData = Awaited<ReturnType<typeof getSkillFacets>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSkillFacets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListSkillsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetSkillFacetsQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSkills>>> = ({ signal }) => listSkills({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSkillFacets>>> = ({ signal }) => getSkillFacets({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSkillFacets>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSkillFacetsQueryResult = NonNullable<Awaited<ReturnType<typeof getSkillFacets>>>
+export type GetSkillFacetsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Counts and filter options for the skill library
+ */
+
+export function useGetSkillFacets<TData = Awaited<ReturnType<typeof getSkillFacets>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSkillFacets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSkillFacetsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListSkillsUrl = (params?: ListSkillsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/skills?${stringifiedParams}` : `/api/skills`
+}
+
+/**
+ * @summary Search reusable skill packs
+ */
+export const listSkills = async (params?: ListSkillsParams, options?: Parameters<typeof customFetch>[1]): Promise<Skill[]> => {
+
+  return customFetch<Skill[]>(getListSkillsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSkillsQueryKey = (params?: ListSkillsParams,) => {
+    return [
+    `/api/skills`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListSkillsQueryOptions = <TData = Awaited<ReturnType<typeof listSkills>>, TError = ErrorType<unknown>>(params?: ListSkillsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSkills>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSkillsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSkills>>> = ({ signal }) => listSkills(params, { signal, ...requestOptions });
 
 
 
@@ -1487,15 +1573,15 @@ export type ListSkillsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List reusable skill packs
+ * @summary Search reusable skill packs
  */
 
 export function useListSkills<TData = Awaited<ReturnType<typeof listSkills>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSkills>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListSkillsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSkills>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListSkillsQueryOptions(options)
+  const queryOptions = getListSkillsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

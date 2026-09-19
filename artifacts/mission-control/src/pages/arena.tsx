@@ -236,7 +236,8 @@ export function Arena() {
    const { data: arena, isLoading, isError, error, refetch } = useGetArena({ query: { queryKey: getGetArenaQueryKey(), refetchInterval: 5000 } });
    const evidenceQuery = useListArenaEvidence({ query: { queryKey: getListArenaEvidenceQueryKey(), refetchInterval: 5000 } });
    const projectsQuery = useListProjects();
-   const skillsQuery = useListSkills({ query: { queryKey: getListSkillsQueryKey(), refetchOnMount: "always" } });
+   const skillsParams = { limit: 300 };
+   const skillsQuery = useListSkills(skillsParams, { query: { queryKey: getListSkillsQueryKey(skillsParams), refetchOnMount: "always" } });
    const queryClient = useQueryClient();
    const createAgent = useCreateAgent();
    const equipSkill = useEquipAgentSkill();

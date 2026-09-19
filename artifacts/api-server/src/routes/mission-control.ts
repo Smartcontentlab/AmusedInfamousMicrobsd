@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
   AdvanceArenaBody,
@@ -21,6 +21,7 @@ import {
   GetAgentToolAccessResponse,
   GetArenaResponse,
   GetDashboardResponse,
+  GetSkillFacetsResponse,
   ListAgentCapabilitiesParams,
   ListAgentCapabilitiesResponse,
   ListArenaEvidenceResponse,
@@ -927,10 +928,55 @@ router.patch("/tasks/:taskId", async (req, res): Promise<void> => {
   res.json(UpdateTaskResponse.parse(task));
 });
 
-router.get("/skills", async (_req, res): Promise<void> => {
+router.get("/skills/facets", async (_req, res): Promise<void> => {
   await ensureSeeded();
-  const data = ListSkillsResponse.parse(await db.select().from(skillsTable).orderBy(asc(skillsTable.name)));
-  res.json(data);
+  const [totals, categories, sources] = await Promise.all([
+    db.select({ count: sql<number>`count(*)::int` }).from(skillsTable),
+    db
+      .select({ name: skillsTable.category, count: sql<number>`count(*)::int` })
+      .from(skillsTable)
+      .groupBy(skillsTable.category)
+      .orderBy(sql`count(*) desc`),
+    db
+      .select({ name: skillsTable.sourceName, count: sql<number>`count(*)::int` })
+      .from(skillsTable)
+      .groupBy(skillsTable.sourceName)
+      .orderBy(sql`count(*) desc`),
+  ]);
+
+  res.json(
+    GetSkillFacetsResponse.parse({
+      total: totals[0]?.count ?? 0,
+      categories,
+      sources,
+    }),
+  );
+});
+
+router.get("/skills", async (req, res): Promise<void> => {
+  await ensureSeeded();
+
+  const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
+  const source = typeof req.query.source === "string" ? req.query.source.trim() : "";
+  const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  const filters = [
+    query ? sql`(${skillsTable.name} ilike ${`%${query}%`} or ${skillsTable.description} ilike ${`%${query}%`})` : undefined,
+    category ? eq(skillsTable.category, category) : undefined,
+    source ? eq(skillsTable.sourceName, source) : undefined,
+  ].filter(Boolean);
+
+  const rows = await db
+    .select()
+    .from(skillsTable)
+    .where(filters.length > 0 ? and(...filters) : undefined)
+    .orderBy(asc(skillsTable.name))
+    .limit(limit)
+    .offset(offset);
+
+  res.json(ListSkillsResponse.parse(rows));
 });
 
 router.post("/skills", async (req, res): Promise<void> => {
@@ -950,18 +996,44 @@ router.post("/skills/refresh", async (_req, res): Promise<void> => {
   const result = await importApprovedCatalogs();
   const existingCatalog = (await db.select().from(skillsTable)).filter((skill) => skill.sourceKind === "catalog");
   const incomingIds = new Set(result.entries.map((entry) => entry.externalId));
-  let imported = 0;
-  let updated = 0;
+  const knownIds = new Set(existingCatalog.map((skill) => skill.externalId).filter(Boolean));
 
-  for (const entry of result.entries) {
-    const [existing] = await db.select({ id: skillsTable.id }).from(skillsTable).where(eq(skillsTable.externalId, entry.externalId));
-    if (existing) {
-      await db.update(skillsTable).set({ ...entry, importState: "imported", importError: null, importedAt: new Date() }).where(eq(skillsTable.id, existing.id));
-      updated += 1;
-    } else {
-      await db.insert(skillsTable).values({ ...entry, importState: "imported", importedAt: new Date() });
-      imported += 1;
-    }
+  // These catalogs hold thousands of entries, so upsert in chunks rather than
+  // issuing a select plus a write for every single row.
+  const CHUNK_SIZE = 500;
+  const importedAt = new Date();
+  for (let index = 0; index < result.entries.length; index += CHUNK_SIZE) {
+    const chunk = result.entries.slice(index, index + CHUNK_SIZE);
+    await db
+      .insert(skillsTable)
+      .values(chunk.map((entry) => ({ ...entry, importState: "imported", importError: null, importedAt })))
+      .onConflictDoUpdate({
+        target: skillsTable.externalId,
+        set: {
+          name: sql`excluded.name`,
+          description: sql`excluded.description`,
+          category: sql`excluded.category`,
+          sourceUrl: sql`excluded.source_url`,
+          compatibleRuntimes: sql`excluded.compatible_runtimes`,
+          installMethod: sql`excluded.install_method`,
+          requiresApproval: sql`excluded.requires_approval`,
+          sideEffectRisk: sql`excluded.side_effect_risk`,
+          importState: sql`excluded.import_state`,
+          importError: sql`excluded.import_error`,
+          importedAt: sql`excluded.imported_at`,
+        },
+      });
+  }
+
+  const updated = result.entries.filter((entry) => knownIds.has(entry.externalId)).length;
+  const imported = result.entries.length - updated;
+
+  // Catalog rows from sources that are no longer approved are dropped, not left
+  // to rot in the library as unreachable entries.
+  const approvedNames = new Set(APPROVED_CATALOG_SOURCES.map((source) => source.name));
+  const retiredIds = existingCatalog.filter((skill) => !approvedNames.has(skill.sourceName)).map((skill) => skill.id);
+  if (retiredIds.length > 0) {
+    await db.delete(skillsTable).where(inArray(skillsTable.id, retiredIds));
   }
 
   for (const skill of existingCatalog) {

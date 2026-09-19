@@ -334,11 +334,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Task"
+  /skills/facets:
+    get:
+      operationId: getSkillFacets
+      tags: [skills]
+      summary: Counts and filter options for the skill library
+      responses:
+        "200":
+          description: Library facets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkillFacets"
   /skills:
     get:
       operationId: listSkills
       tags: [skills]
-      summary: List reusable skill packs
+      summary: Search reusable skill packs
+      parameters:
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: source
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: number
       responses:
         "200":
           description: Skill collection
@@ -979,6 +1017,28 @@ components:
       schema:
         type: number
   schemas:
+    SkillFacetCount:
+      type: object
+      required: [name, count]
+      properties:
+        name:
+          type: string
+        count:
+          type: number
+    SkillFacets:
+      type: object
+      required: [total, categories, sources]
+      properties:
+        total:
+          type: number
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkillFacetCount"
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkillFacetCount"
     ModelOption:
       type: object
       required: [id, provider]

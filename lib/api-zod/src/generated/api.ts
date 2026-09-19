@@ -414,8 +414,32 @@ export const UpdateTaskResponse = zod.object({
 
 
 /**
- * @summary List reusable skill packs
+ * @summary Counts and filter options for the skill library
  */
+export const GetSkillFacetsResponse = zod.object({
+  "total": zod.number(),
+  "categories": zod.array(zod.object({
+  "name": zod.string(),
+  "count": zod.number()
+})),
+  "sources": zod.array(zod.object({
+  "name": zod.string(),
+  "count": zod.number()
+}))
+})
+
+
+/**
+ * @summary Search reusable skill packs
+ */
+export const ListSkillsQueryParams = zod.object({
+  "q": zod.coerce.string().optional(),
+  "category": zod.coerce.string().optional(),
+  "source": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().optional(),
+  "offset": zod.coerce.number().optional()
+})
+
 export const ListSkillsResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),

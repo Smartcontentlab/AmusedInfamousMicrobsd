@@ -25,6 +25,7 @@ import {
   getGetArenaQueryKey,
 } from "@workspace/api-client-react";
 import { BrutalBadge, BrutalButton, BrutalCard } from "../components/ui/brutal";
+import { SkillSearchPicker } from "../components/skill-search-picker";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -352,7 +353,7 @@ function RunPanel({ agentId, agentName, provider }: { agentId: number; agentName
   );
 }
 
-function AgentCard({ agent, projects, skills, runtimeConnections }: { agent: any; projects: any[]; skills: any[]; runtimeConnections: LooseRecord[] }) {
+function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projects: any[]; runtimeConnections: LooseRecord[] }) {
   const queryClient = useQueryClient();
   const { data: capabilities, isLoading: capLoading, isError: capError } = useListAgentCapabilities(agent.id);
   const toolAccessQuery = useGetAgentToolAccess(agent.id, { query: { queryKey: getGetAgentToolAccessQueryKey(agent.id), refetchInterval: 10000 } });
@@ -380,7 +381,6 @@ function AgentCard({ agent, projects, skills, runtimeConnections }: { agent: any
       },
     },
   });
-  const availableSkills = skills.filter((skill) => !capabilities?.some((capability) => capability.skillId === skill.id));
   const [selectedSkill, setSelectedSkill] = useState("");
   const [unlockReason, setUnlockReason] = useState("");
   const [pendingToolKey, setPendingToolKey] = useState("");
@@ -431,7 +431,26 @@ function AgentCard({ agent, projects, skills, runtimeConnections }: { agent: any
             <div key={capability.id} className="flex items-center justify-between border-2 border-border bg-card p-2"><span className="truncate font-mono text-xs font-bold">{capability.name}</span><button type="button" data-testid={`detach-skill-${agent.id}-${capability.skillId}`} onClick={() => detachSkill.mutate({ agentId: agent.id, skillId: capability.skillId })} className="border-2 border-transparent px-2 text-xs font-black text-destructive hover:border-destructive hover:bg-destructive hover:text-destructive-foreground" title="Detach skill">X</button></div>
           )) : !capLoading && <div className="border-2 border-dashed border-border p-2 text-center font-mono text-xs text-muted-foreground">NO MODULES ATTACHED</div>}
         </div>
-        {availableSkills.length > 0 && <div className="mt-3 flex gap-2"><select data-testid={`skill-select-${agent.id}`} value={selectedSkill} onChange={(event) => setSelectedSkill(event.target.value)} className="min-w-0 flex-1 border-4 border-border bg-card p-1 font-mono text-xs focus:outline-none"><option value="">ATTACH MODULE...</option>{availableSkills.map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}</select><BrutalButton data-testid={`attach-skill-${agent.id}`} variant="accent" className="px-3 py-1 text-xs" disabled={!selectedSkill || attachSkill.isPending} onClick={() => { attachSkill.mutate({ agentId: agent.id, data: { skillId: Number(selectedSkill) } }); setSelectedSkill(""); }}>+</BrutalButton></div>}
+        <div className="mt-3 flex items-start gap-2">
+          <SkillSearchPicker
+            testId={`skill-select-${agent.id}`}
+            excludeIds={(capabilities ?? []).map((capability: any) => capability.skillId)}
+            selectedId={selectedSkill ? Number(selectedSkill) : null}
+            onSelect={(skillId: number | null) => setSelectedSkill(skillId === null ? "" : String(skillId))}
+          />
+          <BrutalButton
+            data-testid={`attach-skill-${agent.id}`}
+            variant="accent"
+            className="px-3 py-1 text-xs"
+            disabled={!selectedSkill || attachSkill.isPending}
+            onClick={() => {
+              attachSkill.mutate({ agentId: agent.id, data: { skillId: Number(selectedSkill) } });
+              setSelectedSkill("");
+            }}
+          >
+            +
+          </BrutalButton>
+        </div>
       </div>
 
       <div className="mb-4 border-4 border-border bg-accent/5 p-3">
@@ -475,7 +494,6 @@ function AgentCard({ agent, projects, skills, runtimeConnections }: { agent: any
 export function Agents() {
   const { data: agents, isLoading: agentsLoading, isError: agentsError, error: agentsErrorValue, refetch: refetchAgents } = useListAgents({ query: { queryKey: getListAgentsQueryKey(), refetchInterval: 10000 } });
   const { data: projects, isLoading: projectsLoading } = useListProjects();
-  const { data: skills, isLoading: skillsLoading } = useListSkills({ limit: 300 });
    const { data: runtimeConnections } = useListRuntimeConnections({ query: { queryKey: ["runtime-connections"], refetchInterval: 15000 } });
   const queryClient = useQueryClient();
   const createAgent = useCreateAgent({ mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() }) } });
@@ -487,7 +505,7 @@ export function Agents() {
     createAgent.mutate({ data: { name: newAgent.name.trim(), role: newAgent.role.trim(), projectId: newAgent.projectId ? Number(newAgent.projectId) : undefined, provider: newAgent.provider.trim() || undefined } }, { onSuccess: () => { setShowNew(false); setNewAgent({ name: "", role: "", projectId: "", provider: "" }); } } as any);
   };
 
-  if (agentsLoading || projectsLoading || skillsLoading) return <div className="space-y-4 p-2 font-mono font-bold"><div className="h-10 w-2/3 animate-pulse bg-muted" /><div className="h-24 animate-pulse border-4 border-border bg-muted/50" /><div className="h-64 animate-pulse border-4 border-border bg-muted/50" /></div>;
+  if (agentsLoading || projectsLoading) return <div className="space-y-4 p-2 font-mono font-bold"><div className="h-10 w-2/3 animate-pulse bg-muted" /><div className="h-24 animate-pulse border-4 border-border bg-muted/50" /><div className="h-64 animate-pulse border-4 border-border bg-muted/50" /></div>;
   if (agentsError) return <div className="border-4 border-destructive bg-destructive/10 p-8"><h1 className="text-2xl font-black uppercase">Roster feed interrupted</h1><p className="mt-2 font-mono text-sm">{messageFor(agentsErrorValue, "Agent roster unavailable.")}</p><BrutalButton data-testid="agents-retry-button" variant="destructive" className="mt-5" onClick={() => refetchAgents()}><RefreshCw size={16} /> Retry feed</BrutalButton></div>;
 
   return (
@@ -499,7 +517,7 @@ export function Agents() {
       <RuntimeLinkPanel />
       {showNew && <div data-testid="new-agent-form"><BrutalCard title="Instantiate new agent" className="border-dashed border-primary bg-primary/10"><div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">{([["name", "Callsign", "e.g. Unit-01"], ["role", "Designated role", "e.g. Researcher"], ["provider", "LLM provider", "e.g. anthropic"]] as const).map(([key, label, placeholder]) => <label key={key} className="text-sm font-black uppercase">{label}<input data-testid={`new-agent-${key}`} value={newAgent[key]} onChange={(event) => setNewAgent({ ...newAgent, [key]: event.target.value })} placeholder={placeholder} className="mt-2 w-full border-4 border-border bg-card p-3 font-mono font-normal normal-case focus:outline-none focus:ring-4 focus:ring-primary/20" /></label>)}<label className="text-sm font-black uppercase">Initial assignment<select data-testid="new-agent-project" value={newAgent.projectId} onChange={(event) => setNewAgent({ ...newAgent, projectId: event.target.value })} className="mt-2 w-full border-4 border-border bg-card p-3 font-mono font-normal focus:outline-none"><option value="">-- UNASSIGNED --</option>{projects?.map((project: any) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label></div><div className="mt-6 flex gap-3"><BrutalButton data-testid="create-agent-button" onClick={handleCreate} disabled={createAgent.isPending || !newAgent.name.trim() || !newAgent.role.trim()}>{createAgent.isPending ? <><Loader2 size={16} className="animate-spin" /> Instantiating...</> : "Instantiate"}</BrutalButton><BrutalButton variant="default" onClick={() => setShowNew(false)}>Cancel</BrutalButton></div>{createAgent.isError && <p className="mt-3 font-mono text-sm text-destructive">{messageFor(createAgent.error, "Could not instantiate agent.")}</p>}</BrutalCard></div>}
       <div className="grid items-stretch gap-8 md:grid-cols-2 xl:grid-cols-3">
-        {agents?.map((agent: any) => <AgentCard key={agent.id} agent={agent} projects={projects || []} skills={skills || []} runtimeConnections={asList(runtimeConnections)} />)}
+        {agents?.map((agent: any) => <AgentCard key={agent.id} agent={agent} projects={projects || []} runtimeConnections={asList(runtimeConnections)} />)}
         {(!agents || agents.length === 0) && <div className="col-span-full border-4 border-dashed border-border p-12 text-center font-mono font-bold text-muted-foreground">NO AGENTS INSTANTIATED. SPAWN AN OPERATIVE TO BEGIN.</div>}
       </div>
     </div>

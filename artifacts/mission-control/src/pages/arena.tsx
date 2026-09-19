@@ -1,5 +1,6 @@
 import { useGetArena, useAdvanceArena, getGetArenaQueryKey, useCreateAgent, useListProjects, useListSkills, useEquipAgentSkill, useDetachAgentCapability, getListAgentsQueryKey, getListSkillsQueryKey, getListAgentCapabilitiesQueryKey, useListAgentCapabilities, useCreateArenaEvidence, getListArenaEvidenceQueryKey, useListArenaEvidence } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
+import { SkillSearchPicker } from "../components/skill-search-picker";
 import { useQueryClient } from "@tanstack/react-query";
 import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Code2, MapPin, Zap, UserPlus, Loader2, RefreshCw, Wrench, LockKeyhole, UnlockKeyhole, X, Check } from "lucide-react";
 import { useState } from "react";
@@ -14,7 +15,7 @@ function installationVariant(status: string): "primary" | "secondary" | "accent"
    return "default";
 }
 
-function ContestantLoadoutEditor({ score, skills }: { score: { agentId: number }; skills: Array<{ id: number; name: string; category: string }> }) {
+function ContestantLoadoutEditor({ score }: { score: { agentId: number } }) {
    const queryClient = useQueryClient();
    const capabilitiesQuery = useListAgentCapabilities(score.agentId, {
       query: { queryKey: getListAgentCapabilitiesQueryKey(score.agentId) },
@@ -40,7 +41,6 @@ function ContestantLoadoutEditor({ score, skills }: { score: { agentId: number }
    const [selectedSkill, setSelectedSkill] = useState("");
    const [pendingRemovalId, setPendingRemovalId] = useState<number | null>(null);
    const capabilities = capabilitiesQuery.data ?? [];
-   const availableSkills = skills.filter((skill) => !capabilities.some((capability) => capability.skillId === skill.id));
 
    const equip = () => {
       if (!selectedSkill) return;
@@ -83,19 +83,15 @@ function ContestantLoadoutEditor({ score, skills }: { score: { agentId: number }
             <span>Adjust loadout</span>
             <span className="font-mono text-[10px] text-muted-foreground">Updates this house immediately</span>
          </div>
-         <div className="flex flex-col gap-2 sm:flex-row">
+         <div className="flex flex-col items-start gap-2 sm:flex-row">
             <label className="sr-only" htmlFor={`arena-skill-select-${score.agentId}`}>Equip another skill</label>
-            <select
-               id={`arena-skill-select-${score.agentId}`}
-               data-testid={`arena-skill-select-${score.agentId}`}
-               value={selectedSkill}
-               onChange={(event) => setSelectedSkill(event.target.value)}
-               disabled={capabilitiesQuery.isLoading || !availableSkills.length}
-               className="min-w-0 flex-1 border-4 border-border bg-background p-2 font-mono text-xs font-bold focus:outline-none"
-            >
-               <option value="">{capabilitiesQuery.isLoading ? "CHECKING LOADOUT..." : availableSkills.length ? "EQUIP ANOTHER SKILL..." : "ALL CATALOG SKILLS EQUIPPED"}</option>
-               {availableSkills.map((skill) => <option key={skill.id} value={skill.id}>{skill.name} // {skill.category}</option>)}
-            </select>
+            <SkillSearchPicker
+               inputId={`arena-skill-select-${score.agentId}`}
+               testId={`arena-skill-select-${score.agentId}`}
+               excludeIds={capabilities.map((capability) => capability.skillId)}
+               selectedId={selectedSkill ? Number(selectedSkill) : null}
+               onSelect={(skillId) => setSelectedSkill(skillId === null ? "" : String(skillId))}
+            />
             <BrutalButton
                data-testid={`arena-equip-skill-${score.agentId}`}
                variant="accent"
@@ -109,7 +105,7 @@ function ContestantLoadoutEditor({ score, skills }: { score: { agentId: number }
           {equipSkill.data && <div data-testid={`arena-equip-status-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">
              <div className="flex flex-wrap items-center gap-2 font-black uppercase"><Check size={13} /> Local capability equipped <BrutalBadge variant={installationVariant(equipSkill.data.installation.status)} className="border-2 px-2 py-0.5 text-[10px]">{equipSkill.data.installation.status.replaceAll("_", " ")}</BrutalBadge></div>
              <p className="mt-2">{equipSkill.data.installation.message}</p>
-             {equipSkill.data.installation.status === "awaiting_approval" && <a href="/approvals" className="mt-2 inline-block font-black uppercase text-accent underline">Open approval inbox †’</a>}
+             {equipSkill.data.installation.status === "awaiting_approval" && <a href="/approvals" className="mt-2 inline-block font-black uppercase text-accent underline">Open approval inbox →</a>}
           </div>}
          {detachSkill.isSuccess && <div data-testid={`arena-remove-success-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">Skill removed. Tool lanes are refreshing from the saved loadout.</div>}
          {(capabilitiesQuery.isError || equipSkill.isError || detachSkill.isError) && <div data-testid={`arena-loadout-error-${score.agentId}`} className="mt-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-[11px] text-destructive">{messageFor(equipSkill.error || detachSkill.error || capabilitiesQuery.error, "This contestant's loadout could not be updated.")}</div>}
@@ -236,14 +232,12 @@ export function Arena() {
    const { data: arena, isLoading, isError, error, refetch } = useGetArena({ query: { queryKey: getGetArenaQueryKey(), refetchInterval: 5000 } });
    const evidenceQuery = useListArenaEvidence({ query: { queryKey: getListArenaEvidenceQueryKey(), refetchInterval: 5000 } });
    const projectsQuery = useListProjects();
-   const skillsParams = { limit: 300 };
-   const skillsQuery = useListSkills(skillsParams, { query: { queryKey: getListSkillsQueryKey(skillsParams), refetchOnMount: "always" } });
    const queryClient = useQueryClient();
    const createAgent = useCreateAgent();
    const equipSkill = useEquipAgentSkill();
    const [showSetup, setShowSetup] = useState(false);
    const [contestant, setContestant] = useState({ name: "", role: "", provider: "OpenClaw", projectId: "" });
-   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+   const [selectedSkills, setSelectedSkills] = useState<Array<{ id: string; name: string }>>([]);
    const [setupError, setSetupError] = useState("");
 
    const advance = useAdvanceArena({
@@ -263,7 +257,7 @@ export function Arena() {
       } }, {
          onSuccess: async (createdAgent) => {
             try {
-               await Promise.all(selectedSkills.map((skillId) => equipSkill.mutateAsync({ agentId: createdAgent.id, skillId: Number(skillId) })));
+               await Promise.all(selectedSkills.map((skill) => equipSkill.mutateAsync({ agentId: createdAgent.id, skillId: Number(skill.id) })));
             } catch {
                setSetupError("Contestant created, but one or more skills could not be equipped. Keep this panel open and use the Staff roster to retry.");
                queryClient.invalidateQueries({ queryKey: getGetArenaQueryKey() });
@@ -352,13 +346,33 @@ export function Arena() {
                    <fieldset className="border-4 border-border bg-card p-3 md:col-span-2">
                       <legend className="px-1 text-xs font-black uppercase">Initial skill loadout</legend>
                       <p className="mb-2 font-mono text-xs font-normal normal-case text-muted-foreground">Skills are equipped locally now. Any runtime installation still waits for approval.</p>
-                      <div className="flex flex-wrap gap-2">
-                         {skillsQuery.data?.length ? skillsQuery.data.map((skill) => (
-                            <label key={skill.id} className="flex cursor-pointer items-center gap-2 border-2 border-border bg-muted/30 px-2 py-1 font-mono text-xs font-bold normal-case hover:bg-accent/20">
-                               <input type="checkbox" checked={selectedSkills.includes(String(skill.id))} onChange={(event) => setSelectedSkills((current) => event.target.checked ? [...current, String(skill.id)] : current.filter((id) => id !== String(skill.id)))} />
-                               {skill.name}
-                            </label>
-                         )) : <span className="font-mono text-xs font-normal normal-case text-muted-foreground">No catalog skills available yet.</span>}
+                      {selectedSkills.length > 0 && (
+                         <div className="mb-2 flex flex-wrap gap-1">
+                            {selectedSkills.map((skill) => (
+                               <button
+                                  key={skill.id}
+                                  type="button"
+                                  onClick={() => setSelectedSkills((current) => current.filter((item) => item.id !== skill.id))}
+                                  className="flex items-center gap-1 border-2 border-border bg-accent/20 px-1.5 py-0.5 font-mono text-[10px] font-bold normal-case hover:bg-destructive/20"
+                               >
+                                  {skill.name} <X size={10} />
+                               </button>
+                            ))}
+                         </div>
+                      )}
+                      <div className="font-normal normal-case">
+                         <SkillSearchPicker
+                            excludeIds={selectedSkills.map((skill) => Number(skill.id))}
+                            selectedId={null}
+                            onSelect={(skillId, skillName) => {
+                               if (skillId === null || !skillName) return;
+                               setSelectedSkills((current) =>
+                                  current.some((item) => item.id === String(skillId))
+                                     ? current
+                                     : [...current, { id: String(skillId), name: skillName }],
+                               );
+                            }}
+                         />
                       </div>
                    </fieldset>
                 </div>
@@ -444,7 +458,7 @@ export function Arena() {
                                {(score.assignedSkills || []).length > 0 ? score.assignedSkills?.map((skill) => <BrutalBadge key={skill} variant="accent">{skill}</BrutalBadge>) : <span className="font-mono text-xs text-muted-foreground">No skills assigned yet. Equip this contestant from the roster.</span>}
                             </div>
                             <div className="font-mono text-xs text-muted-foreground"><span className="font-black uppercase text-foreground">Tool lanes:</span> {(score.tools || []).length > 0 ? score.tools?.join(" / ") : "none reported"}</div>
-                             <ContestantLoadoutEditor score={score} skills={skillsQuery.data ?? []} />
+                             <ContestantLoadoutEditor score={score} />
                              <VerifiedEvidenceEditor score={score} round={arena?.round ?? 1} evidence={(evidenceQuery.data?.evidence ?? []).filter((item) => item.agentId === score.agentId)} />
                         </div>
 

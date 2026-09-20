@@ -40,6 +40,9 @@ import type {
   ArenaEvidenceInput,
   ArenaEvidenceList,
   ArenaEvidenceResult,
+  ArenaRace,
+  ContestantProfile,
+  ContestantProfileInput,
   Dashboard,
   DirectMessage,
   DirectMessageInput,
@@ -3280,6 +3283,155 @@ export const useDeletePersonalTodo = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getDeletePersonalTodoMutationOptions(options));
+    }
+
+export const getGetArenaRaceUrl = () => {
+
+
+
+
+  return `/api/arena/race`
+}
+
+/**
+ * @summary The race to the prize, with contestant profiles and standings
+ */
+export const getArenaRace = async ( options?: Parameters<typeof customFetch>[1]): Promise<ArenaRace> => {
+
+  return customFetch<ArenaRace>(getGetArenaRaceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetArenaRaceQueryKey = () => {
+    return [
+    `/api/arena/race`
+    ] as const;
+    }
+
+
+export const getGetArenaRaceQueryOptions = <TData = Awaited<ReturnType<typeof getArenaRace>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getArenaRace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetArenaRaceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getArenaRace>>> = ({ signal }) => getArenaRace({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getArenaRace>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetArenaRaceQueryResult = NonNullable<Awaited<ReturnType<typeof getArenaRace>>>
+export type GetArenaRaceQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The race to the prize, with contestant profiles and standings
+ */
+
+export function useGetArenaRace<TData = Awaited<ReturnType<typeof getArenaRace>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getArenaRace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetArenaRaceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetContestantProfileUrl = (agentId: number,) => {
+
+
+
+
+  return `/api/agents/${agentId}/profile`
+}
+
+/**
+ * @summary Set a contestant's personality, catchphrase and trait ratings
+ */
+export const setContestantProfile = async (agentId: number,
+    contestantProfileInput: ContestantProfileInput, options?: Parameters<typeof customFetch>[1]): Promise<ContestantProfile> => {
+
+  return customFetch<ContestantProfile>(getSetContestantProfileUrl(agentId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(contestantProfileInput)
+  }
+);}
+
+
+
+
+
+export const getSetContestantProfileMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setContestantProfile>>, TError,{agentId: number;data: BodyType<ContestantProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setContestantProfile>>, TError,{agentId: number;data: BodyType<ContestantProfileInput>}, TContext> => {
+
+const mutationKey = ['setContestantProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setContestantProfile>>, {agentId: number;data: BodyType<ContestantProfileInput>}> = (props) => {
+          const {agentId,data} = props ?? {};
+
+          return  setContestantProfile(agentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetContestantProfileMutationResult = NonNullable<Awaited<ReturnType<typeof setContestantProfile>>>
+    export type SetContestantProfileMutationBody = BodyType<ContestantProfileInput>
+    export type SetContestantProfileMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Set a contestant's personality, catchphrase and trait ratings
+ */
+export const useSetContestantProfile = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setContestantProfile>>, TError,{agentId: number;data: BodyType<ContestantProfileInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setContestantProfile>>,
+        TError,
+        {agentId: number;data: BodyType<ContestantProfileInput>},
+        TContext
+      > => {
+      return useMutation(getSetContestantProfileMutationOptions(options));
     }
 
 export const getListModelsUrl = () => {

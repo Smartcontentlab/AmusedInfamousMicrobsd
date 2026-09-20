@@ -1081,6 +1081,116 @@ export const DeletePersonalTodoResponse = zod.void()
 
 
 /**
+ * @summary The race to the prize, with contestant profiles and standings
+ */
+export const getArenaRaceResponseContestantsItemTraitsSpeedMax = 5;
+
+export const getArenaRaceResponseContestantsItemTraitsCreativityMax = 5;
+
+export const getArenaRaceResponseContestantsItemTraitsRigorMax = 5;
+
+export const getArenaRaceResponseContestantsItemTraitsCharismaMax = 5;
+
+export const getArenaRaceResponseContestantsItemTraitsThriftMax = 5;
+
+
+
+export const GetArenaRaceResponse = zod.object({
+  "prizeCents": zod.number(),
+  "round": zod.number(),
+  "totalRounds": zod.number(),
+  "status": zod.string(),
+  "winnerName": zod.string().nullish(),
+  "contestants": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "provider": zod.string(),
+  "model": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "catchphrase": zod.string().nullish(),
+  "traits": zod.object({
+  "speed": zod.number().min(1).max(getArenaRaceResponseContestantsItemTraitsSpeedMax),
+  "creativity": zod.number().min(1).max(getArenaRaceResponseContestantsItemTraitsCreativityMax),
+  "rigor": zod.number().min(1).max(getArenaRaceResponseContestantsItemTraitsRigorMax),
+  "charisma": zod.number().min(1).max(getArenaRaceResponseContestantsItemTraitsCharismaMax),
+  "thrift": zod.number().min(1).max(getArenaRaceResponseContestantsItemTraitsThriftMax)
+}),
+  "projectName": zod.string().nullish(),
+  "businessIdea": zod.string().nullish(),
+  "currentTask": zod.string().nullish(),
+  "status": zod.string(),
+  "earnedCents": zod.number(),
+  "percentToPrize": zod.number(),
+  "rank": zod.number(),
+  "skillCount": zod.number(),
+  "finished": zod.boolean().optional()
+}))
+})
+
+
+/**
+ * @summary Set a contestant's personality, catchphrase and trait ratings
+ */
+export const SetContestantProfileParams = zod.object({
+  "agentId": zod.coerce.number()
+})
+
+export const setContestantProfileBodyTraitsSpeedMax = 5;
+
+export const setContestantProfileBodyTraitsCreativityMax = 5;
+
+export const setContestantProfileBodyTraitsRigorMax = 5;
+
+export const setContestantProfileBodyTraitsCharismaMax = 5;
+
+export const setContestantProfileBodyTraitsThriftMax = 5;
+
+
+
+export const SetContestantProfileBody = zod.object({
+  "personality": zod.string().nullish(),
+  "catchphrase": zod.string().nullish(),
+  "traits": zod.object({
+  "speed": zod.number().min(1).max(setContestantProfileBodyTraitsSpeedMax),
+  "creativity": zod.number().min(1).max(setContestantProfileBodyTraitsCreativityMax),
+  "rigor": zod.number().min(1).max(setContestantProfileBodyTraitsRigorMax),
+  "charisma": zod.number().min(1).max(setContestantProfileBodyTraitsCharismaMax),
+  "thrift": zod.number().min(1).max(setContestantProfileBodyTraitsThriftMax)
+}).optional()
+})
+
+export const setContestantProfileResponseTraitsSpeedMax = 5;
+
+export const setContestantProfileResponseTraitsCreativityMax = 5;
+
+export const setContestantProfileResponseTraitsRigorMax = 5;
+
+export const setContestantProfileResponseTraitsCharismaMax = 5;
+
+export const setContestantProfileResponseTraitsThriftMax = 5;
+
+
+
+export const SetContestantProfileResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "provider": zod.string(),
+  "model": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "catchphrase": zod.string().nullish(),
+  "traits": zod.object({
+  "speed": zod.number().min(1).max(setContestantProfileResponseTraitsSpeedMax),
+  "creativity": zod.number().min(1).max(setContestantProfileResponseTraitsCreativityMax),
+  "rigor": zod.number().min(1).max(setContestantProfileResponseTraitsRigorMax),
+  "charisma": zod.number().min(1).max(setContestantProfileResponseTraitsCharismaMax),
+  "thrift": zod.number().min(1).max(setContestantProfileResponseTraitsThriftMax)
+})
+})
+
+
+/**
  * @summary List models available from the configured inference provider
  */
 export const ListModelsResponse = zod.object({

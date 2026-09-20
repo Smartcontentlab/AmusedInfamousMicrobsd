@@ -1,6 +1,7 @@
 import { useGetArena, useAdvanceArena, getGetArenaQueryKey, useCreateAgent, useListProjects, useListSkills, useEquipAgentSkill, useDetachAgentCapability, getListAgentsQueryKey, getListSkillsQueryKey, getListAgentCapabilitiesQueryKey, useListAgentCapabilities, useCreateArenaEvidence, getListArenaEvidenceQueryKey, useListArenaEvidence } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { SkillSearchPicker } from "../components/skill-search-picker";
+import { ArenaRace } from "../components/arena-race";
 import { useQueryClient } from "@tanstack/react-query";
 import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Code2, MapPin, Zap, UserPlus, Loader2, RefreshCw, Wrench, LockKeyhole, UnlockKeyhole, X, Check } from "lucide-react";
 import { useState } from "react";
@@ -381,8 +382,12 @@ export function Arena() {
              </BrutalCard>
           )}
 
+         <div className="mt-4">
+            <ArenaRace />
+         </div>
+
          {/* The House / Contestants */}
-         <div className="mt-12 space-y-3">
+         <div className="mt-8 space-y-3">
             <h2 className="text-base font-black uppercase tracking-tighter border-b-2 border-border pb-2 flex justify-between items-end">
                Contestant Houses
                <span className="text-base font-mono text-muted-foreground">LIVE FEED</span>

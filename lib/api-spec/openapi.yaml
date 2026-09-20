@@ -764,6 +764,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /arena/race:
+    get:
+      operationId: getArenaRace
+      tags: [arena]
+      summary: The race to the prize, with contestant profiles and standings
+      responses:
+        "200":
+          description: Race state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArenaRace"
+  /agents/{agentId}/profile:
+    patch:
+      operationId: setContestantProfile
+      tags: [arena]
+      summary: Set a contestant's personality, catchphrase and trait ratings
+      parameters:
+        - $ref: "#/components/parameters/AgentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContestantProfileInput"
+      responses:
+        "200":
+          description: Updated contestant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContestantProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /models:
     get:
       operationId: listModels
@@ -1017,6 +1055,127 @@ components:
       schema:
         type: number
   schemas:
+    AgentTraits:
+      type: object
+      required: [speed, creativity, rigor, charisma, thrift]
+      properties:
+        speed:
+          type: number
+          minimum: 1
+          maximum: 5
+        creativity:
+          type: number
+          minimum: 1
+          maximum: 5
+        rigor:
+          type: number
+          minimum: 1
+          maximum: 5
+        charisma:
+          type: number
+          minimum: 1
+          maximum: 5
+        thrift:
+          type: number
+          minimum: 1
+          maximum: 5
+    ContestantProfileInput:
+      type: object
+      properties:
+        personality:
+          type: string
+          nullable: true
+        catchphrase:
+          type: string
+          nullable: true
+        traits:
+          $ref: "#/components/schemas/AgentTraits"
+    ContestantProfile:
+      type: object
+      required: [id, name, role, provider, traits]
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        role:
+          type: string
+        provider:
+          type: string
+        model:
+          type: string
+          nullable: true
+        personality:
+          type: string
+          nullable: true
+        catchphrase:
+          type: string
+          nullable: true
+        traits:
+          $ref: "#/components/schemas/AgentTraits"
+    RaceContestant:
+      type: object
+      required: [id, name, role, provider, traits, earnedCents, percentToPrize, rank, status, skillCount]
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        role:
+          type: string
+        provider:
+          type: string
+        model:
+          type: string
+          nullable: true
+        personality:
+          type: string
+          nullable: true
+        catchphrase:
+          type: string
+          nullable: true
+        traits:
+          $ref: "#/components/schemas/AgentTraits"
+        projectName:
+          type: string
+          nullable: true
+        businessIdea:
+          type: string
+          nullable: true
+        currentTask:
+          type: string
+          nullable: true
+        status:
+          type: string
+        earnedCents:
+          type: number
+        percentToPrize:
+          type: number
+        rank:
+          type: number
+        skillCount:
+          type: number
+        finished:
+          type: boolean
+    ArenaRace:
+      type: object
+      required: [prizeCents, contestants, round, totalRounds, status]
+      properties:
+        prizeCents:
+          type: number
+        round:
+          type: number
+        totalRounds:
+          type: number
+        status:
+          type: string
+        winnerName:
+          type: string
+          nullable: true
+        contestants:
+          type: array
+          items:
+            $ref: "#/components/schemas/RaceContestant"
     SkillFacetCount:
       type: object
       required: [name, count]

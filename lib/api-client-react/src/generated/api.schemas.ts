@@ -5,6 +5,80 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+export interface AgentTraits {
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  speed: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  creativity: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rigor: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  charisma: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  thrift: number;
+}
+
+export interface ContestantProfileInput {
+  personality?: string | null;
+  catchphrase?: string | null;
+  traits?: AgentTraits;
+}
+
+export interface ContestantProfile {
+  id: number;
+  name: string;
+  role: string;
+  provider: string;
+  model?: string | null;
+  personality?: string | null;
+  catchphrase?: string | null;
+  traits: AgentTraits;
+}
+
+export interface RaceContestant {
+  id: number;
+  name: string;
+  role: string;
+  provider: string;
+  model?: string | null;
+  personality?: string | null;
+  catchphrase?: string | null;
+  traits: AgentTraits;
+  projectName?: string | null;
+  businessIdea?: string | null;
+  currentTask?: string | null;
+  status: string;
+  earnedCents: number;
+  percentToPrize: number;
+  rank: number;
+  skillCount: number;
+  finished?: boolean;
+}
+
+export interface ArenaRace {
+  prizeCents: number;
+  round: number;
+  totalRounds: number;
+  status: string;
+  winnerName?: string | null;
+  contestants: RaceContestant[];
+}
+
 export interface SkillFacetCount {
   name: string;
   count: number;

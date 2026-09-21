@@ -1196,11 +1196,13 @@ export const SetContestantProfileResponse = zod.object({
 export const ListModelsResponse = zod.object({
   "provider": zod.string(),
   "configured": zod.boolean(),
+  "checking": zod.boolean(),
   "message": zod.string().nullish(),
   "models": zod.array(zod.object({
   "id": zod.string(),
   "provider": zod.string(),
-  "displayName": zod.string().nullish()
+  "displayName": zod.string().nullish(),
+  "status": zod.enum(['available', 'unavailable', 'checking'])
 }))
 })
 

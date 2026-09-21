@@ -10,6 +10,7 @@ import type { ModelOption } from './modelOption';
 export interface ModelCatalog {
   provider: string;
   configured: boolean;
+  checking: boolean;
   message?: string | null;
   models: ModelOption[];
 }

@@ -154,7 +154,10 @@ function StaffCard({ staff, projectId }: { staff: ProjectStaffMember; projectId:
             </div>
           )}
 
-          <ModelPicker agentId={staff.id} model={staff.model} invalidateKey={getGetProjectDetailQueryKey(projectId)} />
+          <div className="mt-2 border-t border-border/60 pt-2">
+            <p className="mb-1 font-mono text-[10px] font-bold uppercase text-muted-foreground">Model</p>
+            <ModelPicker agentId={staff.id} model={staff.model} invalidateKey={getGetProjectDetailQueryKey(projectId)} />
+          </div>
           <LoopList staff={staff} projectId={projectId} />
         </div>
       )}

@@ -118,13 +118,11 @@ pnpm --filter @workspace/db run push
 
 ## 5. Start it
 
-Two terminal tabs.
+Two terminal tabs. The API server reads `.env` from the repo root on its own, so you do not need to export
+those variables first. Exporting them still works and overrides `.env`.
 
 **Tab 1 — API server:**
 ```bash
-export DATABASE_URL="postgresql://$(whoami)@localhost:5432/mission_control"
-export SESSION_SECRET="<same value as your .env>"
-export PORT=5000
 pnpm --filter @workspace/api-server run build
 pnpm --filter @workspace/api-server run start
 ```
@@ -202,13 +200,11 @@ pnpm --filter @workspace/db run push
 
 ## 5. Start it
 
-Two terminals.
+Two terminals. The API server reads `.env` from the repo root on its own, so you do not need to export
+those variables first. Exporting them still works and overrides `.env`.
 
 **API server:**
 ```powershell
-$env:DATABASE_URL="postgresql://postgres:postgres@localhost:5432/mission_control"
-$env:SESSION_SECRET="<same value as your .env>"
-$env:PORT="5000"
 pnpm --filter @workspace/api-server run build
 pnpm --filter @workspace/api-server run start
 ```

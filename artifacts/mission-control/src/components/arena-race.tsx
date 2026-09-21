@@ -1,13 +1,11 @@
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Crown, Pencil, Trophy } from "lucide-react";
 import {
   getGetArenaRaceQueryKey,
   useGetArenaRace,
-  useSetContestantProfile,
 } from "@workspace/api-client-react";
 import type { AgentTraits, RaceContestant } from "@workspace/api-client-react";
-import { BrutalBadge, BrutalButton, BrutalCard } from "@/components/ui/brutal";
+import { BrutalBadge, BrutalCard } from "@/components/ui/brutal";
 import { PixelAvatar } from "@/components/pixel-avatar";
 
 const TRAIT_KEYS: Array<{ key: keyof AgentTraits; label: string }> = [
@@ -37,81 +35,7 @@ function StarRow({ value }: { value: number }) {
   );
 }
 
-function ProfileEditor({ contestant, onDone }: { contestant: RaceContestant; onDone: () => void }) {
-  const queryClient = useQueryClient();
-  const [personality, setPersonality] = useState(contestant.personality ?? "");
-  const [catchphrase, setCatchphrase] = useState(contestant.catchphrase ?? "");
-  const [traits, setTraits] = useState<AgentTraits>(contestant.traits);
-
-  const save = useSetContestantProfile({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetArenaRaceQueryKey() });
-        onDone();
-      },
-    },
-  });
-
-  return (
-    <div className="mt-2 border-t-2 border-border pt-2">
-      <label className="block font-mono text-[10px] font-bold uppercase text-muted-foreground">
-        Personality
-        <textarea
-          value={personality}
-          onChange={(event) => setPersonality(event.target.value)}
-          rows={2}
-          placeholder="Impatient. Ships fast, skips validation, talks big."
-          className="mt-1 w-full rounded-lg border border-border bg-background p-1.5 font-sans text-[11px] font-normal normal-case outline-none focus:ring-2 focus:ring-primary/20"
-        />
-      </label>
-
-      <label className="mt-1.5 block font-mono text-[10px] font-bold uppercase text-muted-foreground">
-        Catchphrase
-        <input
-          value={catchphrase}
-          onChange={(event) => setCatchphrase(event.target.value)}
-          placeholder="Ship it and find out."
-          className="mt-1 w-full rounded-lg border border-border bg-background p-1.5 font-sans text-[11px] font-normal normal-case outline-none focus:ring-2 focus:ring-primary/20"
-        />
-      </label>
-
-      <div className="mt-2 space-y-1">
-        {TRAIT_KEYS.map((trait) => (
-          <label key={trait.key} className="flex items-center gap-2">
-            <span className="w-16 shrink-0 font-mono text-[10px] font-bold uppercase text-muted-foreground">{trait.label}</span>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={1}
-              value={traits[trait.key]}
-              onChange={(event) => setTraits({ ...traits, [trait.key]: Number(event.target.value) })}
-              className="min-w-0 flex-1 accent-primary"
-            />
-            <StarRow value={traits[trait.key]} />
-          </label>
-        ))}
-      </div>
-
-      <div className="mt-2 flex gap-1">
-        <BrutalButton
-          variant="primary"
-          disabled={save.isPending}
-          onClick={() => save.mutate({ agentId: contestant.id, data: { personality, catchphrase, traits } })}
-        >
-          {save.isPending ? "Saving..." : "Save profile"}
-        </BrutalButton>
-        <BrutalButton variant="default" onClick={onDone}>
-          Cancel
-        </BrutalButton>
-      </div>
-    </div>
-  );
-}
-
 function ContestantRow({ contestant, prizeCents }: { contestant: RaceContestant; prizeCents: number }) {
-  const [editing, setEditing] = useState(false);
-
   return (
     <div
       className={`rounded-lg border p-2 ${contestant.finished ? "border-accent bg-accent/10" : "border-border bg-card"}`}
@@ -134,13 +58,13 @@ function ContestantRow({ contestant, prizeCents }: { contestant: RaceContestant;
             <span className="text-sm font-bold uppercase tracking-tight">{contestant.name}</span>
             {contestant.finished && <Crown size={13} className="text-accent-strong" />}
             <BrutalBadge variant="secondary">{contestant.provider}</BrutalBadge>
-            <button
-              onClick={() => setEditing((value) => !value)}
-              aria-label={`Edit ${contestant.name}'s profile`}
-              className="ml-auto text-muted-foreground hover:text-foreground"
+            <Link
+              href={`/arena/contestants/${contestant.id}`}
+              aria-label={`Open ${contestant.name} in the builder`}
+              className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              <Pencil size={12} />
-            </button>
+              <Pencil size={11} /> Build
+            </Link>
           </div>
 
           <p className="font-mono text-[10px] uppercase text-muted-foreground">{contestant.role}</p>
@@ -185,8 +109,6 @@ function ContestantRow({ contestant, prizeCents }: { contestant: RaceContestant;
           )}
         </div>
       </div>
-
-      {editing && <ProfileEditor contestant={contestant} onDone={() => setEditing(false)} />}
     </div>
   );
 }

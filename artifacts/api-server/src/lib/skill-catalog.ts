@@ -189,7 +189,9 @@ function mapSkillDbEntry(source: CatalogSource, skill: SkillDbSkill): ImportedCa
   const id = typeof skill.id === "string" ? skill.id : null;
   if (!id) return null;
 
-  const title = typeof skill.title === "string" && skill.title ? skill.title : typeof skill.name === "string" ? skill.name : id;
+  const rawTitle = typeof skill.title === "string" && skill.title ? skill.title : typeof skill.name === "string" ? skill.name : id;
+  // Some SkillDB titles arrive wrapped in literal quotes, which also sorts them to the top.
+  const title = rawTitle.trim().replace(/^["'“‘]+|["'”’]+$/g, "").trim() || id;
   const description = typeof skill.description === "string" ? skill.description : "";
   const category = typeof skill.category === "string" && skill.category
     ? skill.category

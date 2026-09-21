@@ -23,14 +23,19 @@ export function SkillSearchPicker({
   onSelect,
   inputId,
   testId,
+  seedQuery,
 }: {
   excludeIds: number[];
   selectedId: number | null;
   onSelect: (skillId: number | null, skillName?: string) => void;
   inputId?: string;
   testId?: string;
+  seedQuery?: string;
 }) {
   const [search, setSearch] = useState("");
+  useEffect(() => {
+    if (seedQuery !== undefined) setSearch(seedQuery);
+  }, [seedQuery]);
   const query = useDebounced(search, 300);
 
   const params = { ...(query ? { q: query } : {}), limit: RESULT_LIMIT };

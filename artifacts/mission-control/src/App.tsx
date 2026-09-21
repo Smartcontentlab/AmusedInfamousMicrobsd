@@ -17,6 +17,7 @@ import { Inbox } from './pages/inbox';
 import { Dashboard } from './pages/dashboard';
 import { Projects } from './pages/projects';
 import { ProjectDetail } from './pages/project-detail';
+import { ContestantBuilder } from './pages/contestant-builder';
 import { Agents } from './pages/agents';
 import { Skills } from './pages/skills';
 import { Arena } from './pages/arena';
@@ -40,6 +41,7 @@ function Router() {
           <Route path="/approvals" component={Approvals} />
           <Route path="/idea-lab" component={IdeaLab} />
           <Route path="/arena" component={Arena} />
+          <Route path="/arena/contestants/:id" component={ContestantBuilder} />
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>

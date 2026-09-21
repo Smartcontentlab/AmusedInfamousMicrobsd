@@ -5,6 +5,9 @@ import { DEFAULT_TRAITS, agentsTable, arenaTable, db, projectsTable, type AgentT
 
 const router: IRouter = Router();
 
+// Every contestant spends from the same pool, so a strength always costs a weakness somewhere else.
+const TRAIT_BUDGET = 18;
+
 function clampTrait(value: unknown, fallback: number): number {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
@@ -89,12 +92,19 @@ router.patch("/agents/:agentId/profile", async (req, res): Promise<void> => {
     return;
   }
 
+  const traits = normalizeTraits(parsed.data.traits, current.traits ?? DEFAULT_TRAITS);
+  const spent = traits.speed + traits.creativity + traits.rigor + traits.charisma + traits.thrift;
+  if (spent > TRAIT_BUDGET) {
+    res.status(400).json({ error: `Traits use ${spent} points; the budget is ${TRAIT_BUDGET}.` });
+    return;
+  }
+
   const [agent] = await db
     .update(agentsTable)
     .set({
       personality: parsed.data.personality !== undefined ? parsed.data.personality : current.personality,
       catchphrase: parsed.data.catchphrase !== undefined ? parsed.data.catchphrase : current.catchphrase,
-      traits: normalizeTraits(parsed.data.traits, current.traits ?? DEFAULT_TRAITS),
+      traits,
     })
     .where(eq(agentsTable.id, agentId))
     .returning();

@@ -1200,7 +1200,7 @@ components:
             $ref: "#/components/schemas/SkillFacetCount"
     ModelOption:
       type: object
-      required: [id, provider]
+      required: [id, provider, status]
       properties:
         id:
           type: string
@@ -1209,13 +1209,18 @@ components:
         displayName:
           type: string
           nullable: true
+        status:
+          type: string
+          enum: [available, unavailable, checking]
     ModelCatalog:
       type: object
-      required: [provider, configured, models]
+      required: [provider, configured, checking, models]
       properties:
         provider:
           type: string
         configured:
+          type: boolean
+        checking:
           type: boolean
         message:
           type: string

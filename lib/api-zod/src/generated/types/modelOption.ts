@@ -5,9 +5,11 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+import type { ModelOptionStatus } from './modelOptionStatus';
 
 export interface ModelOption {
   id: string;
   provider: string;
   displayName?: string | null;
+  status: ModelOptionStatus;
 }

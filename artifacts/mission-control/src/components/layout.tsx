@@ -43,7 +43,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
             <nav className="flex gap-1 overflow-x-auto">
               {NAV_ITEMS.map((item) => (
-                <NavItem key={item.href} {...item} active={location === item.href} />
+                <NavItem
+                  key={item.href}
+                  {...item}
+                  active={item.href === "/" ? location === "/" : location === item.href || location.startsWith(`${item.href}/`)}
+                />
               ))}
             </nav>
           </div>

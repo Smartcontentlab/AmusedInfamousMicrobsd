@@ -57,6 +57,7 @@ export * from './missionPlan';
 export * from './missionPlanInput';
 export * from './modelCatalog';
 export * from './modelOption';
+export * from './modelOptionStatus';
 export * from './personalTodo';
 export * from './personalTodoInput';
 export * from './personalTodoUpdate';

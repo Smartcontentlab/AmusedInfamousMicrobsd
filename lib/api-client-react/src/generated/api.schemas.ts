@@ -90,15 +90,26 @@ export interface SkillFacets {
   sources: SkillFacetCount[];
 }
 
+export type ModelOptionStatus = typeof ModelOptionStatus[keyof typeof ModelOptionStatus];
+
+
+export const ModelOptionStatus = {
+  available: 'available',
+  unavailable: 'unavailable',
+  checking: 'checking',
+} as const;
+
 export interface ModelOption {
   id: string;
   provider: string;
   displayName?: string | null;
+  status: ModelOptionStatus;
 }
 
 export interface ModelCatalog {
   provider: string;
   configured: boolean;
+  checking: boolean;
   message?: string | null;
   models: ModelOption[];
 }

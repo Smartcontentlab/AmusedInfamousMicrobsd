@@ -3,6 +3,7 @@ import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { SkillSearchPicker } from "../components/skill-search-picker";
 import { ArenaRace } from "../components/arena-race";
 import { BigBrotherHouse } from "../components/house/big-brother-house";
+import { ArenaShowControl } from "../components/arena-show-control";
 import { useQueryClient } from "@tanstack/react-query";
 import { Swords, Play, Pause, FastForward, RotateCcw, Trophy, Monitor, Code2, MapPin, Zap, UserPlus, Loader2, RefreshCw, Wrench, LockKeyhole, UnlockKeyhole, X, Check } from "lucide-react";
 import { useState } from "react";
@@ -385,6 +386,7 @@ export function Arena() {
 
          <div className="mt-4 space-y-4">
             <BigBrotherHouse />
+            <ArenaShowControl />
             <ArenaRace />
          </div>
 

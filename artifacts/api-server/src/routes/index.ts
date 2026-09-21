@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import arenaEngineRouter from "./arena-engine";
 import arenaRaceRouter from "./arena-race";
 import healthRouter from "./health";
 import inboxRouter from "./inbox";
@@ -18,5 +19,6 @@ router.use(inboxRouter);
 router.use(projectDetailRouter);
 router.use(modelsRouter);
 router.use(arenaRaceRouter);
+router.use(arenaEngineRouter);
 
 export default router;

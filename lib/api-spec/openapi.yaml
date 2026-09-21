@@ -764,6 +764,68 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /arena/levels:
+    get:
+      operationId: getArenaLevels
+      tags: [arena]
+      summary: The season's levels, which are playable now, and today's turn budget
+      responses:
+        "200":
+          description: Levels
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArenaLevels"
+  /arena/levels/{level}/run:
+    post:
+      operationId: runArenaLevel
+      tags: [arena]
+      summary: Run one level for every contestant on their own model
+      parameters:
+        - in: path
+          name: level
+          required: true
+          schema:
+            type: number
+      responses:
+        "202":
+          description: Level started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArenaRunStarted"
+        "409":
+          description: Locked or already running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Daily budget reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /arena/turns:
+    get:
+      operationId: listArenaTurns
+      tags: [arena]
+      summary: Recent contestant turns, newest first
+      parameters:
+        - in: query
+          name: level
+          required: false
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Turns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ArenaTurn"
   /arena/race:
     get:
       operationId: getArenaRace
@@ -1055,6 +1117,90 @@ components:
       schema:
         type: number
   schemas:
+    ArenaLevelInfo:
+      type: object
+      required: [level, title, goal, tools, locked, running, completedTurns, failedTurns]
+      properties:
+        level:
+          type: number
+        title:
+          type: string
+        goal:
+          type: string
+        tools:
+          type: array
+          items:
+            type: string
+        locked:
+          type: boolean
+        lockedReason:
+          type: string
+          nullable: true
+        running:
+          type: boolean
+        completedTurns:
+          type: number
+        failedTurns:
+          type: number
+        lastRunAt:
+          type: string
+          nullable: true
+    ArenaLevels:
+      type: object
+      required: [levels, turnsToday, dailyBudget]
+      properties:
+        levels:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArenaLevelInfo"
+        turnsToday:
+          type: number
+        dailyBudget:
+          type: number
+    ArenaRunStarted:
+      type: object
+      required: [started]
+      properties:
+        started:
+          type: number
+    ArenaTurn:
+      type: object
+      required: [id, agentId, agentName, level, status, createdAt]
+      properties:
+        id:
+          type: number
+        agentId:
+          type: number
+        agentName:
+          type: string
+        level:
+          type: number
+        model:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [queued, running, completed, failed]
+        output:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        promptTokens:
+          type: number
+          nullable: true
+        completionTokens:
+          type: number
+          nullable: true
+        durationMs:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+        finishedAt:
+          type: string
+          nullable: true
     AgentTraits:
       type: object
       required: [speed, creativity, rigor, charisma, thrift]

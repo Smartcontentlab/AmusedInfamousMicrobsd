@@ -5,6 +5,55 @@
  * Mission Control API
  * OpenAPI spec version: 0.1.0
  */
+export interface ArenaLevelInfo {
+  level: number;
+  title: string;
+  goal: string;
+  tools: string[];
+  locked: boolean;
+  lockedReason?: string | null;
+  running: boolean;
+  completedTurns: number;
+  failedTurns: number;
+  lastRunAt?: string | null;
+}
+
+export interface ArenaLevels {
+  levels: ArenaLevelInfo[];
+  turnsToday: number;
+  dailyBudget: number;
+}
+
+export interface ArenaRunStarted {
+  started: number;
+}
+
+export type ArenaTurnStatus = typeof ArenaTurnStatus[keyof typeof ArenaTurnStatus];
+
+
+export const ArenaTurnStatus = {
+  queued: 'queued',
+  running: 'running',
+  completed: 'completed',
+  failed: 'failed',
+} as const;
+
+export interface ArenaTurn {
+  id: number;
+  agentId: number;
+  agentName: string;
+  level: number;
+  model?: string | null;
+  status: ArenaTurnStatus;
+  output?: string | null;
+  error?: string | null;
+  promptTokens?: number | null;
+  completionTokens?: number | null;
+  durationMs?: number | null;
+  createdAt: string;
+  finishedAt?: string | null;
+}
+
 export interface AgentTraits {
   /**
      * @minimum 1
@@ -1048,5 +1097,9 @@ category?: string;
 source?: string;
 limit?: number;
 offset?: number;
+};
+
+export type ListArenaTurnsParams = {
+level?: number;
 };
 

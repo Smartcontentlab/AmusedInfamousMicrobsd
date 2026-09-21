@@ -40,7 +40,10 @@ import type {
   ArenaEvidenceInput,
   ArenaEvidenceList,
   ArenaEvidenceResult,
+  ArenaLevels,
   ArenaRace,
+  ArenaRunStarted,
+  ArenaTurn,
   ContestantProfile,
   ContestantProfileInput,
   Dashboard,
@@ -50,6 +53,7 @@ import type {
   ErrorResponse,
   HealthStatus,
   Inbox,
+  ListArenaTurnsParams,
   ListSkillsParams,
   MissionPlan,
   MissionPlanInput,
@@ -3284,6 +3288,238 @@ export const useDeletePersonalTodo = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getDeletePersonalTodoMutationOptions(options));
     }
+
+export const getGetArenaLevelsUrl = () => {
+
+
+
+
+  return `/api/arena/levels`
+}
+
+/**
+ * @summary The season's levels, which are playable now, and today's turn budget
+ */
+export const getArenaLevels = async ( options?: Parameters<typeof customFetch>[1]): Promise<ArenaLevels> => {
+
+  return customFetch<ArenaLevels>(getGetArenaLevelsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetArenaLevelsQueryKey = () => {
+    return [
+    `/api/arena/levels`
+    ] as const;
+    }
+
+
+export const getGetArenaLevelsQueryOptions = <TData = Awaited<ReturnType<typeof getArenaLevels>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getArenaLevels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetArenaLevelsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getArenaLevels>>> = ({ signal }) => getArenaLevels({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getArenaLevels>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetArenaLevelsQueryResult = NonNullable<Awaited<ReturnType<typeof getArenaLevels>>>
+export type GetArenaLevelsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The season's levels, which are playable now, and today's turn budget
+ */
+
+export function useGetArenaLevels<TData = Awaited<ReturnType<typeof getArenaLevels>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getArenaLevels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetArenaLevelsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRunArenaLevelUrl = (level: number,) => {
+
+
+
+
+  return `/api/arena/levels/${level}/run`
+}
+
+/**
+ * @summary Run one level for every contestant on their own model
+ */
+export const runArenaLevel = async (level: number, options?: Parameters<typeof customFetch>[1]): Promise<ArenaRunStarted> => {
+
+  return customFetch<ArenaRunStarted>(getRunArenaLevelUrl(level),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRunArenaLevelMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runArenaLevel>>, TError,{level: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runArenaLevel>>, TError,{level: number}, TContext> => {
+
+const mutationKey = ['runArenaLevel'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runArenaLevel>>, {level: number}> = (props) => {
+          const {level} = props ?? {};
+
+          return  runArenaLevel(level,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunArenaLevelMutationResult = NonNullable<Awaited<ReturnType<typeof runArenaLevel>>>
+
+    export type RunArenaLevelMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Run one level for every contestant on their own model
+ */
+export const useRunArenaLevel = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runArenaLevel>>, TError,{level: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runArenaLevel>>,
+        TError,
+        {level: number},
+        TContext
+      > => {
+      return useMutation(getRunArenaLevelMutationOptions(options));
+    }
+
+export const getListArenaTurnsUrl = (params?: ListArenaTurnsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/arena/turns?${stringifiedParams}` : `/api/arena/turns`
+}
+
+/**
+ * @summary Recent contestant turns, newest first
+ */
+export const listArenaTurns = async (params?: ListArenaTurnsParams, options?: Parameters<typeof customFetch>[1]): Promise<ArenaTurn[]> => {
+
+  return customFetch<ArenaTurn[]>(getListArenaTurnsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListArenaTurnsQueryKey = (params?: ListArenaTurnsParams,) => {
+    return [
+    `/api/arena/turns`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListArenaTurnsQueryOptions = <TData = Awaited<ReturnType<typeof listArenaTurns>>, TError = ErrorType<unknown>>(params?: ListArenaTurnsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listArenaTurns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListArenaTurnsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listArenaTurns>>> = ({ signal }) => listArenaTurns(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listArenaTurns>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListArenaTurnsQueryResult = NonNullable<Awaited<ReturnType<typeof listArenaTurns>>>
+export type ListArenaTurnsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Recent contestant turns, newest first
+ */
+
+export function useListArenaTurns<TData = Awaited<ReturnType<typeof listArenaTurns>>, TError = ErrorType<unknown>>(
+ params?: ListArenaTurnsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listArenaTurns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListArenaTurnsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetArenaRaceUrl = () => {
 

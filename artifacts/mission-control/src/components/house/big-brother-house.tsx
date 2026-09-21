@@ -53,6 +53,8 @@ const ACTIVITY: Record<RoomKey, { icon: ElementType; label: string }> = {
 function classify(text: string | null | undefined): RoomKey | null {
   const value = (text ?? "").toLowerCase();
   if (!value) return null;
+  if (/confess|diary/.test(value)) return "diary";
+  if (/idle/.test(value)) return "living";
   if (/deploy|build|cod|develop|test|release|fix/.test(value)) return "workshop";
   if (/research|explor|discover|analy|audit|study/.test(value)) return "research";
   if (/sell|sales|outreach|pitch|customer|market|invite|email/.test(value)) return "sales";

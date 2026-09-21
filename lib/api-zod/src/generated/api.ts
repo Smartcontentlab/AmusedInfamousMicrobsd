@@ -1081,6 +1081,64 @@ export const DeletePersonalTodoResponse = zod.void()
 
 
 /**
+ * @summary The season's levels, which are playable now, and today's turn budget
+ */
+export const GetArenaLevelsResponse = zod.object({
+  "levels": zod.array(zod.object({
+  "level": zod.number(),
+  "title": zod.string(),
+  "goal": zod.string(),
+  "tools": zod.array(zod.string()),
+  "locked": zod.boolean(),
+  "lockedReason": zod.string().nullish(),
+  "running": zod.boolean(),
+  "completedTurns": zod.number(),
+  "failedTurns": zod.number(),
+  "lastRunAt": zod.string().nullish()
+})),
+  "turnsToday": zod.number(),
+  "dailyBudget": zod.number()
+})
+
+
+/**
+ * @summary Run one level for every contestant on their own model
+ */
+export const RunArenaLevelParams = zod.object({
+  "level": zod.coerce.number()
+})
+
+export const RunArenaLevelResponse = zod.object({
+  "started": zod.number()
+})
+
+
+/**
+ * @summary Recent contestant turns, newest first
+ */
+export const ListArenaTurnsQueryParams = zod.object({
+  "level": zod.coerce.number().optional()
+})
+
+export const ListArenaTurnsResponseItem = zod.object({
+  "id": zod.number(),
+  "agentId": zod.number(),
+  "agentName": zod.string(),
+  "level": zod.number(),
+  "model": zod.string().nullish(),
+  "status": zod.enum(['queued', 'running', 'completed', 'failed']),
+  "output": zod.string().nullish(),
+  "error": zod.string().nullish(),
+  "promptTokens": zod.number().nullish(),
+  "completionTokens": zod.number().nullish(),
+  "durationMs": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "finishedAt": zod.string().nullish()
+})
+export const ListArenaTurnsResponse = zod.array(ListArenaTurnsResponseItem)
+
+
+/**
  * @summary The race to the prize, with contestant profiles and standings
  */
 export const getArenaRaceResponseContestantsItemTraitsSpeedMax = 5;

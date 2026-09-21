@@ -53,7 +53,7 @@ function AtlasBar() {
     <div className="mx-auto w-full max-w-3xl">
       <form
         onSubmit={submit}
-        className="flex items-center gap-3 border-4 border-border bg-card p-2 pl-4 shadow-[6px_6px_0px_0px_hsl(var(--border))] focus-within:ring-4 focus-within:ring-primary/20"
+        className="flex items-center gap-3 rounded-xl border border-border bg-card p-2 pl-4 shadow-sm focus-within:ring-4 focus-within:ring-primary/20"
       >
         <Hexagon size={22} className="shrink-0 text-primary" />
         <input
@@ -65,7 +65,7 @@ function AtlasBar() {
         <button
           type="submit"
           disabled={!message.trim() || createMessage.isPending}
-          className="flex shrink-0 items-center gap-2 border-4 border-border bg-primary px-4 py-2 font-bold uppercase text-primary-foreground shadow-[3px_3px_0px_0px_hsl(var(--border))] transition-all hover:translate-x-0.5 hover:-translate-y-0.5 disabled:opacity-40"
+          className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-primary px-4 py-2 font-bold uppercase text-primary-foreground shadow-sm transition-all disabled:opacity-40"
         >
           <Send size={16} />
           <span className="hidden sm:inline">Send</span>
@@ -94,7 +94,7 @@ function InboxWidget() {
     <BrutalCard
       title="Inbox"
       action={
-        <Link href="/inbox" className="flex items-center gap-1 font-mono text-xs font-black uppercase text-primary hover:underline">
+        <Link href="/inbox" className="flex items-center gap-1 font-mono text-xs font-bold uppercase text-primary hover:underline">
           Open <ArrowRight size={14} />
         </Link>
       }
@@ -102,9 +102,9 @@ function InboxWidget() {
     >
       <div className="flex flex-1 flex-col justify-center gap-2">
         {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between border-2 border-border bg-muted/30 px-3 py-2">
+          <div key={row.label} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
             <span className="font-mono text-xs font-bold uppercase text-muted-foreground">{row.label}</span>
-            <span className={`text-2xl font-black tabular-nums ${row.highlight ? "text-primary" : "text-muted-foreground"}`}>
+            <span className={`text-2xl font-bold tabular-nums ${row.highlight ? "text-primary" : "text-muted-foreground"}`}>
               {row.value}
             </span>
           </div>
@@ -122,21 +122,21 @@ function WorkloadWidget() {
   return (
     <BrutalCard
       title="Workload"
-      action={<span className="font-mono text-xs font-black text-muted-foreground">{total} tasks</span>}
+      action={<span className="font-mono text-xs font-bold text-muted-foreground">{total} tasks</span>}
       className="h-full"
     >
       {total === 0 ? (
         <p className="flex flex-1 items-center justify-center font-mono text-xs uppercase text-muted-foreground">No tasks yet.</p>
       ) : (
         <div className="flex flex-1 flex-col justify-center gap-3">
-          <div className="flex h-8 w-full border-4 border-border">
+          <div className="flex h-8 w-full overflow-hidden rounded-xl border border-border">
             {TASK_STATUSES.map((status) => {
               const count = items.filter((task) => task.status === status.key).length;
               if (count === 0) return null;
               return (
                 <div
                   key={status.key}
-                  className={`${status.className} border-r-4 border-border last:border-r-0`}
+                  className={`${status.className} border-r border-border last:border-r-0`}
                   style={{ width: `${(count / total) * 100}%` }}
                   title={`${status.label}: ${count}`}
                 />
@@ -146,9 +146,9 @@ function WorkloadWidget() {
           <div className="grid grid-cols-2 gap-2">
             {TASK_STATUSES.map((status) => (
               <div key={status.key} className="flex items-center gap-2">
-                <span className={`size-3 shrink-0 border-2 border-border ${status.className}`} />
+                <span className={`size-3 shrink-0 rounded-lg border border-border ${status.className}`} />
                 <span className="font-mono text-[11px] font-bold uppercase text-muted-foreground">{status.label}</span>
-                <span className="ml-auto font-mono text-sm font-black tabular-nums">
+                <span className="ml-auto font-mono text-sm font-bold tabular-nums">
                   {items.filter((task) => task.status === status.key).length}
                 </span>
               </div>
@@ -169,8 +169,8 @@ export function Home() {
   return (
     <div className="space-y-8 py-6">
       <div className="text-center">
-        <p className="font-mono text-xs font-black uppercase tracking-widest text-muted-foreground">Mission control</p>
-        <h1 className="mt-2 text-3xl font-black tracking-tighter">{greeting(now)}.</h1>
+        <p className="font-mono text-xs font-bold uppercase tracking-widest text-muted-foreground">Mission control</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tighter">{greeting(now)}.</h1>
         <p className="mt-3 font-mono text-sm text-muted-foreground">
           {dashboard.data
             ? `${dashboard.data.activeAgentCount} agents active · ${waiting} waiting on you`
@@ -194,8 +194,8 @@ export function Home() {
       </div>
 
       {dashboard.data?.recommendation && (
-        <div className="mx-auto max-w-3xl border-4 border-border bg-primary/10 p-4 shadow-[6px_6px_0px_0px_hsl(var(--border))]">
-          <p className="font-mono text-[11px] font-black uppercase tracking-wider text-primary">Atlas suggests</p>
+        <div className="mx-auto max-w-3xl rounded-xl border border-border bg-primary/10 p-4 shadow-sm">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-primary">Atlas suggests</p>
           <p className="mt-1 text-sm font-medium">{dashboard.data.recommendation}</p>
         </div>
       )}
@@ -203,7 +203,7 @@ export function Home() {
       <div className="flex justify-center">
         <Link
           href="/inbox"
-          className="flex items-center gap-2 border-4 border-border bg-card px-5 py-3 font-bold uppercase shadow-[4px_4px_0px_0px_hsl(var(--border))] transition-all hover:translate-x-1 hover:-translate-y-1"
+          className="flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-3 font-bold uppercase shadow-sm transition-all"
         >
           <InboxIcon size={18} /> Open inbox
         </Link>

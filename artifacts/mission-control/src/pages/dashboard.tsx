@@ -80,24 +80,24 @@ function SectionIntro({
   icon: ReactNode;
 }) {
   return (
-    <div className="mb-4 flex flex-col gap-3 border-b-4 border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-4 flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <div className="mb-1 flex items-center gap-2 font-mono text-xs font-black uppercase tracking-[0.14em] text-primary">
+        <div className="mb-1 flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.14em] text-primary">
           {icon}
           {eyebrow}
         </div>
-        <h2 className="text-2xl font-black uppercase tracking-tight">{title}</h2>
+        <h2 className="text-2xl font-bold uppercase tracking-tight">{title}</h2>
         <p className="mt-1 max-w-2xl font-mono text-xs leading-relaxed text-muted-foreground">{explanation}</p>
       </div>
-      {typeof count === "number" && <div className="font-mono text-2xl font-black leading-none text-primary">{count.toString().padStart(2, "0")}</div>}
+      {typeof count === "number" && <div className="font-mono text-2xl font-bold leading-none text-primary">{count.toString().padStart(2, "0")}</div>}
     </div>
   );
 }
 
 function EmptyState({ title, explanation }: { title: string; explanation: string }) {
   return (
-    <div className="border-4 border-dashed border-border bg-muted/25 p-6 text-center">
-      <div className="font-black uppercase">{title}</div>
+    <div className="rounded-xl border border-dashed border-border bg-muted/25 p-6 text-center">
+      <div className="font-bold uppercase">{title}</div>
       <p className="mt-2 font-mono text-xs leading-relaxed text-muted-foreground">{explanation}</p>
     </div>
   );
@@ -105,7 +105,7 @@ function EmptyState({ title, explanation }: { title: string; explanation: string
 
 function InlineError({ explanation, onRetry, testId }: { explanation: string; onRetry?: () => void; testId: string }) {
   return (
-    <div data-testid={testId} className="flex flex-col gap-3 border-4 border-destructive bg-destructive/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div data-testid={testId} className="flex flex-col gap-3 rounded-xl border border-destructive bg-destructive/10 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-start gap-3">
         <AlertTriangle size={18} className="mt-0.5 shrink-0 text-destructive" />
         <p className="font-mono text-xs leading-relaxed">{explanation}</p>
@@ -114,7 +114,7 @@ function InlineError({ explanation, onRetry, testId }: { explanation: string; on
         <button
           type="button"
           data-testid={`${testId}-retry`}
-          className="inline-flex items-center gap-1 self-start font-black uppercase underline sm:self-auto"
+          className="inline-flex items-center gap-1 self-start font-bold uppercase underline sm:self-auto"
           onClick={onRetry}
         >
           <RefreshCw size={13} /> Retry
@@ -129,7 +129,7 @@ function ActionLink({ href, children, testId }: { href: string; children: ReactN
     <Link
       href={href}
       data-testid={testId}
-      className="inline-flex items-center gap-2 border-4 border-border bg-primary px-3 py-2 text-xs font-black uppercase text-primary-foreground shadow-[4px_4px_0px_0px_hsl(var(--border))] transition-all hover:-translate-y-1 hover:translate-x-1 hover:shadow-[6px_6px_0px_0px_hsl(var(--border))]"
+      className="inline-flex items-center gap-2 rounded-xl border border-border bg-primary px-3 py-2 text-xs font-bold uppercase text-primary-foreground shadow-sm transition-all hover:shadow-md"
     >
       {children} <ArrowRight size={15} />
     </Link>
@@ -150,20 +150,20 @@ function ApprovalRow({
   resolving: boolean;
 }) {
   return (
-    <div data-testid={`approval-card-${approval.id}`} className="border-4 border-border bg-card p-4">
+    <div data-testid={`approval-card-${approval.id}`} className="rounded-xl border border-border bg-card p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <BrutalBadge variant={approval.risk === "high" ? "destructive" : "accent"}>{approval.risk} risk</BrutalBadge>
             <span className="font-mono text-[11px] font-bold text-muted-foreground">{formatRelativeDate(approval.createdAt)}</span>
           </div>
-          <h3 data-testid={`text-approval-title-${approval.id}`} className="mt-2 text-lg font-black uppercase leading-tight">{approval.title}</h3>
+          <h3 data-testid={`text-approval-title-${approval.id}`} className="mt-2 text-lg font-bold uppercase leading-tight">{approval.title}</h3>
           <p className="mt-1 font-mono text-xs text-muted-foreground">{agentName} / {projectName}</p>
         </div>
         <ShieldAlert size={22} className="shrink-0 text-destructive" />
       </div>
-      <div className="mt-3 border-l-4 border-primary bg-muted/40 p-3">
-        <p className="font-black uppercase text-xs">Proposed action</p>
+      <div className="mt-3 border-l border-primary bg-muted/40 p-3">
+        <p className="font-bold uppercase text-xs">Proposed action</p>
         <p className="mt-1 font-mono text-sm leading-relaxed">{approval.action}</p>
         <p className="mt-2 font-mono text-xs leading-relaxed text-muted-foreground">{approval.details}</p>
       </div>
@@ -202,19 +202,19 @@ function ApprovalRow({
 function RuntimeHealthRow({ runtime }: { runtime: RuntimeHealth }) {
   const isBlocked = ["degraded", "unhealthy", "unknown", "disabled"].includes(runtime.status);
   return (
-    <div data-testid={`runtime-health-row-${runtime.id}`} className={`border-4 border-border p-4 ${isBlocked ? "bg-destructive/10" : "bg-card"}`}>
+    <div data-testid={`runtime-health-row-${runtime.id}`} className={`rounded-xl border border-border p-4 ${isBlocked ? "bg-destructive/10" : "bg-card"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <span className={`mt-1 h-3 w-3 shrink-0 border-2 border-border ${isBlocked ? "bg-destructive" : "bg-primary"}`} />
+          <span className={`mt-1 h-3 w-3 shrink-0 rounded-lg border border-border ${isBlocked ? "bg-destructive" : "bg-primary"}`} />
           <div className="min-w-0">
-            <h3 className="truncate font-black uppercase">{runtime.name}</h3>
+            <h3 className="truncate font-bold uppercase">{runtime.name}</h3>
             <p className="mt-1 font-mono text-xs text-muted-foreground">{runtime.provider} / checked {formatRelativeDate(runtime.lastCheckedAt)}</p>
           </div>
         </div>
         <BrutalBadge variant={statusVariant(runtime.status)}>{runtime.status}</BrutalBadge>
       </div>
-      <div className="mt-3 border-l-4 border-border pl-3">
-        <p className="font-black uppercase text-[11px]">{isBlocked ? "Restart or repair blocker" : "Health signal"}</p>
+      <div className="mt-3 border-l border-border pl-3">
+        <p className="font-bold uppercase text-[11px]">{isBlocked ? "Restart or repair blocker" : "Health signal"}</p>
         <p className="mt-1 font-mono text-xs leading-relaxed">{runtime.nextAction || "Keep this runtime connected and continue observing its health."}</p>
         {runtime.errorMessage && <p className="mt-1 font-mono text-xs text-destructive">{runtime.errorMessage}</p>}
       </div>
@@ -288,18 +288,18 @@ export function Dashboard() {
         <div className="h-5 w-40 animate-pulse bg-muted" />
         <div className="h-16 w-3/4 animate-pulse bg-muted" />
         <div className="grid gap-5 lg:grid-cols-2">
-          <div className="h-72 animate-pulse border-4 border-border bg-muted/50" />
-          <div className="h-72 animate-pulse border-4 border-border bg-muted/50" />
+          <div className="h-72 animate-pulse rounded-xl border border-border bg-muted/50" />
+          <div className="h-72 animate-pulse rounded-xl border border-border bg-muted/50" />
         </div>
-        <div className="h-56 animate-pulse border-4 border-border bg-muted/50" />
+        <div className="h-56 animate-pulse rounded-xl border border-border bg-muted/50" />
       </div>
     );
   }
 
   if (dashError) {
     return (
-      <div data-testid="dashboard-error" className="border-4 border-destructive bg-destructive/10 p-8 shadow-[6px_6px_0px_0px_hsl(var(--destructive))]">
-        <h1 className="text-2xl font-black uppercase">Daily brief unavailable</h1>
+      <div data-testid="dashboard-error" className="rounded-xl border border-destructive bg-destructive/10 p-8 shadow-sm">
+        <h1 className="text-2xl font-bold uppercase">Daily brief unavailable</h1>
         <p className="mt-2 font-mono text-sm">{dashErrorValue instanceof Error ? dashErrorValue.message : "The dashboard feed could not be loaded."}</p>
         <BrutalButton data-testid="dashboard-retry-button" variant="destructive" className="mt-5" onClick={() => refetchDashboard()}>
           <RefreshCw size={16} /> Retry feed
@@ -318,17 +318,17 @@ export function Dashboard() {
 
   return (
     <div className="space-y-8 pb-8">
-      <header className="flex flex-col gap-5 border-b-4 border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <header className="flex flex-col gap-5 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 font-mono text-xs font-black uppercase tracking-[0.18em] text-primary">
+          <div className="mb-2 flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.18em] text-primary">
             <Command size={15} /> Mission Control / daily operating home
           </div>
-          <h1 data-testid="text-dashboard-title" className="text-2xl font-black uppercase tracking-[-0.06em] sm:text-xl">Make today move.</h1>
+          <h1 data-testid="text-dashboard-title" className="text-2xl font-bold uppercase tracking-[-0.06em] sm:text-xl">Make today move.</h1>
           <p className="mt-2 font-mono text-sm font-bold text-muted-foreground">{todayLabel} · decisions first, telemetry second.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div data-testid="status-main-system" className="flex items-center gap-2 border-4 border-border bg-card px-3 py-2 font-mono text-xs font-black uppercase shadow-[4px_4px_0px_0px_hsl(var(--border))]">
-            <span className={`h-3 w-3 border-2 border-border ${health?.status === "ok" ? "bg-primary" : "bg-destructive"}`} />
+          <div data-testid="status-main-system" className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 font-mono text-xs font-bold uppercase shadow-sm">
+            <span className={`h-3 w-3 rounded-lg border border-border ${health?.status === "ok" ? "bg-primary" : "bg-destructive"}`} />
             System {health?.status === "ok" ? "online" : "offline"}
           </div>
           <BrutalButton data-testid="button-refresh-signals" variant="default" className="px-3 py-2 text-xs" onClick={refreshAll}>
@@ -345,7 +345,7 @@ export function Dashboard() {
         />
       )}
 
-      <section data-testid="dashboard-needs-you" className="border-4 border-destructive bg-destructive/5 p-4 shadow-[6px_6px_0px_0px_hsl(var(--destructive))] sm:p-6">
+      <section data-testid="dashboard-needs-you" className="rounded-xl border border-destructive bg-destructive/5 p-4 shadow-sm sm:p-6">
         <SectionIntro
           eyebrow="01 / human decision queue"
           title="Needs you now"
@@ -372,8 +372,8 @@ export function Dashboard() {
             {pendingApprovals.length > 4 && <p className="font-mono text-xs font-bold text-muted-foreground">Showing 4 of {pendingApprovals.length}. Open approvals to review the rest.</p>}
             <ActionLink href="/approvals" testId="link-open-approvals">Open approval inbox</ActionLink>
           </div>
-          <div className="border-4 border-border bg-card p-4">
-            <div className="flex items-center gap-2 font-black uppercase"><CircleDot size={17} className="text-destructive" /> Blocked staff</div>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-2 font-bold uppercase"><CircleDot size={17} className="text-destructive" /> Blocked staff</div>
             <p className="mt-1 font-mono text-xs leading-relaxed text-muted-foreground">These operatives cannot make progress. Open the roster to change their state or assignment.</p>
             <div className="mt-4 space-y-3">
               {agentsError && <InlineError testId="agents-blocked-error" explanation="Staff status could not be loaded." onRetry={() => refetchAgents()} />}
@@ -381,7 +381,7 @@ export function Dashboard() {
               {blockedAgents.map((agent) => (
                 <div data-testid={`blocked-agent-${agent.id}`} key={agent.id} className="flex items-center justify-between gap-3 border-b-2 border-border pb-3 last:border-0 last:pb-0">
                   <div className="min-w-0">
-                    <div className="truncate font-black uppercase">{agent.name}</div>
+                    <div className="truncate font-bold uppercase">{agent.name}</div>
                     <div className="truncate font-mono text-xs text-muted-foreground">{agent.currentTask || "No current task recorded"}</div>
                   </div>
                   <BrutalBadge variant="destructive">blocked</BrutalBadge>
@@ -410,16 +410,16 @@ export function Dashboard() {
             ) : (
               <div className="space-y-4">
                 {activeAgents.slice(0, 6).map((agent: Agent) => (
-                  <div data-testid={`active-agent-${agent.id}`} key={agent.id} className="border-b-4 border-border pb-4 last:border-0 last:pb-0">
+                  <div data-testid={`active-agent-${agent.id}`} key={agent.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="truncate font-black uppercase">{agent.name}</h3>
+                        <h3 className="truncate font-bold uppercase">{agent.name}</h3>
                         <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{agent.role} · {agent.phase}</p>
                       </div>
                       <BrutalBadge variant={statusVariant(agent.status)}>{agent.status}</BrutalBadge>
                     </div>
                     <p className="mt-3 font-mono text-sm leading-relaxed">{agent.currentTask || "No current task recorded."}</p>
-                    <p className="mt-2 border-l-4 border-primary pl-2 font-mono text-xs text-muted-foreground">
+                    <p className="mt-2 border-l border-primary pl-2 font-mono text-xs text-muted-foreground">
                       Next: {agent.nextMove || "No next move recorded. Review the roster before assigning work."}
                     </p>
                   </div>
@@ -437,7 +437,7 @@ export function Dashboard() {
             ) : (
               <div className="space-y-3">
                 {activeTasks.slice(0, 7).map((task) => (
-                  <div data-testid={`task-row-${task.id}`} key={task.id} className="border-4 border-border bg-card p-3">
+                  <div data-testid={`task-row-${task.id}`} key={task.id} className="rounded-xl border border-border bg-card p-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         <p className="font-mono text-sm font-bold leading-relaxed">{task.title}</p>
@@ -473,19 +473,19 @@ export function Dashboard() {
       <section data-testid="dashboard-runtime-blockers" className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
         <BrutalCard title="Runtime health / restart blockers" action={<HeartPulse size={18} />}>
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div data-testid="metric-runtime-healthy" className="border-2 border-border bg-primary/10 p-3">
-              <p className="font-mono text-[11px] font-black uppercase text-muted-foreground">Healthy</p>
-              <p className="mt-1 font-mono text-2xl font-black text-primary">{healthyRuntimeCount}/{runtimeHealthList.length || "—"}</p>
+            <div data-testid="metric-runtime-healthy" className="rounded-lg border border-border bg-primary/10 p-3">
+              <p className="font-mono text-[11px] font-bold uppercase text-muted-foreground">Healthy</p>
+              <p className="mt-1 font-mono text-2xl font-bold text-primary">{healthyRuntimeCount}/{runtimeHealthList.length || "—"}</p>
               <p className="mt-1 font-mono text-[10px] text-muted-foreground">health records clear</p>
             </div>
-            <div data-testid="metric-runtime-blockers" className="border-2 border-border bg-destructive/10 p-3">
-              <p className="font-mono text-[11px] font-black uppercase text-muted-foreground">Blockers</p>
-              <p className="mt-1 font-mono text-2xl font-black text-destructive">{runtimeBlockers.length}</p>
+            <div data-testid="metric-runtime-blockers" className="rounded-lg border border-border bg-destructive/10 p-3">
+              <p className="font-mono text-[11px] font-bold uppercase text-muted-foreground">Blockers</p>
+              <p className="mt-1 font-mono text-2xl font-bold text-destructive">{runtimeBlockers.length}</p>
               <p className="mt-1 font-mono text-[10px] text-muted-foreground">need operator attention</p>
             </div>
-            <div data-testid="metric-runtime-links" className="border-2 border-border bg-accent/10 p-3">
-              <p className="font-mono text-[11px] font-black uppercase text-muted-foreground">Connections</p>
-              <p className="mt-1 font-mono text-2xl font-black">{runtimeConnectionList.length}</p>
+            <div data-testid="metric-runtime-links" className="rounded-lg border border-border bg-accent/10 p-3">
+              <p className="font-mono text-[11px] font-bold uppercase text-muted-foreground">Connections</p>
+              <p className="mt-1 font-mono text-2xl font-bold">{runtimeConnectionList.length}</p>
               <p className="mt-1 font-mono text-[10px] text-muted-foreground">available to dispatch</p>
             </div>
           </div>
@@ -509,9 +509,9 @@ export function Dashboard() {
           ) : (
             <div className="space-y-3">
               {runtimeConnectionList.map((connection: RuntimeConnectionSafe) => (
-                <div data-testid={`runtime-connection-${connection.id}`} key={connection.id} className="flex items-center justify-between gap-3 border-b-4 border-border pb-3 last:border-0 last:pb-0">
+                <div data-testid={`runtime-connection-${connection.id}`} key={connection.id} className="flex items-center justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0">
                   <div className="min-w-0">
-                    <p className="truncate font-black uppercase">{connection.name}</p>
+                    <p className="truncate font-bold uppercase">{connection.name}</p>
                     <p className="mt-1 font-mono text-xs text-muted-foreground">{connection.provider} · {connection.hasCredentials ? "credentials present" : "credentials missing"}</p>
                   </div>
                   <BrutalBadge variant={statusVariant(connection.status)}>{connection.status}</BrutalBadge>
@@ -522,7 +522,7 @@ export function Dashboard() {
         </BrutalCard>
       </section>
 
-      <section data-testid="dashboard-next-moves" className="border-4 border-border bg-primary/10 p-4 shadow-[6px_6px_0px_0px_hsl(var(--border))] sm:p-6">
+      <section data-testid="dashboard-next-moves" className="rounded-xl border border-border bg-primary/10 p-4 shadow-sm sm:p-6">
         <SectionIntro
           eyebrow="04 / operator guidance"
           title="Suggested next moves"
@@ -531,16 +531,16 @@ export function Dashboard() {
           icon={<Sparkles size={16} />}
         />
         <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="border-4 border-border bg-card p-4">
-            <div className="flex items-center gap-2 font-black uppercase"><Sparkles size={17} className="text-primary" /> Command recommendation</div>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-2 font-bold uppercase"><Sparkles size={17} className="text-primary" /> Command recommendation</div>
             <p data-testid="text-dashboard-recommendation" className="mt-3 font-mono text-base font-bold leading-relaxed">{dashboard?.recommendation || "No recommendation was returned. Review active work and runtime blockers manually."}</p>
             <div className="mt-5 flex flex-col gap-3">
-              <label htmlFor="dashboard-command" className="font-mono text-xs font-black uppercase">Queue a plain-language instruction</label>
+              <label htmlFor="dashboard-command" className="font-mono text-xs font-bold uppercase">Queue a plain-language instruction</label>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <input
                   id="dashboard-command"
                   data-testid="input-dashboard-command"
-                  className="min-w-0 flex-1 border-4 border-border bg-card p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/20"
+                  className="min-w-0 flex-1 rounded-xl border border-border bg-card p-3 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/20"
                   placeholder="Example: prepare a cost review for the live project"
                   value={command}
                   onChange={(event) => setCommand(event.target.value)}
@@ -560,14 +560,14 @@ export function Dashboard() {
               {createTask.isError && <p className="font-mono text-xs text-destructive">The instruction could not be queued. Try again after checking the work queue.</p>}
             </div>
           </div>
-          <div className="border-4 border-border bg-card p-4">
-            <div className="flex items-center gap-2 font-black uppercase"><Clock3 size={17} className="text-primary" /> Staff recommendations</div>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-2 font-bold uppercase"><Clock3 size={17} className="text-primary" /> Staff recommendations</div>
             <div className="mt-4 space-y-3">
               {agentsError && <InlineError testId="suggested-agents-error" explanation="Staff recommendations could not be loaded." onRetry={() => refetchAgents()} />}
               {!agentsError && activeAgents.filter((agent) => agent.nextMove).length === 0 && <EmptyState title="No staff next moves" explanation="No active agent has supplied a next move. Use the command box to create an explicit instruction." />}
               {activeAgents.filter((agent) => agent.nextMove).slice(0, 4).map((agent) => (
-                <div data-testid={`suggested-move-${agent.id}`} key={agent.id} className="border-l-4 border-primary bg-muted/40 p-3">
-                  <p className="font-black uppercase text-xs">{agent.name}</p>
+                <div data-testid={`suggested-move-${agent.id}`} key={agent.id} className="border-l border-primary bg-muted/40 p-3">
+                  <p className="font-bold uppercase text-xs">{agent.name}</p>
                   <p className="mt-1 font-mono text-xs leading-relaxed">{agent.nextMove}</p>
                 </div>
               ))}
@@ -579,22 +579,22 @@ export function Dashboard() {
 
       <section data-testid="dashboard-snapshot" className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <BrutalCard title="Monthly income" className="border-l-8 border-l-primary">
-          <div data-testid="metric-monthly-income" className="font-mono text-xl font-black text-primary">${((dashboard?.monthlyIncomeCents || 0) / 100).toFixed(2)}</div>
+          <div data-testid="metric-monthly-income" className="font-mono text-xl font-bold text-primary">${((dashboard?.monthlyIncomeCents || 0) / 100).toFixed(2)}</div>
           <p className="mt-2 font-mono text-xs text-muted-foreground">Revenue generated this month.</p>
         </BrutalCard>
         <BrutalCard title="Runway" className="border-l-8 border-l-secondary">
-          <div data-testid="metric-runway" className="font-mono text-xl font-black text-secondary">{dashboard?.runwayDays ?? "—"} days</div>
+          <div data-testid="metric-runway" className="font-mono text-xl font-bold text-secondary">{dashboard?.runwayDays ?? "—"} days</div>
           <p className="mt-2 font-mono text-xs text-muted-foreground">Estimated operating time remaining.</p>
         </BrutalCard>
         <BrutalCard title="Velocity" className="border-l-8 border-l-accent">
-          <div data-testid="metric-velocity" className="font-mono text-xl font-black text-accent">{dashboard?.velocityPercent ?? "—"}%</div>
+          <div data-testid="metric-velocity" className="font-mono text-xl font-bold text-accent-strong">{dashboard?.velocityPercent ?? "—"}%</div>
           <p className="mt-2 font-mono text-xs text-muted-foreground">Task completion rate reported by the dashboard.</p>
         </BrutalCard>
         <BrutalCard title="Recent activity" className="border-l-8 border-l-primary">
           {dashboard?.recentActivity?.length ? (
             <div data-testid="list-recent-activity" className="space-y-2">
               {dashboard.recentActivity.slice(0, 3).map((activity, index) => (
-                <p data-testid={`text-recent-activity-${index}`} key={`${activity}-${index}`} className="font-mono text-xs leading-relaxed"><span className="mr-2 font-black text-primary">&gt;</span>{activity}</p>
+                <p data-testid={`text-recent-activity-${index}`} key={`${activity}-${index}`} className="font-mono text-xs leading-relaxed"><span className="mr-2 font-bold text-primary">&gt;</span>{activity}</p>
               ))}
             </div>
           ) : (

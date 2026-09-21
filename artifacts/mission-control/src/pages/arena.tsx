@@ -62,7 +62,7 @@ function ContestantLoadoutEditor({ score }: { score: { agentId: number } }) {
       <div className="mt-4 border-t-2 border-border pt-3">
          {capabilities.length > 0 && (
             <div className="mb-3">
-               <div className="mb-2 text-[10px] font-black uppercase text-muted-foreground">Remove an assigned skill</div>
+               <div className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">Remove an assigned skill</div>
                <div className="flex flex-wrap gap-2">
                   {capabilities.map((capability) => (
                      <BrutalButton
@@ -70,7 +70,7 @@ function ContestantLoadoutEditor({ score }: { score: { agentId: number } }) {
                         type="button"
                         data-testid={`arena-remove-skill-${score.agentId}-${capability.skillId}`}
                         variant="default"
-                        className="gap-1 border-2 border-destructive/60 px-2 py-1 text-[10px] text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        className="gap-1 rounded-lg border border-destructive/60 px-2 py-1 text-[10px] text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         disabled={detachSkill.isPending}
                         onClick={() => remove(capability.skillId)}
                      >
@@ -80,7 +80,7 @@ function ContestantLoadoutEditor({ score }: { score: { agentId: number } }) {
                </div>
             </div>
          )}
-         <div className="mb-2 flex items-center justify-between gap-2 text-xs font-black uppercase">
+         <div className="mb-2 flex items-center justify-between gap-2 text-xs font-bold uppercase">
             <span>Adjust loadout</span>
             <span className="font-mono text-[10px] text-muted-foreground">Updates this house immediately</span>
          </div>
@@ -103,13 +103,13 @@ function ContestantLoadoutEditor({ score }: { score: { agentId: number } }) {
                {equipSkill.isPending ? <><Loader2 size={14} className="animate-spin" /> Equipping...</> : <><Zap size={14} /> Equip</>}
             </BrutalButton>
          </div>
-          {equipSkill.data && <div data-testid={`arena-equip-status-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">
-             <div className="flex flex-wrap items-center gap-2 font-black uppercase"><Check size={13} /> Local capability equipped <BrutalBadge variant={installationVariant(equipSkill.data.installation.status)} className="border-2 px-2 py-0.5 text-[10px]">{equipSkill.data.installation.status.replaceAll("_", " ")}</BrutalBadge></div>
+          {equipSkill.data && <div data-testid={`arena-equip-status-${score.agentId}`} className="mt-2 rounded-lg border border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">
+             <div className="flex flex-wrap items-center gap-2 font-bold uppercase"><Check size={13} /> Local capability equipped <BrutalBadge variant={installationVariant(equipSkill.data.installation.status)} className="rounded-lg border px-2 py-0.5 text-[10px]">{equipSkill.data.installation.status.replaceAll("_", " ")}</BrutalBadge></div>
              <p className="mt-2">{equipSkill.data.installation.message}</p>
-             {equipSkill.data.installation.status === "awaiting_approval" && <a href="/approvals" className="mt-2 inline-block font-black uppercase text-accent underline">Open approval inbox →</a>}
+             {equipSkill.data.installation.status === "awaiting_approval" && <a href="/approvals" className="mt-2 inline-block font-bold uppercase text-accent-strong underline">Open approval inbox →</a>}
           </div>}
-         {detachSkill.isSuccess && <div data-testid={`arena-remove-success-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">Skill removed. Tool lanes are refreshing from the saved loadout.</div>}
-         {(capabilitiesQuery.isError || equipSkill.isError || detachSkill.isError) && <div data-testid={`arena-loadout-error-${score.agentId}`} className="mt-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-[11px] text-destructive">{messageFor(equipSkill.error || detachSkill.error || capabilitiesQuery.error, "This contestant's loadout could not be updated.")}</div>}
+         {detachSkill.isSuccess && <div data-testid={`arena-remove-success-${score.agentId}`} className="mt-2 rounded-lg border border-primary bg-primary/10 p-2 font-mono text-[11px] text-foreground">Skill removed. Tool lanes are refreshing from the saved loadout.</div>}
+         {(capabilitiesQuery.isError || equipSkill.isError || detachSkill.isError) && <div data-testid={`arena-loadout-error-${score.agentId}`} className="mt-2 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-[11px] text-destructive">{messageFor(equipSkill.error || detachSkill.error || capabilitiesQuery.error, "This contestant's loadout could not be updated.")}</div>}
       </div>
    );
 }
@@ -186,22 +186,22 @@ function VerifiedEvidenceEditor({
    return (
       <div className="mt-4 border-t-2 border-border pt-3">
          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs font-black uppercase"><Trophy size={14} className="text-accent" /> Verified scorecard</div>
-            <div className="font-mono text-xs font-black text-accent">{score.verifiedScore ?? score.score} PTS <span className="text-muted-foreground">/ {score.evidenceCount ?? 0} checks</span></div>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase"><Trophy size={14} className="text-accent-strong" /> Verified scorecard</div>
+            <div className="font-mono text-xs font-bold text-accent-strong">{score.verifiedScore ?? score.score} PTS <span className="text-muted-foreground">/ {score.evidenceCount ?? 0} checks</span></div>
          </div>
          <p className="mt-1 font-mono text-[10px] text-muted-foreground">Only the latest verified result for each metric counts. Record infrastructure or provider evidence, not contestant claims.</p>
-         {score.verifiedMetrics?.length ? <div className="mt-2 flex flex-wrap gap-1">{score.verifiedMetrics.map((item) => <BrutalBadge key={item} variant="default" className="border-2 px-2 py-0.5 text-[10px]">{item}</BrutalBadge>)}</div> : null}
-         <div className="mt-3 border-2 border-border bg-muted/20">
-            <div className="border-b-2 border-border px-2 py-1 font-mono text-[10px] font-black uppercase">Evidence trail</div>
+         {score.verifiedMetrics?.length ? <div className="mt-2 flex flex-wrap gap-1">{score.verifiedMetrics.map((item) => <BrutalBadge key={item} variant="default" className="rounded-lg border px-2 py-0.5 text-[10px]">{item}</BrutalBadge>)}</div> : null}
+         <div className="mt-3 rounded-lg border border-border bg-muted/20">
+            <div className="border-b-2 border-border px-2 py-1 font-mono text-[10px] font-bold uppercase">Evidence trail</div>
             {evidence.length ? (
                <div className="max-h-40 overflow-y-auto">
                   {evidence.map((item) => (
                      <div key={item.id} data-testid={`arena-evidence-row-${item.id}`} className="grid gap-1 border-b border-border px-2 py-2 last:border-b-0 sm:grid-cols-[1.2fr_auto_1fr] sm:items-center">
                         <div>
-                           <div className="font-mono text-[11px] font-black uppercase">{evidenceOptions.find((option) => option.value === item.metric)?.label ?? item.metric}</div>
+                           <div className="font-mono text-[11px] font-bold uppercase">{evidenceOptions.find((option) => option.value === item.metric)?.label ?? item.metric}</div>
                            <div className="font-mono text-[10px] text-muted-foreground">Round {item.round} · {new Date(item.verifiedAt).toLocaleString()}</div>
                         </div>
-                        <div className="font-mono text-sm font-black text-primary">{formatEvidenceValue(item.metric, item.value)}</div>
+                        <div className="font-mono text-sm font-bold text-primary">{formatEvidenceValue(item.metric, item.value)}</div>
                         <div className="font-mono text-[10px] text-muted-foreground sm:text-right">Verified by {item.verifiedBy} via {item.source}</div>
                      </div>
                   ))}
@@ -212,19 +212,19 @@ function VerifiedEvidenceEditor({
          </div>
          <form onSubmit={submit} className="mt-3 grid gap-2 md:grid-cols-[1.3fr_0.8fr_1.3fr_auto]">
             <label className="sr-only" htmlFor={`arena-evidence-metric-${score.agentId}`}>Verified metric</label>
-            <select id={`arena-evidence-metric-${score.agentId}`} data-testid={`arena-evidence-metric-${score.agentId}`} value={metric} onChange={(event) => setMetric(event.target.value as typeof metric)} className="border-2 border-border bg-background p-2 font-mono text-xs font-bold focus:outline-none">
+            <select id={`arena-evidence-metric-${score.agentId}`} data-testid={`arena-evidence-metric-${score.agentId}`} value={metric} onChange={(event) => setMetric(event.target.value as typeof metric)} className="rounded-lg border border-border bg-background p-2 font-mono text-xs font-bold focus:outline-none">
                {evidenceOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
             <label className="sr-only" htmlFor={`arena-evidence-value-${score.agentId}`}>Verified value</label>
-            <input id={`arena-evidence-value-${score.agentId}`} data-testid={`arena-evidence-value-${score.agentId}`} type="number" min="0" step="1" value={value} onChange={(event) => setValue(event.target.value)} placeholder={selectedOption?.placeholder} className="border-2 border-border bg-background p-2 font-mono text-xs focus:outline-none" />
+            <input id={`arena-evidence-value-${score.agentId}`} data-testid={`arena-evidence-value-${score.agentId}`} type="number" min="0" step="1" value={value} onChange={(event) => setValue(event.target.value)} placeholder={selectedOption?.placeholder} className="rounded-lg border border-border bg-background p-2 font-mono text-xs focus:outline-none" />
             <label className="sr-only" htmlFor={`arena-evidence-source-${score.agentId}`}>Evidence source</label>
-            <input id={`arena-evidence-source-${score.agentId}`} data-testid={`arena-evidence-source-${score.agentId}`} value={source} onChange={(event) => setSource(event.target.value)} placeholder="Source or provider receipt" className="border-2 border-border bg-background p-2 font-mono text-xs focus:outline-none" />
+            <input id={`arena-evidence-source-${score.agentId}`} data-testid={`arena-evidence-source-${score.agentId}`} value={source} onChange={(event) => setSource(event.target.value)} placeholder="Source or provider receipt" className="rounded-lg border border-border bg-background p-2 font-mono text-xs focus:outline-none" />
             <BrutalButton data-testid={`arena-evidence-submit-${score.agentId}`} type="submit" variant="accent" disabled={recordEvidence.isPending || !value.trim() || !source.trim()} className="justify-center px-3 text-xs">
                {recordEvidence.isPending ? <Loader2 size={14} className="animate-spin" /> : "Verify + score"}
             </BrutalButton>
          </form>
-         {recordEvidence.isSuccess && <div data-testid={`arena-evidence-success-${score.agentId}`} className="mt-2 border-2 border-primary bg-primary/10 p-2 font-mono text-[11px]">Evidence recorded. The Game Master score is now {recordEvidence.data.verifiedScore} points.</div>}
-         {recordEvidence.isError && <div data-testid={`arena-evidence-error-${score.agentId}`} className="mt-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-[11px] text-destructive">{messageFor(recordEvidence.error, "Evidence could not be recorded. Check the value and try again.")}</div>}
+         {recordEvidence.isSuccess && <div data-testid={`arena-evidence-success-${score.agentId}`} className="mt-2 rounded-lg border border-primary bg-primary/10 p-2 font-mono text-[11px]">Evidence recorded. The Game Master score is now {recordEvidence.data.verifiedScore} points.</div>}
+         {recordEvidence.isError && <div data-testid={`arena-evidence-error-${score.agentId}`} className="mt-2 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-[11px] text-destructive">{messageFor(recordEvidence.error, "Evidence could not be recorded. Check the value and try again.")}</div>}
       </div>
    );
 }
@@ -276,16 +276,16 @@ export function Arena() {
    };
 
    if (isLoading) return <div className="p-4 font-mono font-bold animate-pulse text-2xl uppercase">Connecting to Arena Server...</div>;
-   if (isError) return <div data-testid="arena-error" className="border-4 border-destructive bg-destructive/10 p-4"><h1 className="text-2xl font-black uppercase">Arena feed interrupted</h1><p className="mt-2 font-mono text-sm">{error instanceof Error ? error.message : "The BuildOff state could not be loaded."}</p><BrutalButton data-testid="arena-retry-button" variant="destructive" className="mt-5" onClick={() => refetch()}><RefreshCw size={16} /> Retry feed</BrutalButton></div>;
+   if (isError) return <div data-testid="arena-error" className="rounded-xl border border-destructive bg-destructive/10 p-4"><h1 className="text-2xl font-bold uppercase">Arena feed interrupted</h1><p className="mt-2 font-mono text-sm">{error instanceof Error ? error.message : "The BuildOff state could not be loaded."}</p><BrutalButton data-testid="arena-retry-button" variant="destructive" className="mt-5" onClick={() => refetch()}><RefreshCw size={16} /> Retry feed</BrutalButton></div>;
 
    return (
       <div className="space-y-4 pb-12">
           <div className="flex flex-col justify-between items-start gap-4 md:flex-row md:items-center">
             <div className="max-w-3xl">
-              <h1 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-4">
+              <h1 className="text-2xl font-bold uppercase tracking-tighter flex items-center gap-4">
                  <Swords className="text-destructive drop-shadow-md" size={48} /> BuildOff Arena
               </h1>
-              <p className="text-muted-foreground font-mono mt-4 text-lg border-l-4 border-destructive pl-4">
+              <p className="text-muted-foreground font-mono mt-4 text-lg border-l border-destructive pl-4">
                  The ultimate testing ground. Watch agents compete in real-time to maximize revenue and hit win conditions before the timer runs out.
               </p>
           </div>
@@ -294,30 +294,30 @@ export function Arena() {
 
          {/* Arena Status Panel */}
          <BrutalCard className="bg-destructive/10 border-destructive border-t-8">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b-4 border-destructive pb-6 mb-3 gap-3">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-destructive pb-6 mb-3 gap-3">
                <div className="flex items-center gap-3">
-                  <div className="text-2xl font-black font-mono text-destructive tracking-tighter shadow-[4px_4px_0_hsl(var(--border))]">
+                  <div className="text-2xl font-bold font-mono text-destructive tracking-tighter shadow-sm">
                      {Math.floor((arena?.secondsRemaining || 0) / 60)}:{((arena?.secondsRemaining || 0) % 60).toString().padStart(2, '0')}
                   </div>
                   <div className="flex flex-col gap-3">
-                     <div className="text-base font-bold uppercase text-foreground bg-card px-4 py-2 border-4 border-border shadow-[4px_4px_0_hsl(var(--border))]">Round {arena?.round} / {arena?.totalRounds}</div>
-                     <BrutalBadge variant={arena?.status === 'live' ? 'destructive' : 'default'} className="text-base py-1.5 shadow-[2px_2px_0_hsl(var(--border))] border-4">
+                     <div className="text-base font-bold uppercase text-foreground bg-card px-4 py-2 rounded-xl border border-border shadow-sm">Round {arena?.round} / {arena?.totalRounds}</div>
+                     <BrutalBadge variant={arena?.status === 'live' ? 'destructive' : 'default'} className="text-base py-1.5 shadow-sm rounded-xl border">
                         {arena?.status}
                      </BrutalBadge>
                   </div>
                </div>
                
-               <div className="bg-card border-4 border-border p-4 shadow-[4px_4px_0_hsl(var(--border))] lg:w-96 shrink-0 flex flex-col gap-2">
+               <div className="bg-card rounded-xl border border-border p-4 shadow-sm lg:w-96 shrink-0 flex flex-col gap-2">
                   <h3 className="font-bold uppercase text-xs text-muted-foreground flex items-center gap-2">
-                     <Trophy size={14} className="text-accent" /> Win Condition
+                     <Trophy size={14} className="text-accent-strong" /> Win Condition
                   </h3>
-                  <div className="font-mono font-black text-2xl text-accent">
+                  <div className="font-mono font-bold text-2xl text-accent-strong">
                      ${((arena?.winConditionCents || 0) / 100).toFixed(2)} REV
                   </div>
                </div>
             </div>
 
-            <div className="flex flex-wrap gap-4 bg-card border-4 border-border p-4 shadow-[4px_4px_0_hsl(var(--border))]">
+            <div className="flex flex-wrap gap-4 bg-card rounded-xl border border-border p-4 shadow-sm">
                 <BrutalButton variant="destructive" onClick={() => handleAction('start')} disabled={advance.isPending || arena?.status === 'live' || arena?.status === 'complete'} className="flex items-center gap-2 flex-1 md:flex-none justify-center">
                   <Play size={18} /> START MATCH
                </BrutalButton>
@@ -331,21 +331,21 @@ export function Arena() {
                   <RotateCcw size={18} /> RESET ARENA
                </BrutalButton>
             </div>
-             {advance.isPending && <div className="mt-3 flex items-center gap-2 border-2 border-border bg-accent/10 p-2 font-mono text-xs font-bold uppercase"><Loader2 size={14} className="animate-spin" /> Sending arena control signal...</div>}
-             {advance.isError && <div data-testid="arena-action-error" className="mt-3 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">Arena control signal failed. The live feed was not changed; retry when the service is available.</div>}
-             {advance.isSuccess && !advance.isPending && <div data-testid="arena-action-success" className="mt-3 border-2 border-primary bg-primary/10 p-2 font-mono text-xs font-bold uppercase">Arena control signal acknowledged. The feed will refresh automatically.</div>}
+             {advance.isPending && <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-accent/10 p-2 font-mono text-xs font-bold uppercase"><Loader2 size={14} className="animate-spin" /> Sending arena control signal...</div>}
+             {advance.isError && <div data-testid="arena-action-error" className="mt-3 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">Arena control signal failed. The live feed was not changed; retry when the service is available.</div>}
+             {advance.isSuccess && !advance.isPending && <div data-testid="arena-action-success" className="mt-3 rounded-lg border border-primary bg-primary/10 p-2 font-mono text-xs font-bold uppercase">Arena control signal acknowledged. The feed will refresh automatically.</div>}
          </BrutalCard>
 
           {showSetup && (
              <BrutalCard title={<span className="flex items-center gap-2"><UserPlus size={18} /> Contestant setup</span>} className="border-accent bg-accent/10">
                 <p className="mb-4 max-w-3xl font-mono text-sm text-muted-foreground">Create a named contestant and optionally place it on a project. It starts waiting; launch work from the live roster when you are ready.</p>
                  <div className="grid gap-4 md:grid-cols-4">
-                   <label className="text-xs font-black uppercase">Callsign<input data-testid="arena-contestant-name" value={contestant.name} onChange={(event) => setContestant({ ...contestant, name: event.target.value })} placeholder="e.g. VECTOR" className="mt-2 w-full border-4 border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none" /></label>
-                   <label className="text-xs font-black uppercase">Specialty<input data-testid="arena-contestant-role" value={contestant.role} onChange={(event) => setContestant({ ...contestant, role: event.target.value })} placeholder="e.g. Growth operator" className="mt-2 w-full border-4 border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none" /></label>
-                   <label className="text-xs font-black uppercase">Provider<select data-testid="arena-contestant-provider" value={contestant.provider} onChange={(event) => setContestant({ ...contestant, provider: event.target.value })} className="mt-2 w-full border-4 border-border bg-card p-2 font-mono text-sm font-normal focus:outline-none"><option value="OpenClaw">OpenClaw</option><option value="Hermes">Hermes</option></select></label>
-                   <label className="text-xs font-black uppercase">Project<select data-testid="arena-contestant-project" value={contestant.projectId} onChange={(event) => setContestant({ ...contestant, projectId: event.target.value })} className="mt-2 w-full border-4 border-border bg-card p-2 font-mono text-sm font-normal focus:outline-none"><option value="">No project yet</option>{projectsQuery.data?.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-                   <fieldset className="border-4 border-border bg-card p-3 md:col-span-2">
-                      <legend className="px-1 text-xs font-black uppercase">Initial skill loadout</legend>
+                   <label className="text-xs font-bold uppercase">Callsign<input data-testid="arena-contestant-name" value={contestant.name} onChange={(event) => setContestant({ ...contestant, name: event.target.value })} placeholder="e.g. VECTOR" className="mt-2 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none" /></label>
+                   <label className="text-xs font-bold uppercase">Specialty<input data-testid="arena-contestant-role" value={contestant.role} onChange={(event) => setContestant({ ...contestant, role: event.target.value })} placeholder="e.g. Growth operator" className="mt-2 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none" /></label>
+                   <label className="text-xs font-bold uppercase">Provider<select data-testid="arena-contestant-provider" value={contestant.provider} onChange={(event) => setContestant({ ...contestant, provider: event.target.value })} className="mt-2 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-normal focus:outline-none"><option value="OpenClaw">OpenClaw</option><option value="Hermes">Hermes</option></select></label>
+                   <label className="text-xs font-bold uppercase">Project<select data-testid="arena-contestant-project" value={contestant.projectId} onChange={(event) => setContestant({ ...contestant, projectId: event.target.value })} className="mt-2 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-normal focus:outline-none"><option value="">No project yet</option>{projectsQuery.data?.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+                   <fieldset className="rounded-xl border border-border bg-card p-3 md:col-span-2">
+                      <legend className="px-1 text-xs font-bold uppercase">Initial skill loadout</legend>
                       <p className="mb-2 font-mono text-xs font-normal normal-case text-muted-foreground">Skills are equipped locally now. Any runtime installation still waits for approval.</p>
                       {selectedSkills.length > 0 && (
                          <div className="mb-2 flex flex-wrap gap-1">
@@ -354,7 +354,7 @@ export function Arena() {
                                   key={skill.id}
                                   type="button"
                                   onClick={() => setSelectedSkills((current) => current.filter((item) => item.id !== skill.id))}
-                                  className="flex items-center gap-1 border-2 border-border bg-accent/20 px-1.5 py-0.5 font-mono text-[10px] font-bold normal-case hover:bg-destructive/20"
+                                  className="flex items-center gap-1 rounded-lg border border-border bg-accent/20 px-1.5 py-0.5 font-mono text-[10px] font-bold normal-case hover:bg-destructive/20"
                                >
                                   {skill.name} <X size={10} />
                                </button>
@@ -377,7 +377,7 @@ export function Arena() {
                       </div>
                    </fieldset>
                 </div>
-                {(createAgent.isError || setupError) && <p data-testid="arena-contestant-error" className="mt-3 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{setupError || "Contestant could not be created. Keep the details and try again."}</p>}
+                {(createAgent.isError || setupError) && <p data-testid="arena-contestant-error" className="mt-3 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{setupError || "Contestant could not be created. Keep the details and try again."}</p>}
                 <div className="mt-5 flex gap-3"><BrutalButton data-testid="arena-create-contestant" disabled={createAgent.isPending || equipSkill.isPending || !contestant.name.trim() || !contestant.role.trim()} onClick={createContestant}>{createAgent.isPending || equipSkill.isPending ? <><Loader2 size={15} className="animate-spin" /> Preparing...</> : "Add contestant"}</BrutalButton><BrutalButton variant="default" onClick={() => setShowSetup(false)}>Cancel</BrutalButton></div>
              </BrutalCard>
           )}
@@ -388,18 +388,18 @@ export function Arena() {
 
          {/* The House / Contestants */}
          <div className="mt-8 space-y-3">
-            <h2 className="text-base font-black uppercase tracking-tighter border-b-2 border-border pb-2 flex justify-between items-end">
+            <h2 className="text-base font-bold uppercase tracking-tighter border-b-2 border-border pb-2 flex justify-between items-end">
                Contestant Houses
                <span className="text-base font-mono text-muted-foreground">LIVE FEED</span>
             </h2>
             
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {[...(arena?.scores || [])].sort((a, b) => b.score - a.score).map((score, idx) => (
-                 <div key={score.agentId} className={`border-8 ${idx === 0 && arena?.status !== 'ready' ? 'border-accent shadow-[8px_8px_0_hsl(var(--accent))]' : 'border-border shadow-[8px_8px_0_hsl(var(--border))]'} bg-card relative overflow-hidden transition-all hover:-translate-y-1`}>
+                 <div key={score.agentId} className={`border-8 ${idx === 0 && arena?.status !== 'ready' ? 'border-accent shadow-sm' : 'border-border shadow-sm'} bg-card relative overflow-hidden transition-all`}>
                      
                      {/* Leader Banner */}
                      {idx === 0 && arena?.status !== 'ready' && (
-                        <div className="absolute top-4 -right-12 bg-accent text-accent-foreground font-black uppercase text-xs py-1 px-12 rotate-45 border-y-4 border-border shadow-sm z-10">
+                        <div className="absolute top-4 -right-12 bg-accent text-accent-foreground font-bold uppercase text-xs py-1 px-12 rotate-45 border-y-4 border-border shadow-sm z-10">
                            LEADER
                         </div>
                      )}
@@ -410,20 +410,20 @@ export function Arena() {
                            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase mb-1">
                               <MapPin size={14} /> {score.room || 'MAIN HALL'}
                            </div>
-                           <h3 className="text-lg font-black uppercase tracking-tighter truncate" title={score.agentName}>{score.agentName}</h3>
+                           <h3 className="text-lg font-bold uppercase tracking-tighter truncate" title={score.agentName}>{score.agentName}</h3>
                             <div className="flex items-center gap-3 mt-3 flex-wrap">
-                              <BrutalBadge variant="primary" className="border-4 shadow-[2px_2px_0_hsl(var(--border))] px-3 py-1 text-sm">{score.phase || 'IDLE'}</BrutalBadge>
-                              <div className="flex items-center gap-1 font-mono text-xs font-bold bg-background border-2 border-border px-2 py-1">
+                              <BrutalBadge variant="primary" className="rounded-xl border shadow-sm px-3 py-1 text-sm">{score.phase || 'IDLE'}</BrutalBadge>
+                              <div className="flex items-center gap-1 font-mono text-xs font-bold bg-background rounded-lg border border-border px-2 py-1">
                                  <Monitor size={12} className={score.computerStatus?.includes('ONLINE') ? 'text-green-500' : 'text-destructive'} /> 
                                   {score.computerStatus || 'SYS_OFFLINE'}
                               </div>
-                               <div className="flex items-center gap-2 border-2 border-border bg-background px-2 py-1 font-mono text-xs font-bold uppercase"><span className={`arena-worker ${score.computerStatus === "idle" ? "arena-worker-idle" : ""}`} /> {score.computerStatus || "idle"}</div>
+                               <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-2 py-1 font-mono text-xs font-bold uppercase"><span className={`arena-worker ${score.computerStatus === "idle" ? "arena-worker-idle" : ""}`} /> {score.computerStatus || "idle"}</div>
                            </div>
                         </div>
                         
                         <div className="w-48 shrink-0 border-l-8 border-border bg-card p-3 flex flex-col items-end justify-center">
                            <div className="text-sm font-bold uppercase text-muted-foreground mb-1 text-right">Match Score</div>
-                           <div className="text-2xl font-mono font-black tracking-tighter">{score.score}</div>
+                           <div className="text-2xl font-mono font-bold tracking-tighter">{score.score}</div>
                         </div>
                      </div>
 
@@ -434,7 +434,7 @@ export function Arena() {
                               <span>First $100</span>
                               <span className="font-mono">{score.progressPercent || 0}%</span>
                            </div>
-                           <div className="h-4 w-full bg-muted border-2 border-border relative overflow-hidden">
+                           <div className="h-4 w-full bg-muted rounded-lg border border-border relative overflow-hidden">
                               <div 
                                  className="absolute top-0 left-0 bottom-0 bg-primary transition-all duration-500" 
                                  style={{ width: `${score.progressPercent || 0}%` }}
@@ -443,14 +443,14 @@ export function Arena() {
                         </div>
                         <div className="p-4 flex flex-col justify-center items-end bg-primary/5">
                            <div className="text-xs font-bold uppercase text-muted-foreground mb-1">Total Scale Rev</div>
-                           <div className="text-base font-mono font-black text-primary">${((score.scaleRevenueCents || score.incomeCents) / 100).toFixed(2)}</div>
+                           <div className="text-base font-mono font-bold text-primary">${((score.scaleRevenueCents || score.incomeCents) / 100).toFixed(2)}</div>
                         </div>
                      </div>
 
                      {/* Action & Status */}
                      <div className="p-3 grid grid-cols-1 md:grid-cols-2 gap-3 bg-card">
                          <div className="space-y-2">
-                           <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground border-b-4 border-border pb-1">
+                           <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground border-b border-border pb-1">
                               <Code2 size={14} /> Startup Idea
                            </div>
                            <div className="font-mono text-sm leading-relaxed min-h-12">
@@ -458,21 +458,21 @@ export function Arena() {
                            </div>
                          </div>
                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 border-b-4 border-border pb-1 text-xs font-bold uppercase text-muted-foreground"><Wrench size={14} /> Contestant loadout</div>
+                            <div className="flex items-center gap-2 border-b border-border pb-1 text-xs font-bold uppercase text-muted-foreground"><Wrench size={14} /> Contestant loadout</div>
                             <div className="flex flex-wrap gap-2">
                                {(score.assignedSkills || []).length > 0 ? score.assignedSkills?.map((skill) => <BrutalBadge key={skill} variant="accent">{skill}</BrutalBadge>) : <span className="font-mono text-xs text-muted-foreground">No skills assigned yet. Equip this contestant from the roster.</span>}
                             </div>
-                            <div className="font-mono text-xs text-muted-foreground"><span className="font-black uppercase text-foreground">Tool lanes:</span> {(score.tools || []).length > 0 ? score.tools?.join(" / ") : "none reported"}</div>
+                            <div className="font-mono text-xs text-muted-foreground"><span className="font-bold uppercase text-foreground">Tool lanes:</span> {(score.tools || []).length > 0 ? score.tools?.join(" / ") : "none reported"}</div>
                              <ContestantLoadoutEditor score={score} />
                              <VerifiedEvidenceEditor score={score} round={arena?.round ?? 1} evidence={(evidenceQuery.data?.evidence ?? []).filter((item) => item.agentId === score.agentId)} />
                         </div>
 
                          <div className="space-y-2 md:col-span-2">
-                            <div className="flex items-center justify-between gap-2 border-b-4 border-border pb-1 text-xs font-bold uppercase text-muted-foreground"><span className="flex items-center gap-2"><UnlockKeyhole size={14} /> Round tool access</span><span>{score.toolAccess?.filter((tool) => tool.available).length ?? 0} / {score.toolAccess?.length ?? 0} allowed</span></div>
+                            <div className="flex items-center justify-between gap-2 border-b border-border pb-1 text-xs font-bold uppercase text-muted-foreground"><span className="flex items-center gap-2"><UnlockKeyhole size={14} /> Round tool access</span><span>{score.toolAccess?.filter((tool) => tool.available).length ?? 0} / {score.toolAccess?.length ?? 0} allowed</span></div>
                             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                                {score.toolAccess?.map((tool) => (
-                                  <div key={tool.key} data-testid={`arena-tool-${score.agentId}-${tool.key}`} className={`border-2 p-2 ${tool.available ? "border-primary bg-primary/5" : "border-destructive/60 bg-destructive/5"}`} title={tool.description}>
-                                     <div className="flex items-center gap-1.5 font-mono text-xs font-black">{tool.available ? <UnlockKeyhole size={13} className="text-primary" /> : <LockKeyhole size={13} className="text-destructive" />}{tool.label}</div>
+                                  <div key={tool.key} data-testid={`arena-tool-${score.agentId}-${tool.key}`} className={`rounded-lg border p-2 ${tool.available ? "border-primary bg-primary/5" : "border-destructive/60 bg-destructive/5"}`} title={tool.description}>
+                                     <div className="flex items-center gap-1.5 font-mono text-xs font-bold">{tool.available ? <UnlockKeyhole size={13} className="text-primary" /> : <LockKeyhole size={13} className="text-destructive" />}{tool.label}</div>
                                      <div className="mt-1 font-mono text-[10px] text-muted-foreground">{tool.available ? `Allowed via ${tool.source}` : tool.unlockCondition}</div>
                                      {tool.overrideReason && <div className="mt-1 font-mono text-[10px]">GM reason: {tool.overrideReason}</div>}
                                   </div>
@@ -481,10 +481,10 @@ export function Arena() {
                          </div>
                         
                         <div className="space-y-2">
-                           <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground border-b-4 border-border pb-1">
+                           <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground border-b border-border pb-1">
                               <Zap size={14} /> Next Move
                            </div>
-                           <div className="font-mono text-sm font-bold bg-muted/50 p-3 border-4 border-border shadow-inner min-h-12 truncate" title={score.nextMove || "Calculating..."}>
+                           <div className="font-mono text-sm font-bold bg-muted/50 p-3 rounded-xl border border-border shadow-inner min-h-12 truncate" title={score.nextMove || "Calculating..."}>
                               {score.nextMove || "Calculating optimal trajectory..."}
                            </div>
                         </div>
@@ -495,7 +495,7 @@ export function Arena() {
                {(!arena?.scores || arena.scores.length === 0) && (
                   <div className="col-span-full p-16 border-8 border-dashed border-border bg-muted/20 text-center flex flex-col items-center justify-center gap-4">
                      <Swords size={64} className="text-muted-foreground opacity-50" />
-                     <div className="font-mono font-black text-2xl uppercase tracking-widest text-muted-foreground">THE HOUSE IS EMPTY</div>
+                     <div className="font-mono font-bold text-2xl uppercase tracking-widest text-muted-foreground">THE HOUSE IS EMPTY</div>
                      <p className="font-mono text-sm font-bold max-w-md">Assign agents to the Arena project to watch them compete in the BuildOff simulation.</p>
                   </div>
                )}

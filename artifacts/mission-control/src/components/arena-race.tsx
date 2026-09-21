@@ -30,7 +30,7 @@ function StarRow({ value }: { value: number }) {
       {[1, 2, 3, 4, 5].map((step) => (
         <span
           key={step}
-          className={`size-2 border border-border ${step <= value ? "bg-primary" : "bg-transparent"}`}
+          className={`size-2 rounded-full border border-border ${step <= value ? "bg-primary" : "bg-transparent"}`}
         />
       ))}
     </span>
@@ -54,31 +54,31 @@ function ProfileEditor({ contestant, onDone }: { contestant: RaceContestant; onD
 
   return (
     <div className="mt-2 border-t-2 border-border pt-2">
-      <label className="block font-mono text-[10px] font-black uppercase text-muted-foreground">
+      <label className="block font-mono text-[10px] font-bold uppercase text-muted-foreground">
         Personality
         <textarea
           value={personality}
           onChange={(event) => setPersonality(event.target.value)}
           rows={2}
           placeholder="Impatient. Ships fast, skips validation, talks big."
-          className="mt-1 w-full border-2 border-border bg-background p-1.5 font-sans text-[11px] font-normal normal-case outline-none focus:ring-2 focus:ring-primary/20"
+          className="mt-1 w-full rounded-lg border border-border bg-background p-1.5 font-sans text-[11px] font-normal normal-case outline-none focus:ring-2 focus:ring-primary/20"
         />
       </label>
 
-      <label className="mt-1.5 block font-mono text-[10px] font-black uppercase text-muted-foreground">
+      <label className="mt-1.5 block font-mono text-[10px] font-bold uppercase text-muted-foreground">
         Catchphrase
         <input
           value={catchphrase}
           onChange={(event) => setCatchphrase(event.target.value)}
           placeholder="Ship it and find out."
-          className="mt-1 w-full border-2 border-border bg-background p-1.5 font-sans text-[11px] font-normal normal-case outline-none focus:ring-2 focus:ring-primary/20"
+          className="mt-1 w-full rounded-lg border border-border bg-background p-1.5 font-sans text-[11px] font-normal normal-case outline-none focus:ring-2 focus:ring-primary/20"
         />
       </label>
 
       <div className="mt-2 space-y-1">
         {TRAIT_KEYS.map((trait) => (
           <label key={trait.key} className="flex items-center gap-2">
-            <span className="w-16 shrink-0 font-mono text-[10px] font-black uppercase text-muted-foreground">{trait.label}</span>
+            <span className="w-16 shrink-0 font-mono text-[10px] font-bold uppercase text-muted-foreground">{trait.label}</span>
             <input
               type="range"
               min={1}
@@ -114,14 +114,14 @@ function ContestantRow({ contestant, prizeCents }: { contestant: RaceContestant;
 
   return (
     <div
-      className={`border-2 p-2 ${contestant.finished ? "border-accent bg-accent/10" : "border-border bg-card"}`}
+      className={`rounded-lg border p-2 ${contestant.finished ? "border-accent bg-accent/10" : "border-border bg-card"}`}
       data-testid={`race-contestant-${contestant.id}`}
     >
       <div className="flex items-start gap-2">
         <div className="relative shrink-0">
-          <PixelAvatar seed={contestant.name} size={44} className="border-2 border-border" />
+          <PixelAvatar seed={contestant.name} size={44} className="rounded-lg border border-border" />
           <span
-            className={`absolute -left-1 -top-1 flex size-4 items-center justify-center border-2 border-border font-mono text-[9px] font-black ${
+            className={`absolute -left-1 -top-1 flex size-4 items-center justify-center rounded-lg border border-border font-mono text-[9px] font-bold ${
               MEDALS[contestant.rank - 1] ?? "bg-card"
             }`}
           >
@@ -131,8 +131,8 @@ function ContestantRow({ contestant, prizeCents }: { contestant: RaceContestant;
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-sm font-black uppercase tracking-tight">{contestant.name}</span>
-            {contestant.finished && <Crown size={13} className="text-accent" />}
+            <span className="text-sm font-bold uppercase tracking-tight">{contestant.name}</span>
+            {contestant.finished && <Crown size={13} className="text-accent-strong" />}
             <BrutalBadge variant="secondary">{contestant.provider}</BrutalBadge>
             <button
               onClick={() => setEditing((value) => !value)}
@@ -150,13 +150,13 @@ function ContestantRow({ contestant, prizeCents }: { contestant: RaceContestant;
           )}
 
           <div className="mt-1.5 flex items-center gap-2">
-            <div className="h-3 min-w-0 flex-1 border-2 border-border bg-muted">
+            <div className="h-3 min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-muted">
               <div
                 className={`h-full ${contestant.finished ? "bg-accent" : "bg-primary"}`}
                 style={{ width: `${contestant.percentToPrize}%` }}
               />
             </div>
-            <span className="shrink-0 font-mono text-[11px] font-black tabular-nums">{money(contestant.earnedCents)}</span>
+            <span className="shrink-0 font-mono text-[11px] font-bold tabular-nums">{money(contestant.earnedCents)}</span>
             <span className="shrink-0 font-mono text-[10px] text-muted-foreground">/ {money(prizeCents)}</span>
           </div>
 
@@ -203,13 +203,13 @@ export function ArenaRace() {
         </span>
       }
       action={
-        <span className="font-mono text-[11px] font-black text-muted-foreground">
+        <span className="font-mono text-[11px] font-bold text-muted-foreground">
           {data ? `Round ${data.round}/${data.totalRounds}` : "—"}
         </span>
       }
     >
       {data?.winnerName && (
-        <p className="mb-2 flex items-center gap-2 border-2 border-accent bg-accent/20 px-2 py-1 font-mono text-[11px] font-black uppercase">
+        <p className="mb-2 flex items-center gap-2 rounded-lg border border-accent bg-accent/20 px-2 py-1 font-mono text-[11px] font-bold uppercase">
           <Crown size={13} /> {data.winnerName} reached the prize first
         </p>
       )}

@@ -89,7 +89,7 @@ export function Skills() {
     <div className="space-y-4 py-2">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black uppercase tracking-tighter">Skill library</h1>
+          <h1 className="text-2xl font-bold uppercase tracking-tighter">Skill library</h1>
           <p className="mt-1 font-mono text-xs text-muted-foreground">
             {facets ? `${facets.total.toLocaleString()} skills across ${facets.sources.length} sources` : "Loading library..."}
           </p>
@@ -105,7 +105,7 @@ export function Skills() {
       </div>
 
       {refreshCatalog.data && (
-        <div className="border-2 border-border bg-muted/40 px-3 py-2">
+        <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
           <p className="font-mono text-[11px] font-bold uppercase">
             Imported {refreshCatalog.data.imported} · updated {refreshCatalog.data.updated}
           </p>
@@ -124,13 +124,13 @@ export function Skills() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search 7,000+ skills..."
-            className="w-full border-2 border-border bg-card py-1.5 pl-7 pr-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-lg border border-border bg-card py-1.5 pl-7 pr-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
         <select
           value={category}
           onChange={(event) => setCategory(event.target.value)}
-          className="border-2 border-border bg-card px-2 py-1.5 font-mono text-[11px] uppercase outline-none"
+          className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-[11px] uppercase outline-none"
         >
           <option value="">All categories</option>
           {facets?.categories.map((item) => (
@@ -142,7 +142,7 @@ export function Skills() {
         <select
           value={source}
           onChange={(event) => setSource(event.target.value)}
-          className="border-2 border-border bg-card px-2 py-1.5 font-mono text-[11px] uppercase outline-none"
+          className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-[11px] uppercase outline-none"
         >
           <option value="">All sources</option>
           {facets?.sources.map((item) => (
@@ -157,7 +157,7 @@ export function Skills() {
         <BrutalCard
           title={<span className="text-sm">Results</span>}
           action={
-            <span className="font-mono text-[11px] font-black text-muted-foreground">
+            <span className="font-mono text-[11px] font-bold text-muted-foreground">
               {skillsQuery.isFetching ? "searching..." : `${skills.length} shown`}
             </span>
           }
@@ -172,12 +172,12 @@ export function Skills() {
                 <button
                   key={skill.id}
                   onClick={() => setSelectedId(skill.id)}
-                  className={`border-2 px-2 py-1.5 text-left transition-colors ${
+                  className={`rounded-lg border px-2 py-1.5 text-left transition-colors ${
                     selectedSkill?.id === skill.id ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-muted/40"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="min-w-0 flex-1 truncate text-xs font-black uppercase">{skill.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs font-bold uppercase">{skill.name}</span>
                     <BrutalBadge variant={riskVariant(skill.sideEffectRisk)}>{skill.sideEffectRisk}</BrutalBadge>
                   </div>
                   <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{skill.description}</p>
@@ -203,7 +203,7 @@ export function Skills() {
             <p className="py-8 text-center font-mono text-xs uppercase text-muted-foreground">Select a skill.</p>
           ) : (
             <div className="space-y-2">
-              <h2 className="text-base font-black uppercase tracking-tight">{selectedSkill.name}</h2>
+              <h2 className="text-base font-bold uppercase tracking-tight">{selectedSkill.name}</h2>
               <p className="text-xs text-muted-foreground">{selectedSkill.description}</p>
 
               <div className="flex flex-wrap gap-1">
@@ -213,7 +213,7 @@ export function Skills() {
               </div>
 
               {selectedSkill.requiresApproval && (
-                <p className="flex items-start gap-1 border-2 border-border bg-destructive/10 px-2 py-1 font-mono text-[10px] uppercase">
+                <p className="flex items-start gap-1 rounded-lg border border-border bg-destructive/10 px-2 py-1 font-mono text-[10px] uppercase">
                   <ShieldCheck size={12} className="mt-0.5 shrink-0" /> Installing this needs your approval first
                 </p>
               )}
@@ -230,12 +230,12 @@ export function Skills() {
               )}
 
               <div className="border-t-2 border-border/40 pt-2">
-                <p className="mb-1 font-mono text-[10px] font-black uppercase text-muted-foreground">Equip to staff</p>
+                <p className="mb-1 font-mono text-[10px] font-bold uppercase text-muted-foreground">Equip to staff</p>
                 <div className="flex gap-1">
                   <select
                     value={agentId}
                     onChange={(event) => setAgentId(event.target.value)}
-                    className="min-w-0 flex-1 border-2 border-border bg-background px-1.5 py-1 font-mono text-[11px] outline-none"
+                    className="min-w-0 flex-1 rounded-lg border border-border bg-background px-1.5 py-1 font-mono text-[11px] outline-none"
                   >
                     <option value="">Choose staff...</option>
                     {agents.map((agent) => (

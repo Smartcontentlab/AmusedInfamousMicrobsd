@@ -34,7 +34,7 @@ export function PersonalTodosWidget() {
   return (
     <BrutalCard
       title="My list"
-      action={<span className="font-mono text-xs font-black text-muted-foreground">{openCount} open</span>}
+      action={<span className="font-mono text-xs font-bold text-muted-foreground">{openCount} open</span>}
       className="h-full"
     >
       <form onSubmit={submit} className="mb-3 flex gap-2">
@@ -42,13 +42,13 @@ export function PersonalTodosWidget() {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder="Add something for yourself..."
-          className="min-w-0 flex-1 border-4 border-border bg-background px-3 py-2 text-sm font-medium outline-none focus:ring-4 focus:ring-primary/20"
+          className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium outline-none focus:ring-4 focus:ring-primary/20"
         />
         <button
           type="submit"
           disabled={!draft.trim() || createTodo.isPending}
           aria-label="Add to-do"
-          className="shrink-0 border-4 border-border bg-primary px-3 text-primary-foreground shadow-[3px_3px_0px_0px_hsl(var(--border))] transition-all hover:translate-x-0.5 hover:-translate-y-0.5 disabled:opacity-40"
+          className="shrink-0 rounded-xl border border-border bg-primary px-3 text-primary-foreground shadow-sm transition-all disabled:opacity-40"
         >
           <Plus size={18} />
         </button>
@@ -59,7 +59,7 @@ export function PersonalTodosWidget() {
           <li className="py-6 text-center font-mono text-xs uppercase text-muted-foreground">Nothing on your list.</li>
         )}
         {items.map((todo) => (
-          <li key={todo.id} className="group flex items-center gap-2 border-2 border-transparent px-1 py-1 hover:border-border hover:bg-muted/40">
+          <li key={todo.id} className="group flex items-center gap-2 rounded-lg border border-transparent px-1 py-1 hover:border-border hover:bg-muted/40">
             <input
               type="checkbox"
               checked={todo.done}

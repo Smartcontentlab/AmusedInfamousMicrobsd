@@ -3,31 +3,31 @@ import { cn } from "@/lib/utils";
 
 export function BrutalCard({ title, children, className, action }: { title?: React.ReactNode, children: React.ReactNode, className?: string, action?: React.ReactNode }) {
    return (
-      <div className={cn("border-4 border-border bg-card shadow-[6px_6px_0px_0px_hsl(var(--border))] flex flex-col transition-all hover:translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_hsl(var(--border))]", className)}>
+      <div className={cn("flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md", className)}>
          {title && (
-            <div className="border-b-2 border-border px-3 py-2 bg-muted/50 flex justify-between items-center">
-               <h3 className="font-black uppercase tracking-tight text-sm">{title}</h3>
+            <div className="flex items-center justify-between border-b border-border bg-muted/40 px-3 py-2">
+               <h3 className="text-sm font-bold uppercase tracking-tight">{title}</h3>
                {action && <div>{action}</div>}
             </div>
          )}
-         <div className="p-3 flex-1 flex flex-col">{children}</div>
+         <div className="flex flex-1 flex-col p-3">{children}</div>
       </div>
    );
 }
 
 export function BrutalButton({ children, className, variant = 'primary', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'accent' | 'destructive' | 'default' | 'outline' }) {
    const variants = {
-      primary: "bg-primary text-primary-foreground border-4 border-border shadow-[4px_4px_0px_0px_hsl(var(--border))] hover:translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_hsl(var(--border))] active:translate-x-0 active:translate-y-0 active:shadow-none",
-      secondary: "bg-secondary text-secondary-foreground border-4 border-border shadow-[4px_4px_0px_0px_hsl(var(--border))] hover:translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_hsl(var(--border))] active:translate-x-0 active:translate-y-0 active:shadow-none",
-      accent: "bg-accent text-accent-foreground border-4 border-border shadow-[4px_4px_0px_0px_hsl(var(--border))] hover:translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_hsl(var(--border))] active:translate-x-0 active:translate-y-0 active:shadow-none",
-      destructive: "bg-destructive text-destructive-foreground border-4 border-border shadow-[4px_4px_0px_0px_hsl(var(--border))] hover:translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_hsl(var(--border))] active:translate-x-0 active:translate-y-0 active:shadow-none",
-      default: "bg-card text-foreground border-4 border-border shadow-[4px_4px_0px_0px_hsl(var(--border))] hover:bg-muted hover:translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_hsl(var(--border))] active:translate-x-0 active:translate-y-0 active:shadow-none",
-      outline: "bg-transparent text-foreground border-4 border-border hover:bg-muted hover:translate-x-1 hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_hsl(var(--border))] active:translate-x-0 active:translate-y-0 active:shadow-none",
+      primary: "bg-primary text-primary-foreground border border-transparent shadow-sm hover:brightness-110",
+      secondary: "bg-secondary text-secondary-foreground border border-transparent shadow-sm hover:brightness-105",
+      accent: "bg-accent text-accent-foreground border border-transparent shadow-sm hover:brightness-105",
+      destructive: "bg-destructive text-destructive-foreground border border-transparent shadow-sm hover:brightness-110",
+      default: "bg-card text-foreground border border-border shadow-sm hover:bg-muted",
+      outline: "bg-transparent text-foreground border border-border hover:bg-muted",
    };
-   
+
    return (
       <button
-         className={cn("font-bold uppercase text-xs px-3 py-1.5 transition-all disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-4 focus:ring-primary/20", variants[variant], className)}
+         className={cn("inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold uppercase transition-all active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-ring/30", variants[variant], className)}
          {...props}
       >
          {children}
@@ -37,15 +37,15 @@ export function BrutalButton({ children, className, variant = 'primary', ...prop
 
 export function BrutalBadge({ children, className, variant = 'default' }: { children: React.ReactNode, className?: string, variant?: 'primary' | 'secondary' | 'accent' | 'destructive' | 'default' }) {
    const variants = {
-      primary: "bg-primary text-primary-foreground border-2 border-border",
-      secondary: "bg-secondary text-secondary-foreground border-2 border-border",
-      accent: "bg-accent text-accent-foreground border-2 border-border",
-      destructive: "bg-destructive text-destructive-foreground border-2 border-border",
-      default: "bg-card text-foreground border-2 border-border",
+      primary: "bg-primary/15 text-primary",
+      secondary: "bg-secondary/25 text-foreground",
+      accent: "bg-accent/40 text-accent-foreground",
+      destructive: "bg-destructive/15 text-destructive",
+      default: "bg-muted text-muted-foreground",
    };
-   
+
    return (
-      <span className={cn("text-[10px] font-black uppercase px-1.5 py-0.5 inline-flex items-center justify-center", variants[variant], className)}>
+      <span className={cn("inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase", variants[variant], className)}>
          {children}
       </span>
    );

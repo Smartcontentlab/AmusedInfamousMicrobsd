@@ -111,17 +111,17 @@ export function WeatherWidget() {
   }, [coords]);
 
   return (
-    <div className="flex h-full flex-col justify-between border-4 border-border bg-card p-4 shadow-[6px_6px_0px_0px_hsl(var(--border))]">
+    <div className="flex h-full flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-sm">
       <div>
-        <p className="font-mono text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+        <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
           {now.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
         </p>
-        <p className="mt-1 font-mono text-3xl font-black tabular-nums tracking-tighter">
+        <p className="mt-1 font-mono text-3xl font-bold tabular-nums tracking-tighter">
           {now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
         </p>
       </div>
       <div className="mt-4 flex items-end justify-between">
-        <span className="text-4xl font-black tabular-nums tracking-tighter text-primary">
+        <span className="text-4xl font-bold tabular-nums tracking-tighter text-primary">
           {weather ? `${weather.temperatureF}°` : failed ? "—" : "··"}
         </span>
         <span className="pb-1 font-mono text-xs font-bold uppercase text-muted-foreground">

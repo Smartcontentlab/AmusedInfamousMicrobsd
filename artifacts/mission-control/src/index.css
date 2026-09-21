@@ -31,6 +31,7 @@
 
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-strong: hsl(var(--accent-strong));
 
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
@@ -49,45 +50,54 @@
   --radius-xl: var(--radius);
 }
 
+/*
+ * Dusty palette:
+ *   Aquamarine    #8BE8CB  -> accent (live, healthy, success)
+ *   Cool Steel    #7EA2AA  -> secondary (tags, project chips)
+ *   Lavender Grey #888DA7  -> muted surfaces and quiet text
+ *   Dusty Mauve   #9C7A97  -> primary (actions, highlights), deepened for contrast
+ *   Gunmetal      #303633  -> foreground
+ */
 :root {
-  --background: 0 0% 98%;
-  --foreground: 0 0% 5%;
-  --border: 0 0% 5%;
-  
+  --background: 210 20% 96%;
+  --foreground: 150 6% 20%;
+  --border: 225 14% 85%;
+
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 5%;
-  --card-border: 0 0% 5%;
-  
-  --sidebar: 0 0% 90%;
-  --sidebar-foreground: 0 0% 5%;
-  --sidebar-border: 0 0% 5%;
-  
+  --card-foreground: 150 6% 20%;
+  --card-border: 225 14% 85%;
+
+  --sidebar: 220 18% 93%;
+  --sidebar-foreground: 150 6% 20%;
+  --sidebar-border: 225 14% 85%;
+
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 5%;
-  --popover-border: 0 0% 5%;
-  
-  --primary: 246 57% 51%;
+  --popover-foreground: 150 6% 20%;
+  --popover-border: 225 14% 85%;
+
+  --primary: 308 17% 44%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 180 100% 40%;
-  --secondary-foreground: 0 0% 5%;
+  --secondary: 191 20% 58%;
+  --secondary-foreground: 150 6% 14%;
 
-  --muted: 0 0% 90%;
-  --muted-foreground: 0 0% 40%;
+  --muted: 228 18% 92%;
+  --muted-foreground: 230 10% 44%;
 
-  --accent: 80 100% 50%;
-  --accent-foreground: 0 0% 5%;
+  --accent: 161 67% 73%;
+  --accent-foreground: 150 6% 16%;
+  --accent-strong: 161 45% 30%;
 
-  --destructive: 0 100% 50%;
+  --destructive: 354 42% 55%;
   --destructive-foreground: 0 0% 100%;
 
-  --input: 0 0% 5%;
-  --ring: 246 57% 51%;
-  
+  --input: 225 14% 80%;
+  --ring: 308 17% 44%;
+
   --app-font-sans: 'Space Grotesk', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: 'Space Mono', monospace;
-  --radius: 0rem;
+  --radius: 0.75rem;
 }
 
 .dark {

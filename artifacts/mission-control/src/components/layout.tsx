@@ -15,10 +15,10 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: Reac
   return (
     <Link
       href={href}
-      className={`flex shrink-0 items-center gap-2 border-4 px-3 py-2 text-xs font-bold uppercase transition-all md:text-sm ${
+      className={`flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold uppercase transition-all md:text-sm ${
         active
-          ? "border-border bg-primary text-primary-foreground shadow-[4px_4px_0px_0px_hsl(var(--border))]"
-          : "border-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-foreground hover:shadow-[4px_4px_0px_0px_hsl(var(--border))]"
+          ? "border-border bg-primary text-primary-foreground shadow-sm"
+          : "border-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-foreground hover:shadow-md"
       }`}
     >
       <Icon size={18} />
@@ -35,11 +35,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background font-sans text-foreground">
-      <header className="z-10 shrink-0 border-b-4 border-border bg-card shadow-[0_4px_0_0_hsl(var(--border))]">
+      <header className="z-10 shrink-0 border-b border-border bg-card shadow-sm">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-2 md:px-6">
           <div className="flex items-center gap-4">
             <Link href="/" className="shrink-0">
-              <h1 className="text-xl font-black uppercase tracking-tighter text-primary md:text-2xl">MC//SYS</h1>
+              <h1 className="text-xl font-bold uppercase tracking-tighter text-primary md:text-2xl">MC//SYS</h1>
             </Link>
             <nav className="flex gap-1 overflow-x-auto">
               {NAV_ITEMS.map((item) => (
@@ -51,13 +51,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 font-mono text-xs font-bold tracking-tight">
               <div
-                className={`h-3 w-3 border-2 border-border ${runtimeHealth.isError ? "bg-destructive" : "bg-accent"} ${runtimeHealth.isLoading ? "" : "animate-pulse"}`}
+                className={`h-3 w-3 rounded-lg border border-border ${runtimeHealth.isError ? "bg-destructive" : "bg-accent"} ${runtimeHealth.isLoading ? "" : "animate-pulse"}`}
               />
               <span className="hidden sm:inline">{runtimeHealth.isError ? "LINK DEGRADED" : "LIVE LINK"}</span>
             </div>
             <div
               data-testid="layout-runtime-status"
-              className="flex items-center gap-2 border-2 border-border bg-muted/40 px-2 py-1 font-mono text-[11px] font-black uppercase"
+              className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2 py-1 font-mono text-[11px] font-bold uppercase"
             >
               <span className="text-muted-foreground">runtime</span>
               <span className={runtimeHealth.isError ? "text-destructive" : "text-primary"}>

@@ -125,30 +125,30 @@ function RuntimeLinkPanel() {
       className="border-primary/70"
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <div className="border-2 border-border bg-primary/10 p-3">
-          <div className="flex items-center gap-2 text-xs font-black uppercase text-muted-foreground"><Radio size={14} /> Links</div>
-          <div className="mt-1 font-mono text-2xl font-black" data-testid="runtime-connection-count">{connections.length}</div>
+        <div className="rounded-lg border border-border bg-primary/10 p-3">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground"><Radio size={14} /> Links</div>
+          <div className="mt-1 font-mono text-2xl font-bold" data-testid="runtime-connection-count">{connections.length}</div>
         </div>
-        <div className="border-2 border-border bg-accent/10 p-3">
-          <div className="flex items-center gap-2 text-xs font-black uppercase text-muted-foreground"><HeartPulse size={14} /> Health probes</div>
-          <div className="mt-1 font-mono text-2xl font-black">{health.length || "—"}</div>
+        <div className="rounded-lg border border-border bg-accent/10 p-3">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground"><HeartPulse size={14} /> Health probes</div>
+          <div className="mt-1 font-mono text-2xl font-bold">{health.length || "—"}</div>
         </div>
-        <div className="border-2 border-border bg-muted/40 p-3">
-          <div className="flex items-center gap-2 text-xs font-black uppercase text-muted-foreground"><RefreshCw size={14} /> Refresh</div>
-          <div className="mt-1 font-mono text-sm font-black">15 SEC / 10 SEC</div>
+        <div className="rounded-lg border border-border bg-muted/40 p-3">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground"><RefreshCw size={14} /> Refresh</div>
+          <div className="mt-1 font-mono text-sm font-bold">15 SEC / 10 SEC</div>
         </div>
       </div>
 
-      {connectionsQuery.isLoading && <div className="flex items-center gap-2 border-2 border-dashed border-border p-4 font-mono text-sm"><Loader2 size={16} className="animate-spin" /> Scanning runtime links...</div>}
+      {connectionsQuery.isLoading && <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-4 font-mono text-sm"><Loader2 size={16} className="animate-spin" /> Scanning runtime links...</div>}
       {connectionsQuery.isError && (
-        <div className="flex items-center justify-between gap-3 border-4 border-destructive bg-destructive/10 p-3 text-sm">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive bg-destructive/10 p-3 text-sm">
           <span className="flex items-center gap-2 font-mono"><CircleAlert size={16} /> {messageFor(connectionsQuery.error, "Runtime links unavailable.")}</span>
           <BrutalButton data-testid="runtime-retry-button" variant="destructive" className="px-2 py-1 text-xs" onClick={() => connectionsQuery.refetch()}>Retry</BrutalButton>
         </div>
       )}
 
       {!connectionsQuery.isLoading && !connectionsQuery.isError && connections.length === 0 && (
-        <div className="border-2 border-dashed border-border p-5 text-center font-mono text-sm text-muted-foreground">NO RUNTIME LINKS. ADD ONE TO ENABLE LIVE RUNS.</div>
+        <div className="rounded-lg border border-dashed border-border p-5 text-center font-mono text-sm text-muted-foreground">NO RUNTIME LINKS. ADD ONE TO ENABLE LIVE RUNS.</div>
       )}
       <div className="space-y-2">
         {connections.map((connection) => {
@@ -157,11 +157,11 @@ function RuntimeLinkPanel() {
           const label = String(connection.name ?? connection.provider ?? `LINK-${id}`);
           const state = String(connection.status ?? connectionHealth?.status ?? "unknown");
           return (
-            <div key={id || label} className="flex flex-col gap-3 border-4 border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between" data-testid={`runtime-connection-${id}`}>
+            <div key={id || label} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between" data-testid={`runtime-connection-${id}`}>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <Server size={16} className="shrink-0 text-primary" />
-                  <span className="truncate font-black uppercase">{label}</span>
+                  <span className="truncate font-bold uppercase">{label}</span>
                   <BrutalBadge variant={statusVariant(state)}>{state}</BrutalBadge>
                 </div>
                 <div className="mt-1 truncate font-mono text-xs text-muted-foreground">{connection.provider ?? "provider pending"} // server-side endpoint {connection.hasCredentials ? "// credential stored" : "// no credential"}</div>
@@ -180,13 +180,13 @@ function RuntimeLinkPanel() {
           );
         })}
       </div>
-      {checkConnection.isError && <div className="mt-3 flex items-center gap-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive"><CircleAlert size={14} /> {messageFor(checkConnection.error, "Runtime check failed. The link may be unreachable.")}</div>}
+      {checkConnection.isError && <div className="mt-3 flex items-center gap-2 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive"><CircleAlert size={14} /> {messageFor(checkConnection.error, "Runtime check failed. The link may be unreachable.")}</div>}
 
       {showForm && (
-        <div className="mt-4 border-4 border-primary bg-primary/5 p-4" data-testid="runtime-connection-form">
+        <div className="mt-4 rounded-xl border border-primary bg-primary/5 p-4" data-testid="runtime-connection-form">
           <div className="mb-3 flex items-center justify-between">
-            <h4 className="font-black uppercase">Register runtime link</h4>
-            <button type="button" className="border-2 border-border p-1 hover:bg-muted" aria-label="Close runtime link form" onClick={() => setShowForm(false)}><X size={16} /></button>
+            <h4 className="font-bold uppercase">Register runtime link</h4>
+            <button type="button" className="rounded-lg border border-border p-1 hover:bg-muted" aria-label="Close runtime link form" onClick={() => setShowForm(false)}><X size={16} /></button>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {([
@@ -195,7 +195,7 @@ function RuntimeLinkPanel() {
               ["endpointUrl", "Endpoint URL", "https://runtime..."],
               ["token", "Credential", "stored only on server"],
             ] as const).map(([key, label, placeholder]) => (
-              <label key={key} className="text-xs font-black uppercase">
+              <label key={key} className="text-xs font-bold uppercase">
                 {label}
                 <input
                   data-testid={`runtime-input-${key}`}
@@ -203,12 +203,12 @@ function RuntimeLinkPanel() {
                   value={form[key]}
                   onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
                   placeholder={placeholder}
-                  className="mt-1 w-full border-4 border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none focus:ring-4 focus:ring-primary/20"
+                  className="mt-1 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none focus:ring-4 focus:ring-primary/20"
                 />
               </label>
             ))}
           </div>
-          {createConnection.isError && <p className="mt-3 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{messageFor(createConnection.error, "Could not register runtime link.")}</p>}
+          {createConnection.isError && <p className="mt-3 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{messageFor(createConnection.error, "Could not register runtime link.")}</p>}
           <BrutalButton data-testid="runtime-save-button" className="mt-4" disabled={createConnection.isPending || !form.name.trim() || !form.provider || !form.endpointUrl.trim()} onClick={submit}>
             {createConnection.isPending ? <><Loader2 size={15} className="animate-spin" /> Registering...</> : "Register link"}
           </BrutalButton>
@@ -277,36 +277,36 @@ function RunPanel({ agentId, agentName, provider }: { agentId: number; agentName
   };
 
   return (
-    <div className="mt-5 border-4 border-border bg-background/60 p-4" data-testid={`agent-run-panel-${agentId}`}>
+    <div className="mt-5 rounded-xl border border-border bg-background/60 p-4" data-testid={`agent-run-panel-${agentId}`}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-border pb-2">
-        <div className="flex items-center gap-2 text-sm font-black uppercase"><Terminal size={16} className="text-primary" /> Live run // {agentName}</div>
+        <div className="flex items-center gap-2 text-sm font-bold uppercase"><Terminal size={16} className="text-primary" /> Live run // {agentName}</div>
         <div className="flex items-center gap-2">
           <BrutalBadge variant={statusVariant(runStatus)}>{runStatus.replaceAll("_", " ")}</BrutalBadge>
-          <button type="button" data-testid={`run-refresh-${agentId}`} className="border-2 border-border p-1 hover:bg-muted" title="Refresh run and activity" onClick={refresh}><RefreshCw size={14} /></button>
+          <button type="button" data-testid={`run-refresh-${agentId}`} className="rounded-lg border border-border p-1 hover:bg-muted" title="Refresh run and activity" onClick={refresh}><RefreshCw size={14} /></button>
         </div>
       </div>
       {runQuery.isLoading ? (
         <div className="mt-3 flex items-center gap-2 font-mono text-xs text-muted-foreground"><Loader2 size={14} className="animate-spin" /> Reading run state...</div>
       ) : runQuery.isError ? (
-        <div className="mt-3 flex items-center justify-between gap-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs">
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-xs">
           <span>{messageFor(runQuery.error, "Run state unavailable.")}</span>
-          <button type="button" className="font-black uppercase underline" onClick={refresh}>Retry</button>
+          <button type="button" className="font-bold uppercase underline" onClick={refresh}>Retry</button>
         </div>
       ) : (
         <>
           <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
-            <div><span className="font-black uppercase text-muted-foreground">Run ID</span><div className="font-mono font-bold">{runId || "—"}</div></div>
-            <div><span className="font-black uppercase text-muted-foreground">Provider ref</span><div className="truncate font-mono font-bold">{run?.providerRunId || "pending"}</div></div>
-            <div><span className="font-black uppercase text-muted-foreground">Last event</span><div className="truncate font-mono font-bold">{run?.lastEvent || "Awaiting dispatch"}</div></div>
+            <div><span className="font-bold uppercase text-muted-foreground">Run ID</span><div className="font-mono font-bold">{runId || "—"}</div></div>
+            <div><span className="font-bold uppercase text-muted-foreground">Provider ref</span><div className="truncate font-mono font-bold">{run?.providerRunId || "pending"}</div></div>
+            <div><span className="font-bold uppercase text-muted-foreground">Last event</span><div className="truncate font-mono font-bold">{run?.lastEvent || "Awaiting dispatch"}</div></div>
           </div>
           {runStatus === "not_running" && (
             <div className="mt-3 space-y-3">
-              <div className="border-2 border-border bg-muted/30 p-3">
-                <div className="mb-2 text-[11px] font-black uppercase text-muted-foreground">Requested tool access</div>
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <div className="mb-2 text-[11px] font-bold uppercase text-muted-foreground">Requested tool access</div>
                 {toolAccessQuery.isLoading ? <div className="font-mono text-xs text-muted-foreground">Loading round permissions...</div> : (
                   <div className="flex flex-wrap gap-2">
                     {toolAccessQuery.data?.tools.map((tool) => (
-                      <label key={tool.key} className={`flex items-center gap-1.5 border-2 px-2 py-1 font-mono text-[11px] font-bold ${tool.available ? "cursor-pointer border-border bg-card" : "cursor-not-allowed border-destructive/50 bg-destructive/10 text-muted-foreground"}`} title={tool.available ? tool.description : `${tool.unlockCondition}${tool.overrideReason ? ` — ${tool.overrideReason}` : ""}`}>
+                      <label key={tool.key} className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 font-mono text-[11px] font-bold ${tool.available ? "cursor-pointer border-border bg-card" : "cursor-not-allowed border-destructive/50 bg-destructive/10 text-muted-foreground"}`} title={tool.available ? tool.description : `${tool.unlockCondition}${tool.overrideReason ? ` — ${tool.overrideReason}` : ""}`}>
                         <input type="checkbox" disabled={!tool.available} checked={requestedTools.includes(tool.key)} onChange={(event) => setRequestedTools((current) => event.target.checked ? [...current, tool.key] : current.filter((key) => key !== tool.key))} />
                         {tool.available ? <UnlockKeyhole size={12} /> : <LockKeyhole size={12} />}
                         {tool.label}
@@ -316,8 +316,8 @@ function RunPanel({ agentId, agentName, provider }: { agentId: number; agentName
                 )}
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                 {compatibleConnections.length > 0 && <select data-testid={`run-connection-${agentId}`} value={connectionId} onChange={(event) => setConnectionId(event.target.value)} className="border-4 border-border bg-card p-2 font-mono text-xs focus:outline-none sm:max-w-48"><option value="">AUTO LINK</option>{compatibleConnections.map((connection) => <option key={String(connection.id ?? connection.connectionId)} value={String(connection.id ?? connection.connectionId)}>{connection.name ?? connection.provider ?? "runtime link"}</option>)}</select>}
-                <input data-testid={`run-instruction-${agentId}`} value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="Describe the next run directive..." className="min-w-0 flex-1 border-4 border-border bg-card p-2 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/20" />
+                 {compatibleConnections.length > 0 && <select data-testid={`run-connection-${agentId}`} value={connectionId} onChange={(event) => setConnectionId(event.target.value)} className="rounded-xl border border-border bg-card p-2 font-mono text-xs focus:outline-none sm:max-w-48"><option value="">AUTO LINK</option>{compatibleConnections.map((connection) => <option key={String(connection.id ?? connection.connectionId)} value={String(connection.id ?? connection.connectionId)}>{connection.name ?? connection.provider ?? "runtime link"}</option>)}</select>}
+                <input data-testid={`run-instruction-${agentId}`} value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="Describe the next run directive..." className="min-w-0 flex-1 rounded-xl border border-border bg-card p-2 font-mono text-sm focus:outline-none focus:ring-4 focus:ring-primary/20" />
                 <BrutalButton data-testid={`run-launch-${agentId}`} disabled={busy || !instruction.trim()} onClick={launch}>
                   {launchRun.isPending ? <><Loader2 size={15} className="animate-spin" /> Launching...</> : <><Play size={15} /> Launch run</>}
                 </BrutalButton>
@@ -330,20 +330,20 @@ function RunPanel({ agentId, agentName, provider }: { agentId: number; agentName
             <BrutalButton data-testid={`run-stop-${agentId}`} variant="destructive" className="px-3 py-1 text-xs" disabled={busy || !canStop} title={!canStop ? disabledReason : "Stop this run"} onClick={() => mutateRun("stop")}><Square size={13} /> Stop</BrutalButton>
             {!canPause && !canResume && !canStop && <span className="self-center font-mono text-[11px] text-muted-foreground">{disabledReason}</span>}
           </div>
-          {actionError && <p className="mt-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{messageFor(actionError, "Run command failed.")}</p>}
+          {actionError && <p className="mt-2 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{messageFor(actionError, "Run command failed.")}</p>}
         </>
       )}
-      <button type="button" data-testid={`run-activity-toggle-${agentId}`} className="mt-4 flex w-full items-center justify-between border-t-2 border-border pt-3 text-left text-xs font-black uppercase text-muted-foreground hover:text-foreground" onClick={() => setShowActivity((open) => !open)}>
+      <button type="button" data-testid={`run-activity-toggle-${agentId}`} className="mt-4 flex w-full items-center justify-between border-t-2 border-border pt-3 text-left text-xs font-bold uppercase text-muted-foreground hover:text-foreground" onClick={() => setShowActivity((open) => !open)}>
         <span className="flex items-center gap-2"><Activity size={14} /> Activity stream ({events.length})</span>{showActivity ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
       </button>
       {showActivity && (
         <div className="mt-3 max-h-44 space-y-2 overflow-auto">
           {activityQuery.isLoading && <div className="font-mono text-xs text-muted-foreground">Loading activity...</div>}
-          {activityQuery.isError && <div className="border-2 border-destructive p-2 font-mono text-xs text-destructive">{messageFor(activityQuery.error, "Activity unavailable.")}</div>}
-          {!activityQuery.isLoading && !activityQuery.isError && events.length === 0 && <div className="border-2 border-dashed border-border p-3 text-center font-mono text-xs text-muted-foreground">NO EVENTS YET</div>}
+          {activityQuery.isError && <div className="rounded-lg border border-destructive p-2 font-mono text-xs text-destructive">{messageFor(activityQuery.error, "Activity unavailable.")}</div>}
+          {!activityQuery.isLoading && !activityQuery.isError && events.length === 0 && <div className="rounded-lg border border-dashed border-border p-3 text-center font-mono text-xs text-muted-foreground">NO EVENTS YET</div>}
           {events.map((event, index) => (
-              <div key={String(event.id ?? index)} className="border-l-4 border-primary bg-muted/40 p-2 font-mono text-xs">
-              <div className="flex justify-between gap-3 font-black uppercase"><span>{event.kind}</span><span className="text-muted-foreground">{event.createdAt ? new Date(event.createdAt).toLocaleTimeString() : "now"}</span></div>
+              <div key={String(event.id ?? index)} className="border-l border-primary bg-muted/40 p-2 font-mono text-xs">
+              <div className="flex justify-between gap-3 font-bold uppercase"><span>{event.kind}</span><span className="text-muted-foreground">{event.createdAt ? new Date(event.createdAt).toLocaleTimeString() : "now"}</span></div>
               <div className="mt-1">{event.message}</div>
             </div>
           ))}
@@ -400,11 +400,11 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
 
   return (
     <div data-testid={`agent-card-${agent.id}`}><BrutalCard className="group flex h-full flex-col bg-card">
-      <div className="flex items-start justify-between gap-3 border-b-4 border-border pb-4">
+      <div className="flex items-start justify-between gap-3 border-b border-border pb-4">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center border-4 border-border bg-accent shadow-[4px_4px_0px_0px_hsl(var(--border))] transition-transform group-hover:-translate-y-1"><Cpu size={28} className="text-accent-foreground" /></div>
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-border bg-accent shadow-sm transition-transform group-"><Cpu size={28} className="text-accent-foreground" /></div>
           <div className="min-w-0">
-            <h2 className="truncate text-2xl font-black uppercase tracking-tight">{agent.name}</h2>
+            <h2 className="truncate text-2xl font-bold uppercase tracking-tight">{agent.name}</h2>
             <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-xs font-bold uppercase text-muted-foreground"><span>{agent.role}</span><span className="text-muted-foreground/50">/</span><span className="text-primary">{agent.provider || "default"}</span></div>
           </div>
         </div>
@@ -412,24 +412,24 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
       </div>
 
       <div className="my-4 grid grid-cols-2 gap-3">
-        <div className="border-4 border-border bg-muted/30 p-3"><div className="flex items-center gap-2 border-b-2 border-border pb-1 text-[11px] font-black uppercase text-muted-foreground"><Monitor size={13} /> Room</div><div className="mt-2 truncate font-mono text-sm font-bold">{agent.room || "unassigned"}</div><div className="font-mono text-xs">{agent.computerStatus || "no status"}</div></div>
-        <div className="border-4 border-border bg-muted/30 p-3"><div className="flex items-center gap-2 border-b-2 border-border pb-1 text-[11px] font-black uppercase text-muted-foreground"><Lightbulb size={13} /> Venture</div><div className="mt-2 truncate font-mono text-sm font-bold" title={agent.businessIdea || ""}>{agent.businessIdea || "awaiting idea"}</div><div className="font-mono text-xs uppercase text-secondary">{agent.phase || "idle"}</div></div>
+        <div className="rounded-xl border border-border bg-muted/30 p-3"><div className="flex items-center gap-2 border-b-2 border-border pb-1 text-[11px] font-bold uppercase text-muted-foreground"><Monitor size={13} /> Room</div><div className="mt-2 truncate font-mono text-sm font-bold">{agent.room || "unassigned"}</div><div className="font-mono text-xs">{agent.computerStatus || "no status"}</div></div>
+        <div className="rounded-xl border border-border bg-muted/30 p-3"><div className="flex items-center gap-2 border-b-2 border-border pb-1 text-[11px] font-bold uppercase text-muted-foreground"><Lightbulb size={13} /> Venture</div><div className="mt-2 truncate font-mono text-sm font-bold" title={agent.businessIdea || ""}>{agent.businessIdea || "awaiting idea"}</div><div className="font-mono text-xs uppercase text-secondary">{agent.phase || "idle"}</div></div>
       </div>
 
       <div className="mb-4">
-        <div className="mb-2 flex items-center gap-2 border-b-4 border-border pb-1 text-xs font-black uppercase text-muted-foreground"><Workflow size={14} /> Current operation</div>
-        <div className="truncate border-4 border-border bg-card p-3 font-mono text-sm" title={agent.currentTask || "Idle / Awaiting Instructions"}>{agent.currentTask || "Idle / Awaiting Instructions"}</div>
-        {agent.nextMove && <div className="mt-2 flex gap-2 truncate font-mono text-xs text-muted-foreground"><span className="font-black">NEXT:</span><span title={agent.nextMove}>{agent.nextMove}</span></div>}
+        <div className="mb-2 flex items-center gap-2 border-b border-border pb-1 text-xs font-bold uppercase text-muted-foreground"><Workflow size={14} /> Current operation</div>
+        <div className="truncate rounded-xl border border-border bg-card p-3 font-mono text-sm" title={agent.currentTask || "Idle / Awaiting Instructions"}>{agent.currentTask || "Idle / Awaiting Instructions"}</div>
+        {agent.nextMove && <div className="mt-2 flex gap-2 truncate font-mono text-xs text-muted-foreground"><span className="font-bold">NEXT:</span><span title={agent.nextMove}>{agent.nextMove}</span></div>}
       </div>
 
       <div className="mb-4 flex-1">
-        <div className="mb-2 flex justify-between border-b-4 border-border pb-1 text-xs font-black uppercase text-muted-foreground"><span>Capabilities</span><span>{agent.skillCount ?? capabilities?.length ?? 0} attached</span></div>
-        {capError && <div className="mb-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">Capability registry unavailable.</div>}
+        <div className="mb-2 flex justify-between border-b border-border pb-1 text-xs font-bold uppercase text-muted-foreground"><span>Capabilities</span><span>{agent.skillCount ?? capabilities?.length ?? 0} attached</span></div>
+        {capError && <div className="mb-2 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">Capability registry unavailable.</div>}
         <div className="max-h-28 space-y-2 overflow-y-auto">
           {capLoading && <div className="font-mono text-xs text-muted-foreground">Loading modules...</div>}
           {!capLoading && capabilities?.length ? capabilities.map((capability: any) => (
-            <div key={capability.id} className="flex items-center justify-between border-2 border-border bg-card p-2"><span className="truncate font-mono text-xs font-bold">{capability.name}</span><button type="button" data-testid={`detach-skill-${agent.id}-${capability.skillId}`} onClick={() => detachSkill.mutate({ agentId: agent.id, skillId: capability.skillId })} className="border-2 border-transparent px-2 text-xs font-black text-destructive hover:border-destructive hover:bg-destructive hover:text-destructive-foreground" title="Detach skill">X</button></div>
-          )) : !capLoading && <div className="border-2 border-dashed border-border p-2 text-center font-mono text-xs text-muted-foreground">NO MODULES ATTACHED</div>}
+            <div key={capability.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-2"><span className="truncate font-mono text-xs font-bold">{capability.name}</span><button type="button" data-testid={`detach-skill-${agent.id}-${capability.skillId}`} onClick={() => detachSkill.mutate({ agentId: agent.id, skillId: capability.skillId })} className="rounded-lg border border-transparent px-2 text-xs font-bold text-destructive hover:border-destructive hover:bg-destructive hover:text-destructive-foreground" title="Detach skill">X</button></div>
+          )) : !capLoading && <div className="rounded-lg border border-dashed border-border p-2 text-center font-mono text-xs text-muted-foreground">NO MODULES ATTACHED</div>}
         </div>
         <div className="mt-3 flex items-start gap-2">
           <SkillSearchPicker
@@ -453,19 +453,19 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
         </div>
       </div>
 
-      <div className="mb-4 border-4 border-border bg-accent/5 p-3">
-        <div className="mb-2 flex items-center justify-between gap-2 border-b-2 border-border pb-2 text-xs font-black uppercase">
+      <div className="mb-4 rounded-xl border border-border bg-accent/5 p-3">
+        <div className="mb-2 flex items-center justify-between gap-2 border-b-2 border-border pb-2 text-xs font-bold uppercase">
           <span className="flex items-center gap-2"><UnlockKeyhole size={14} /> Arena tool permissions</span>
           <span className="font-mono text-[10px] text-muted-foreground">Round {toolAccessQuery.data?.currentRound ?? "—"}</span>
         </div>
-        <input data-testid={`tool-unlock-reason-${agent.id}`} value={unlockReason} onChange={(event) => setUnlockReason(event.target.value)} placeholder="Game Master reason required..." className="mb-2 w-full border-2 border-border bg-card p-2 font-mono text-xs focus:outline-none" />
+        <input data-testid={`tool-unlock-reason-${agent.id}`} value={unlockReason} onChange={(event) => setUnlockReason(event.target.value)} placeholder="Game Master reason required..." className="mb-2 w-full rounded-lg border border-border bg-card p-2 font-mono text-xs focus:outline-none" />
         <div className="max-h-48 space-y-2 overflow-y-auto">
           {toolAccessQuery.isLoading && <div className="font-mono text-xs text-muted-foreground">Loading tool permissions...</div>}
           {toolAccessQuery.data?.tools.map((tool) => (
-            <div key={tool.key} data-testid={`tool-access-${agent.id}-${tool.key}`} className={`border-2 p-2 ${tool.available ? "border-primary bg-primary/5" : "border-destructive/60 bg-destructive/5"}`}>
+            <div key={tool.key} data-testid={`tool-access-${agent.id}-${tool.key}`} className={`rounded-lg border p-2 ${tool.available ? "border-primary bg-primary/5" : "border-destructive/60 bg-destructive/5"}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5"><span className="font-mono text-xs font-black">{tool.label}</span><BrutalBadge variant={tool.available ? "primary" : "destructive"}>{tool.available ? "allowed" : "locked"}</BrutalBadge></div>
+                  <div className="flex flex-wrap items-center gap-1.5"><span className="font-mono text-xs font-bold">{tool.label}</span><BrutalBadge variant={tool.available ? "primary" : "destructive"}>{tool.available ? "allowed" : "locked"}</BrutalBadge></div>
                   <div className="mt-1 font-mono text-[10px] text-muted-foreground">{tool.unlockCondition} · {tool.source === "manual" ? `GM ${tool.overrideAction}` : tool.source}</div>
                   {tool.overrideReason && <div className="mt-1 font-mono text-[10px]">Reason: {tool.overrideReason}</div>}
                 </div>
@@ -477,13 +477,13 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
           ))}
         </div>
         {toolAccessQuery.data?.audit.length ? <div className="mt-2 border-t-2 border-border pt-2 font-mono text-[10px] text-muted-foreground">Audit trail: {toolAccessQuery.data.audit.length} Game Master change{toolAccessQuery.data.audit.length === 1 ? "" : "s"} recorded.</div> : null}
-        {(toolAccessQuery.isError || updateToolUnlock.isError) && <div className="mt-2 border-2 border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{messageFor(updateToolUnlock.error || toolAccessQuery.error, "Tool permissions could not be updated.")}</div>}
+        {(toolAccessQuery.isError || updateToolUnlock.isError) && <div className="mt-2 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{messageFor(updateToolUnlock.error || toolAccessQuery.error, "Tool permissions could not be updated.")}</div>}
       </div>
 
-       <div className="border-4 border-border bg-muted/50 p-3">
-         <div className="flex items-center gap-2 text-xs font-black uppercase"><Radio size={14} className="text-primary" /> Live state is controlled by the run panel</div>
-        <label className="mt-3 block text-xs font-black uppercase">Assignment<select data-testid={`agent-project-${agent.id}`} className="mt-1 w-full border-4 border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.projectId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { projectId: event.target.value ? Number(event.target.value) : undefined } })}><option value="">-- UNASSIGNED --</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-         <label className="mt-3 block text-xs font-black uppercase">Runtime link<select data-testid={`agent-runtime-${agent.id}`} className="mt-1 w-full border-4 border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.runtimeConnectionId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { runtimeConnectionId: event.target.value ? Number(event.target.value) : undefined } })}><option value="">-- AUTO BY PROVIDER --</option>{runtimeConnections.filter((connection) => String(connection.provider ?? "").toLowerCase() === String(agent.provider ?? "").toLowerCase()).map((connection) => <option key={String(connection.id)} value={String(connection.id)}>{connection.name} ({connection.provider})</option>)}</select></label>
+       <div className="rounded-xl border border-border bg-muted/50 p-3">
+         <div className="flex items-center gap-2 text-xs font-bold uppercase"><Radio size={14} className="text-primary" /> Live state is controlled by the run panel</div>
+        <label className="mt-3 block text-xs font-bold uppercase">Assignment<select data-testid={`agent-project-${agent.id}`} className="mt-1 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.projectId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { projectId: event.target.value ? Number(event.target.value) : undefined } })}><option value="">-- UNASSIGNED --</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+         <label className="mt-3 block text-xs font-bold uppercase">Runtime link<select data-testid={`agent-runtime-${agent.id}`} className="mt-1 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.runtimeConnectionId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { runtimeConnectionId: event.target.value ? Number(event.target.value) : undefined } })}><option value="">-- AUTO BY PROVIDER --</option>{runtimeConnections.filter((connection) => String(connection.provider ?? "").toLowerCase() === String(agent.provider ?? "").toLowerCase()).map((connection) => <option key={String(connection.id)} value={String(connection.id)}>{connection.name} ({connection.provider})</option>)}</select></label>
         {updateAgent.isError && <p className="mt-2 font-mono text-xs text-destructive">{messageFor(updateAgent.error, "Agent update failed.")}</p>}
       </div>
       <RunPanel agentId={agent.id} agentName={agent.name} provider={agent.provider || ""} />
@@ -505,20 +505,20 @@ export function Agents() {
     createAgent.mutate({ data: { name: newAgent.name.trim(), role: newAgent.role.trim(), projectId: newAgent.projectId ? Number(newAgent.projectId) : undefined, provider: newAgent.provider.trim() || undefined } }, { onSuccess: () => { setShowNew(false); setNewAgent({ name: "", role: "", projectId: "", provider: "" }); } } as any);
   };
 
-  if (agentsLoading || projectsLoading) return <div className="space-y-4 p-2 font-mono font-bold"><div className="h-10 w-2/3 animate-pulse bg-muted" /><div className="h-24 animate-pulse border-4 border-border bg-muted/50" /><div className="h-64 animate-pulse border-4 border-border bg-muted/50" /></div>;
-  if (agentsError) return <div className="border-4 border-destructive bg-destructive/10 p-8"><h1 className="text-2xl font-black uppercase">Roster feed interrupted</h1><p className="mt-2 font-mono text-sm">{messageFor(agentsErrorValue, "Agent roster unavailable.")}</p><BrutalButton data-testid="agents-retry-button" variant="destructive" className="mt-5" onClick={() => refetchAgents()}><RefreshCw size={16} /> Retry feed</BrutalButton></div>;
+  if (agentsLoading || projectsLoading) return <div className="space-y-4 p-2 font-mono font-bold"><div className="h-10 w-2/3 animate-pulse bg-muted" /><div className="h-24 animate-pulse rounded-xl border border-border bg-muted/50" /><div className="h-64 animate-pulse rounded-xl border border-border bg-muted/50" /></div>;
+  if (agentsError) return <div className="rounded-xl border border-destructive bg-destructive/10 p-8"><h1 className="text-2xl font-bold uppercase">Roster feed interrupted</h1><p className="mt-2 font-mono text-sm">{messageFor(agentsErrorValue, "Agent roster unavailable.")}</p><BrutalButton data-testid="agents-retry-button" variant="destructive" className="mt-5" onClick={() => refetchAgents()}><RefreshCw size={16} /> Retry feed</BrutalButton></div>;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <div className="max-w-2xl"><div className="mb-2 flex items-center gap-2 font-mono text-xs font-black uppercase tracking-widest text-primary"><Radio size={14} className="animate-pulse" /> live staff control</div><h1 className="text-2xl font-black uppercase tracking-tighter">Operative roster</h1><p className="mt-2 font-mono text-xs text-muted-foreground">Equip the staff. Dispatch the work. Watch every run move.</p></div>
+        <div className="max-w-2xl"><div className="mb-2 flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-primary"><Radio size={14} className="animate-pulse" /> live staff control</div><h1 className="text-2xl font-bold uppercase tracking-tighter">Operative roster</h1><p className="mt-2 font-mono text-xs text-muted-foreground">Equip the staff. Dispatch the work. Watch every run move.</p></div>
         <BrutalButton data-testid="spawn-agent-button" onClick={() => setShowNew((open) => !open)} className="flex items-center gap-2"><UserPlus size={18} /> Spawn operative</BrutalButton>
       </div>
       <RuntimeLinkPanel />
-      {showNew && <div data-testid="new-agent-form"><BrutalCard title="Instantiate new agent" className="border-dashed border-primary bg-primary/10"><div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">{([["name", "Callsign", "e.g. Unit-01"], ["role", "Designated role", "e.g. Researcher"], ["provider", "LLM provider", "e.g. anthropic"]] as const).map(([key, label, placeholder]) => <label key={key} className="text-sm font-black uppercase">{label}<input data-testid={`new-agent-${key}`} value={newAgent[key]} onChange={(event) => setNewAgent({ ...newAgent, [key]: event.target.value })} placeholder={placeholder} className="mt-2 w-full border-4 border-border bg-card p-3 font-mono font-normal normal-case focus:outline-none focus:ring-4 focus:ring-primary/20" /></label>)}<label className="text-sm font-black uppercase">Initial assignment<select data-testid="new-agent-project" value={newAgent.projectId} onChange={(event) => setNewAgent({ ...newAgent, projectId: event.target.value })} className="mt-2 w-full border-4 border-border bg-card p-3 font-mono font-normal focus:outline-none"><option value="">-- UNASSIGNED --</option>{projects?.map((project: any) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label></div><div className="mt-6 flex gap-3"><BrutalButton data-testid="create-agent-button" onClick={handleCreate} disabled={createAgent.isPending || !newAgent.name.trim() || !newAgent.role.trim()}>{createAgent.isPending ? <><Loader2 size={16} className="animate-spin" /> Instantiating...</> : "Instantiate"}</BrutalButton><BrutalButton variant="default" onClick={() => setShowNew(false)}>Cancel</BrutalButton></div>{createAgent.isError && <p className="mt-3 font-mono text-sm text-destructive">{messageFor(createAgent.error, "Could not instantiate agent.")}</p>}</BrutalCard></div>}
+      {showNew && <div data-testid="new-agent-form"><BrutalCard title="Instantiate new agent" className="border-dashed border-primary bg-primary/10"><div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">{([["name", "Callsign", "e.g. Unit-01"], ["role", "Designated role", "e.g. Researcher"], ["provider", "LLM provider", "e.g. anthropic"]] as const).map(([key, label, placeholder]) => <label key={key} className="text-sm font-bold uppercase">{label}<input data-testid={`new-agent-${key}`} value={newAgent[key]} onChange={(event) => setNewAgent({ ...newAgent, [key]: event.target.value })} placeholder={placeholder} className="mt-2 w-full rounded-xl border border-border bg-card p-3 font-mono font-normal normal-case focus:outline-none focus:ring-4 focus:ring-primary/20" /></label>)}<label className="text-sm font-bold uppercase">Initial assignment<select data-testid="new-agent-project" value={newAgent.projectId} onChange={(event) => setNewAgent({ ...newAgent, projectId: event.target.value })} className="mt-2 w-full rounded-xl border border-border bg-card p-3 font-mono font-normal focus:outline-none"><option value="">-- UNASSIGNED --</option>{projects?.map((project: any) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label></div><div className="mt-6 flex gap-3"><BrutalButton data-testid="create-agent-button" onClick={handleCreate} disabled={createAgent.isPending || !newAgent.name.trim() || !newAgent.role.trim()}>{createAgent.isPending ? <><Loader2 size={16} className="animate-spin" /> Instantiating...</> : "Instantiate"}</BrutalButton><BrutalButton variant="default" onClick={() => setShowNew(false)}>Cancel</BrutalButton></div>{createAgent.isError && <p className="mt-3 font-mono text-sm text-destructive">{messageFor(createAgent.error, "Could not instantiate agent.")}</p>}</BrutalCard></div>}
       <div className="grid items-stretch gap-8 md:grid-cols-2 xl:grid-cols-3">
         {agents?.map((agent: any) => <AgentCard key={agent.id} agent={agent} projects={projects || []} runtimeConnections={asList(runtimeConnections)} />)}
-        {(!agents || agents.length === 0) && <div className="col-span-full border-4 border-dashed border-border p-12 text-center font-mono font-bold text-muted-foreground">NO AGENTS INSTANTIATED. SPAWN AN OPERATIVE TO BEGIN.</div>}
+        {(!agents || agents.length === 0) && <div className="col-span-full rounded-xl border border-dashed border-border p-12 text-center font-mono font-bold text-muted-foreground">NO AGENTS INSTANTIATED. SPAWN AN OPERATIVE TO BEGIN.</div>}
       </div>
     </div>
   );

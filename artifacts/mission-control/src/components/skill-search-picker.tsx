@@ -50,7 +50,7 @@ export function SkillSearchPicker({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search the skill library..."
-          className="w-full border-2 border-border bg-background py-1.5 pl-7 pr-2 font-mono text-[11px] outline-none focus:ring-2 focus:ring-primary/20"
+          className="w-full rounded-lg border border-border bg-background py-1.5 pl-7 pr-2 font-mono text-[11px] outline-none focus:ring-2 focus:ring-primary/20"
         />
       </div>
 
@@ -60,7 +60,7 @@ export function SkillSearchPicker({
         </p>
       )}
 
-      <div className="mt-1 max-h-40 overflow-auto border-2 border-border bg-card">
+      <div className="mt-1 max-h-40 overflow-auto rounded-lg border border-border bg-card">
         {skillsQuery.isFetching && results.length === 0 && (
           <p className="px-2 py-2 font-mono text-[10px] uppercase text-muted-foreground">Searching...</p>
         )}

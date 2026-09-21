@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckSquare, MessageSquare, Send } from "lucide-react";
 import {
@@ -33,7 +33,7 @@ function relativeTime(iso: string) {
 
 function AttentionCard({ item, children }: { item: InboxAttentionItem; children?: React.ReactNode }) {
   return (
-    <div className="border-4 border-border bg-card p-4 shadow-[4px_4px_0px_0px_hsl(var(--border))]">
+    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -44,7 +44,7 @@ function AttentionCard({ item, children }: { item: InboxAttentionItem; children?
             )}
             <span className="font-mono text-[11px] uppercase text-muted-foreground">{relativeTime(item.createdAt)}</span>
           </div>
-          <h3 className="text-base font-black uppercase tracking-tight">{item.title}</h3>
+          <h3 className="text-base font-bold uppercase tracking-tight">{item.title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
         </div>
         <ProjectTag projectName={item.projectName} agentName={item.agentName} />
@@ -69,11 +69,11 @@ function Section({
 }) {
   return (
     <section>
-      <div className="mb-3 flex items-center gap-3 border-b-4 border-border pb-2">
+      <div className="mb-3 flex items-center gap-3 border-b border-border pb-2">
         <Icon size={22} className={accent ? "text-primary" : "text-muted-foreground"} />
-        <h2 className="text-xl font-black uppercase tracking-tight">{title}</h2>
+        <h2 className="text-xl font-bold uppercase tracking-tight">{title}</h2>
         <span
-          className={`ml-auto border-2 border-border px-2 py-0.5 font-mono text-sm font-black tabular-nums ${
+          className={`ml-auto rounded-lg border border-border px-2 py-0.5 font-mono text-sm font-bold tabular-nums ${
             count > 0 && accent ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           }`}
         >
@@ -87,7 +87,7 @@ function Section({
 
 function EmptyRow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="border-4 border-dashed border-border/40 px-4 py-6 text-center font-mono text-xs uppercase text-muted-foreground">
+    <p className="rounded-xl border border-dashed border-border/40 px-4 py-6 text-center font-mono text-xs uppercase text-muted-foreground">
       {children}
     </p>
   );
@@ -118,7 +118,7 @@ export function Inbox() {
   return (
     <div className="space-y-8 py-2">
       <div>
-        <h1 className="text-2xl font-black uppercase tracking-tighter">Inbox</h1>
+        <h1 className="text-2xl font-bold uppercase tracking-tighter">Inbox</h1>
         <p className="mt-1 font-mono text-sm text-muted-foreground">Everything Atlas needs from you, in one channel.</p>
       </div>
 
@@ -162,12 +162,12 @@ export function Inbox() {
               value={reply}
               onChange={(event) => setReply(event.target.value)}
               placeholder="Message Atlas..."
-              className="min-w-0 flex-1 border-4 border-border bg-background px-3 py-2 text-sm font-medium outline-none focus:ring-4 focus:ring-primary/20"
+              className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium outline-none focus:ring-4 focus:ring-primary/20"
             />
             <button
               type="submit"
               disabled={!reply.trim() || sendMessage.isPending}
-              className="flex shrink-0 items-center gap-2 border-4 border-border bg-primary px-4 py-2 font-bold uppercase text-primary-foreground shadow-[3px_3px_0px_0px_hsl(var(--border))] disabled:opacity-40"
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-primary px-4 py-2 font-bold uppercase text-primary-foreground shadow-sm disabled:opacity-40"
             >
               <Send size={16} />
             </button>
@@ -180,10 +180,10 @@ export function Inbox() {
               messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`border-2 p-3 ${message.readAt ? "border-border/40 bg-background" : "border-border bg-primary/5"}`}
+                  className={`rounded-lg border p-3 ${message.readAt ? "border-border/40 bg-background" : "border-border bg-primary/5"}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs font-black uppercase text-primary">{message.sender}</span>
+                    <span className="font-mono text-xs font-bold uppercase text-primary">{message.sender}</span>
                     <span className="font-mono text-[11px] uppercase text-muted-foreground">{relativeTime(message.createdAt)}</span>
                     <div className="ml-auto flex items-center gap-2">
                       <ProjectTag projectName={message.projectName} agentName={message.agentName} />

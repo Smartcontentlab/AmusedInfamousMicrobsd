@@ -6,7 +6,7 @@ import {
 } from "@workspace/api-client-react";
 import type { AgentTraits, RaceContestant } from "@workspace/api-client-react";
 import { BrutalBadge, BrutalCard } from "@/components/ui/brutal";
-import { PixelAvatar } from "@/components/pixel-avatar";
+import { PixelPerson } from "@/components/house/pixel-person";
 
 const TRAIT_KEYS: Array<{ key: keyof AgentTraits; label: string }> = [
   { key: "speed", label: "Speed" },
@@ -43,7 +43,7 @@ function ContestantRow({ contestant, prizeCents }: { contestant: RaceContestant;
     >
       <div className="flex items-start gap-2">
         <div className="relative shrink-0">
-          <PixelAvatar seed={contestant.name} size={44} className="rounded-lg border border-border" />
+          <span className="flex size-11 items-end justify-center overflow-hidden rounded-lg border border-border bg-muted/60"><PixelPerson seed={contestant.name} size={26} /></span>
           <span
             className={`absolute -left-1 -top-1 flex size-4 items-center justify-center rounded-lg border border-border font-mono text-[9px] font-bold ${
               MEDALS[contestant.rank - 1] ?? "bg-card"

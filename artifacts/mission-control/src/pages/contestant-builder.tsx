@@ -16,7 +16,7 @@ import {
 } from "@workspace/api-client-react";
 import type { AgentTraits } from "@workspace/api-client-react";
 import { BrutalBadge, BrutalButton } from "@/components/ui/brutal";
-import { PixelAvatar } from "@/components/pixel-avatar";
+import { PixelPerson } from "@/components/house/pixel-person";
 import { SkillSearchPicker } from "@/components/skill-search-picker";
 import { ModelPicker } from "@/components/model-picker";
 import { ARCHETYPES, TRAIT_BUDGET, TRAIT_KEYS, findArchetype, traitTotal } from "@/lib/archetypes";
@@ -148,7 +148,7 @@ export function ContestantBuilder() {
         <Link href="/arena" className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Back to the game show">
           <ArrowLeft size={16} />
         </Link>
-        <PixelAvatar seed={contestant.name} size={28} className="rounded-md" />
+        <span className="flex size-8 items-end justify-center overflow-hidden rounded-md bg-muted"><PixelPerson seed={contestant.name} size={20} /></span>
         <h1 className="text-xl font-bold tracking-tight">{contestant.name}</h1>
         {archetype && <BrutalBadge variant="primary">{archetype.name}</BrutalBadge>}
         <BrutalBadge variant="secondary">{contestant.provider}</BrutalBadge>
@@ -255,7 +255,7 @@ export function ContestantBuilder() {
         {/* Stage */}
         <section className="flex flex-col rounded-xl border border-border bg-gradient-to-b from-card to-muted/60 shadow-sm">
           <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 pb-2 pt-6">
-            <PixelAvatar seed={contestant.name} size={176} className="rounded-2xl shadow-md" />
+            <div className="flex h-52 w-44 items-end justify-center rounded-2xl bg-card/70 pb-3 shadow-md"><PixelPerson seed={contestant.name} size={112} /></div>
             <input
               value={catchphrase}
               onChange={(event) => setCatchphrase(event.target.value)}

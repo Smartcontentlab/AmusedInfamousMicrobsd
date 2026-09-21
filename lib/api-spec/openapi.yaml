@@ -1145,6 +1145,12 @@ components:
         currentTask:
           type: string
           nullable: true
+        computerStatus:
+          type: string
+          nullable: true
+        phase:
+          type: string
+          nullable: true
         status:
           type: string
         earnedCents:

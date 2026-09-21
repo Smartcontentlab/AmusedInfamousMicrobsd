@@ -1119,6 +1119,8 @@ export const GetArenaRaceResponse = zod.object({
   "projectName": zod.string().nullish(),
   "businessIdea": zod.string().nullish(),
   "currentTask": zod.string().nullish(),
+  "computerStatus": zod.string().nullish(),
+  "phase": zod.string().nullish(),
   "status": zod.string(),
   "earnedCents": zod.number(),
   "percentToPrize": zod.number(),

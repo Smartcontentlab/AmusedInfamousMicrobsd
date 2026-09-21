@@ -62,6 +62,8 @@ router.get("/arena/race", async (_req, res): Promise<void> => {
         projectName: projects.find((project) => project.id === entry.agent.projectId)?.name ?? null,
         businessIdea: entry.agent.businessIdea,
         currentTask: entry.agent.currentTask,
+        computerStatus: entry.agent.computerStatus,
+        phase: entry.agent.phase,
         status: entry.agent.status,
         earnedCents: entry.earnedCents,
         percentToPrize: prizeCents > 0 ? Math.min(100, Math.round((entry.earnedCents / prizeCents) * 100)) : 0,

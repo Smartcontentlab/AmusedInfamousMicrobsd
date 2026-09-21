@@ -19,6 +19,8 @@ export interface RaceContestant {
   projectName?: string | null;
   businessIdea?: string | null;
   currentTask?: string | null;
+  computerStatus?: string | null;
+  phase?: string | null;
   status: string;
   earnedCents: number;
   percentToPrize: number;

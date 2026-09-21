@@ -37,11 +37,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-[100dvh] flex-col bg-background font-sans text-foreground">
       <header className="z-10 shrink-0 border-b border-border bg-card shadow-sm">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-2 md:px-6">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 max-w-full flex-1 items-center gap-4">
             <Link href="/" className="shrink-0">
               <h1 className="text-xl font-bold uppercase tracking-tighter text-primary md:text-2xl">MC//SYS</h1>
             </Link>
-            <nav className="flex gap-1 overflow-x-auto">
+            <nav className="flex min-w-0 gap-1 overflow-x-auto">
+
               {NAV_ITEMS.map((item) => (
                 <NavItem
                   key={item.href}

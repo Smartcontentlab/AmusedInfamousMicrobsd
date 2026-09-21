@@ -38,6 +38,8 @@ export const agentsTable = pgTable("agents", {
   personality: text("personality"),
   traits: jsonb("traits").$type<AgentTraits>().notNull().default(DEFAULT_TRAITS),
   catchphrase: text("catchphrase"),
+  // Drives the generated pixel look; re-rolled from the builder. Falls back to the name.
+  appearanceSeed: text("appearance_seed"),
   lastActivity: text("last_activity"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

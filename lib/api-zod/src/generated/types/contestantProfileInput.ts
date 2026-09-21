@@ -10,5 +10,6 @@ import type { AgentTraits } from './agentTraits';
 export interface ContestantProfileInput {
   personality?: string | null;
   catchphrase?: string | null;
+  appearanceSeed?: string | null;
   traits?: AgentTraits;
 }

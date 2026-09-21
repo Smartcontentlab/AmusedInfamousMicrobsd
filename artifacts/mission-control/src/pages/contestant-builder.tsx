@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Circle, Minus, Plus, Save, X } from "lucide-react";
+import { ArrowLeft, Check, Circle, Minus, Plus, Save, Shuffle, X } from "lucide-react";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer } from "recharts";
 import {
   getGetArenaRaceQueryKey,
@@ -72,6 +72,8 @@ export function ContestantBuilder() {
   const detach = useDetachAgentCapability({ mutation: { onSuccess: refreshLoadout } });
   const updateAgent = useUpdateAgent({ mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetArenaRaceQueryKey() }) } });
   const saveProfile = useSetContestantProfile({ mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetArenaRaceQueryKey() }) } });
+  // Separate from the main save so re-rolling a look never touches the unsaved draft.
+  const reroll = useSetContestantProfile({ mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetArenaRaceQueryKey() }) } });
 
   const [tab, setTab] = useState<"skills" | "presets">("skills");
   const [seedQuery, setSeedQuery] = useState<string | undefined>(undefined);
@@ -148,7 +150,7 @@ export function ContestantBuilder() {
         <Link href="/arena" className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Back to the game show">
           <ArrowLeft size={16} />
         </Link>
-        <span className="flex size-8 items-end justify-center overflow-hidden rounded-md bg-muted"><PixelPerson seed={contestant.name} size={20} /></span>
+        <span className="flex size-8 items-end justify-center overflow-hidden rounded-md bg-muted"><PixelPerson seed={contestant.appearanceSeed ?? contestant.name} size={20} /></span>
         <h1 className="text-xl font-bold tracking-tight">{contestant.name}</h1>
         {archetype && <BrutalBadge variant="primary">{archetype.name}</BrutalBadge>}
         <BrutalBadge variant="secondary">{contestant.provider}</BrutalBadge>
@@ -255,7 +257,14 @@ export function ContestantBuilder() {
         {/* Stage */}
         <section className="flex flex-col rounded-xl border border-border bg-gradient-to-b from-card to-muted/60 shadow-sm">
           <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 pb-2 pt-6">
-            <div className="flex h-52 w-44 items-end justify-center rounded-2xl bg-card/70 pb-3 shadow-md"><PixelPerson seed={contestant.name} size={112} /></div>
+            <div className="flex h-52 w-44 items-end justify-center rounded-2xl bg-card/70 pb-3 shadow-md"><PixelPerson seed={contestant.appearanceSeed ?? contestant.name} size={112} /></div>
+            <button
+              onClick={() => reroll.mutate({ agentId, data: { appearanceSeed: Math.random().toString(36).slice(2, 10) } })}
+              disabled={reroll.isPending}
+              className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-semibold text-muted-foreground shadow-sm hover:text-foreground disabled:opacity-50"
+            >
+              <Shuffle size={12} /> {reroll.isPending ? "Generating..." : "New look"}
+            </button>
             <input
               value={catchphrase}
               onChange={(event) => setCatchphrase(event.target.value)}

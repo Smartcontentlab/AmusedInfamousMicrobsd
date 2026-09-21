@@ -43,7 +43,7 @@ function ContestantRow({ contestant, prizeCents }: { contestant: RaceContestant;
     >
       <div className="flex items-start gap-2">
         <div className="relative shrink-0">
-          <span className="flex size-11 items-end justify-center overflow-hidden rounded-lg border border-border bg-muted/60"><PixelPerson seed={contestant.name} size={26} /></span>
+          <span className="flex size-11 items-end justify-center overflow-hidden rounded-lg border border-border bg-muted/60"><PixelPerson seed={contestant.appearanceSeed ?? contestant.name} size={26} /></span>
           <span
             className={`absolute -left-1 -top-1 flex size-4 items-center justify-center rounded-lg border border-border font-mono text-[9px] font-bold ${
               MEDALS[contestant.rank - 1] ?? "bg-card"

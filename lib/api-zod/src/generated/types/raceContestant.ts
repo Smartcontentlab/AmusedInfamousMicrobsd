@@ -15,6 +15,7 @@ export interface RaceContestant {
   model?: string | null;
   personality?: string | null;
   catchphrase?: string | null;
+  appearanceSeed?: string | null;
   traits: AgentTraits;
   projectName?: string | null;
   businessIdea?: string | null;

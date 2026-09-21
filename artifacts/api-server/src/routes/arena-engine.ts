@@ -59,7 +59,7 @@ router.post("/arena/levels/:level/run", async (req, res): Promise<void> => {
 router.get("/arena/turns", async (req, res): Promise<void> => {
   const level = req.query.level !== undefined ? Number(req.query.level) : undefined;
   const rows = await db
-    .select({ turn: arenaTurnsTable, agentName: agentsTable.name })
+    .select({ turn: arenaTurnsTable, agentName: agentsTable.name, appearanceSeed: agentsTable.appearanceSeed })
     .from(arenaTurnsTable)
     .innerJoin(agentsTable, eq(arenaTurnsTable.agentId, agentsTable.id))
     .where(level !== undefined && Number.isInteger(level) ? eq(arenaTurnsTable.level, level) : undefined)
@@ -68,10 +68,11 @@ router.get("/arena/turns", async (req, res): Promise<void> => {
 
   res.json(
     ListArenaTurnsResponse.parse(
-      rows.map(({ turn, agentName }) => ({
+      rows.map(({ turn, agentName, appearanceSeed }) => ({
         id: turn.id,
         agentId: turn.agentId,
         agentName,
+        appearanceSeed,
         level: turn.level,
         model: turn.model,
         status: turn.status,

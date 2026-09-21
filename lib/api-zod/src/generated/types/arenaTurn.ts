@@ -11,6 +11,7 @@ export interface ArenaTurn {
   id: number;
   agentId: number;
   agentName: string;
+  appearanceSeed?: string | null;
   level: number;
   model?: string | null;
   status: ArenaTurnStatus;

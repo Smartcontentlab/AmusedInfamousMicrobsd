@@ -58,6 +58,7 @@ router.get("/arena/race", async (_req, res): Promise<void> => {
         model: entry.agent.model,
         personality: entry.agent.personality,
         catchphrase: entry.agent.catchphrase,
+        appearanceSeed: entry.agent.appearanceSeed,
         traits: entry.agent.traits ?? DEFAULT_TRAITS,
         projectName: projects.find((project) => project.id === entry.agent.projectId)?.name ?? null,
         businessIdea: entry.agent.businessIdea,
@@ -106,6 +107,7 @@ router.patch("/agents/:agentId/profile", async (req, res): Promise<void> => {
     .set({
       personality: parsed.data.personality !== undefined ? parsed.data.personality : current.personality,
       catchphrase: parsed.data.catchphrase !== undefined ? parsed.data.catchphrase : current.catchphrase,
+      appearanceSeed: parsed.data.appearanceSeed !== undefined ? parsed.data.appearanceSeed : current.appearanceSeed,
       traits,
     })
     .where(eq(agentsTable.id, agentId))
@@ -120,6 +122,7 @@ router.patch("/agents/:agentId/profile", async (req, res): Promise<void> => {
       model: agent.model,
       personality: agent.personality,
       catchphrase: agent.catchphrase,
+      appearanceSeed: agent.appearanceSeed,
       traits: agent.traits ?? DEFAULT_TRAITS,
     }),
   );

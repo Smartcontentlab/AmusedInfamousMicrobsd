@@ -1124,6 +1124,7 @@ export const ListArenaTurnsResponseItem = zod.object({
   "id": zod.number(),
   "agentId": zod.number(),
   "agentName": zod.string(),
+  "appearanceSeed": zod.string().nullish(),
   "level": zod.number(),
   "model": zod.string().nullish(),
   "status": zod.enum(['queued', 'running', 'completed', 'failed']),
@@ -1167,6 +1168,7 @@ export const GetArenaRaceResponse = zod.object({
   "model": zod.string().nullish(),
   "personality": zod.string().nullish(),
   "catchphrase": zod.string().nullish(),
+  "appearanceSeed": zod.string().nullish(),
   "traits": zod.object({
   "speed": zod.number().min(1).max(getArenaRaceResponseContestantsItemTraitsSpeedMax),
   "creativity": zod.number().min(1).max(getArenaRaceResponseContestantsItemTraitsCreativityMax),
@@ -1211,6 +1213,7 @@ export const setContestantProfileBodyTraitsThriftMax = 5;
 export const SetContestantProfileBody = zod.object({
   "personality": zod.string().nullish(),
   "catchphrase": zod.string().nullish(),
+  "appearanceSeed": zod.string().nullish(),
   "traits": zod.object({
   "speed": zod.number().min(1).max(setContestantProfileBodyTraitsSpeedMax),
   "creativity": zod.number().min(1).max(setContestantProfileBodyTraitsCreativityMax),
@@ -1240,6 +1243,7 @@ export const SetContestantProfileResponse = zod.object({
   "model": zod.string().nullish(),
   "personality": zod.string().nullish(),
   "catchphrase": zod.string().nullish(),
+  "appearanceSeed": zod.string().nullish(),
   "traits": zod.object({
   "speed": zod.number().min(1).max(setContestantProfileResponseTraitsSpeedMax),
   "creativity": zod.number().min(1).max(setContestantProfileResponseTraitsCreativityMax),

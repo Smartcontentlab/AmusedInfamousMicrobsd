@@ -15,5 +15,6 @@ export interface ContestantProfile {
   model?: string | null;
   personality?: string | null;
   catchphrase?: string | null;
+  appearanceSeed?: string | null;
   traits: AgentTraits;
 }

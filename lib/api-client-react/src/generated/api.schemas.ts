@@ -42,6 +42,7 @@ export interface ArenaTurn {
   id: number;
   agentId: number;
   agentName: string;
+  appearanceSeed?: string | null;
   level: number;
   model?: string | null;
   status: ArenaTurnStatus;
@@ -85,6 +86,7 @@ export interface AgentTraits {
 export interface ContestantProfileInput {
   personality?: string | null;
   catchphrase?: string | null;
+  appearanceSeed?: string | null;
   traits?: AgentTraits;
 }
 
@@ -96,6 +98,7 @@ export interface ContestantProfile {
   model?: string | null;
   personality?: string | null;
   catchphrase?: string | null;
+  appearanceSeed?: string | null;
   traits: AgentTraits;
 }
 
@@ -107,6 +110,7 @@ export interface RaceContestant {
   model?: string | null;
   personality?: string | null;
   catchphrase?: string | null;
+  appearanceSeed?: string | null;
   traits: AgentTraits;
   projectName?: string | null;
   businessIdea?: string | null;

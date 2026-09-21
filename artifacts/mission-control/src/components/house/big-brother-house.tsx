@@ -162,7 +162,7 @@ function Resident({ contestant, room, slot }: { contestant: RaceContestant; room
         <Icon size={11} />
       </span>
       <span className={motion}>
-        <PixelPerson seed={contestant.name} size={30} className={room.key === "bedroom" ? "opacity-80" : ""} />
+        <PixelPerson seed={contestant.appearanceSeed ?? contestant.name} size={30} className={room.key === "bedroom" ? "opacity-80" : ""} />
       </span>
       <span className="mt-0.5 rounded bg-[#303633]/85 px-1 font-mono text-[8px] font-bold uppercase leading-tight text-white group-hover:bg-primary">
         {contestant.name}

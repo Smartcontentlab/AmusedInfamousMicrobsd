@@ -21,7 +21,7 @@ function TurnCard({ turn }: { turn: ArenaTurn }) {
     <article className="flex gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
       <div className="flex w-12 shrink-0 flex-col items-center gap-1">
         <span className="flex size-12 items-end justify-center overflow-hidden rounded-lg bg-muted">
-          <PixelPerson seed={turn.agentName} size={26} />
+          <PixelPerson seed={turn.appearanceSeed ?? turn.agentName} size={26} />
         </span>
         <span className="text-center font-mono text-[9px] font-bold uppercase">{turn.agentName}</span>
       </div>

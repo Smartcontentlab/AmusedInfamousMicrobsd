@@ -1173,6 +1173,9 @@ components:
           type: number
         agentName:
           type: string
+        appearanceSeed:
+          type: string
+          nullable: true
         level:
           type: number
         model:
@@ -1234,6 +1237,9 @@ components:
         catchphrase:
           type: string
           nullable: true
+        appearanceSeed:
+          type: string
+          nullable: true
         traits:
           $ref: "#/components/schemas/AgentTraits"
     ContestantProfile:
@@ -1257,6 +1263,9 @@ components:
         catchphrase:
           type: string
           nullable: true
+        appearanceSeed:
+          type: string
+          nullable: true
         traits:
           $ref: "#/components/schemas/AgentTraits"
     RaceContestant:
@@ -1278,6 +1287,9 @@ components:
           type: string
           nullable: true
         catchphrase:
+          type: string
+          nullable: true
+        appearanceSeed:
           type: string
           nullable: true
         traits:

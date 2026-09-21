@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ArenaTurnStatus } from './arenaTurnStatus';
+import type { ArenaTurnStep } from './arenaTurnStep';
 
 export interface ArenaTurn {
   id: number;
@@ -22,4 +23,5 @@ export interface ArenaTurn {
   durationMs?: number | null;
   createdAt: string;
   finishedAt?: string | null;
+  steps?: ArenaTurnStep[];
 }

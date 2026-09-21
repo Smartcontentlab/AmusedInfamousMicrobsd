@@ -46,6 +46,7 @@ export * from './arenaScore';
 export * from './arenaStatus';
 export * from './arenaTurn';
 export * from './arenaTurnStatus';
+export * from './arenaTurnStep';
 export * from './contestantProfile';
 export * from './contestantProfileInput';
 export * from './dashboard';

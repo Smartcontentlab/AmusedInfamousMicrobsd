@@ -1204,6 +1204,25 @@ components:
         finishedAt:
           type: string
           nullable: true
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArenaTurnStep"
+    ArenaTurnStep:
+      type: object
+      required: [step, tool, input, ok]
+      properties:
+        step:
+          type: number
+        tool:
+          type: string
+        input:
+          type: string
+        ok:
+          type: boolean
+        summary:
+          type: string
+          nullable: true
     AgentTraits:
       type: object
       required: [speed, creativity, rigor, charisma, thrift]
@@ -1376,6 +1395,9 @@ components:
         status:
           type: string
           enum: [available, unavailable, checking]
+        tools:
+          type: boolean
+          nullable: true
     ModelCatalog:
       type: object
       required: [provider, configured, checking, models]

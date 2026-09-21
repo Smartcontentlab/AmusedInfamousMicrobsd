@@ -38,6 +38,14 @@ export const ArenaTurnStatus = {
   failed: 'failed',
 } as const;
 
+export interface ArenaTurnStep {
+  step: number;
+  tool: string;
+  input: string;
+  ok: boolean;
+  summary?: string | null;
+}
+
 export interface ArenaTurn {
   id: number;
   agentId: number;
@@ -53,6 +61,7 @@ export interface ArenaTurn {
   durationMs?: number | null;
   createdAt: string;
   finishedAt?: string | null;
+  steps?: ArenaTurnStep[];
 }
 
 export interface AgentTraits {
@@ -159,6 +168,7 @@ export interface ModelOption {
   provider: string;
   displayName?: string | null;
   status: ModelOptionStatus;
+  tools?: boolean | null;
 }
 
 export interface ModelCatalog {

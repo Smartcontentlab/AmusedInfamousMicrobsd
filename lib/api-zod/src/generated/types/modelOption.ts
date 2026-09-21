@@ -12,4 +12,5 @@ export interface ModelOption {
   provider: string;
   displayName?: string | null;
   status: ModelOptionStatus;
+  tools?: boolean | null;
 }

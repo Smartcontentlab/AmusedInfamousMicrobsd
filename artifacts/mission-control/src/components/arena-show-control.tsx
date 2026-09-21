@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Loader2, Lock, Play } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Globe, Info, Loader2, Lock, Play, Search } from "lucide-react";
 import {
   getGetArenaLevelsQueryKey,
   getGetArenaRaceQueryKey,
@@ -9,8 +9,20 @@ import {
   useListArenaTurns,
   useRunArenaLevel,
 } from "@workspace/api-client-react";
-import type { ArenaTurn } from "@workspace/api-client-react";
+import type { ArenaTurn, ArenaTurnStep } from "@workspace/api-client-react";
 import { PixelPerson } from "@/components/house/pixel-person";
+
+function describeStep(step: ArenaTurnStep): string {
+  let args: { url?: string; query?: string } = {};
+  try {
+    args = JSON.parse(step.input) as { url?: string; query?: string };
+  } catch {
+    // Notes and malformed calls fall back to the summary.
+  }
+  if (step.tool === "web_search") return `Searched “${args.query ?? step.input}”`;
+  if (step.tool === "read_page") return `Read ${args.url ?? step.input}${step.ok ? "" : ` — ${step.summary?.replace(/^ERROR:\s*/, "") ?? "failed"}`}`;
+  return step.summary ?? step.tool;
+}
 
 function TurnCard({ turn }: { turn: ArenaTurn }) {
   const [open, setOpen] = useState(false);
@@ -35,6 +47,20 @@ function TurnCard({ turn }: { turn: ArenaTurn }) {
           {turn.durationMs != null && <span>· {(turn.durationMs / 1000).toFixed(1)}s</span>}
           {turn.completionTokens != null && <span>· {(turn.promptTokens ?? 0) + turn.completionTokens} tokens</span>}
         </div>
+
+        {(turn.steps?.length ?? 0) > 0 && (
+          <ol className="mb-2 space-y-0.5 rounded-lg bg-muted/40 p-1.5">
+            {turn.steps!.map((step) => {
+              const Icon = step.tool === "web_search" ? Search : step.tool === "read_page" ? Globe : Info;
+              return (
+                <li key={step.step} className="flex items-start gap-1.5 text-[11px]" title={step.summary ?? undefined}>
+                  <Icon size={11} className={`mt-0.5 shrink-0 ${step.ok ? "text-muted-foreground" : "text-destructive"}`} />
+                  <span className={`min-w-0 flex-1 truncate ${step.ok ? "" : "text-destructive"}`}>{describeStep(step)}</span>
+                </li>
+              );
+            })}
+          </ol>
+        )}
 
         {turn.status === "failed" && <p className="text-xs text-destructive">{turn.error}</p>}
         {(turn.status === "running" || turn.status === "queued") && (

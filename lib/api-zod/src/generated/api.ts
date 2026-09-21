@@ -1134,7 +1134,14 @@ export const ListArenaTurnsResponseItem = zod.object({
   "completionTokens": zod.number().nullish(),
   "durationMs": zod.number().nullish(),
   "createdAt": zod.string(),
-  "finishedAt": zod.string().nullish()
+  "finishedAt": zod.string().nullish(),
+  "steps": zod.array(zod.object({
+  "step": zod.number(),
+  "tool": zod.string(),
+  "input": zod.string(),
+  "ok": zod.boolean(),
+  "summary": zod.string().nullish()
+})).optional()
 })
 export const ListArenaTurnsResponse = zod.array(ListArenaTurnsResponseItem)
 
@@ -1266,7 +1273,8 @@ export const ListModelsResponse = zod.object({
   "id": zod.string(),
   "provider": zod.string(),
   "displayName": zod.string().nullish(),
-  "status": zod.enum(['available', 'unavailable', 'checking'])
+  "status": zod.enum(['available', 'unavailable', 'checking']),
+  "tools": zod.boolean().nullish()
 }))
 })
 

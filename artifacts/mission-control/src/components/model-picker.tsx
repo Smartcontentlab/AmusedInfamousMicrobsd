@@ -53,6 +53,7 @@ export function ModelPicker({
         {available.map((option) => (
           <option key={option.id} value={option.id}>
             {option.id}
+            {option.tools ? " · web tools" : ""}
           </option>
         ))}
       </select>
@@ -66,6 +67,12 @@ export function ModelPicker({
           <>{available.length} free models working on your key</>
         )}
       </p>
+
+      {!currentIsDead && current?.status === "available" && current.tools === false && (
+        <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+          This model can't use web tools, so it will research from memory only.
+        </p>
+      )}
 
       {currentIsDead && (
         <p className="mt-1 flex items-start gap-1 font-mono text-[10px] text-destructive">

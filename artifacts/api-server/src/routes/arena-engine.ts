@@ -1,8 +1,8 @@
-import { desc, eq, gte } from "drizzle-orm";
+import { asc, desc, eq, gte, inArray } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { GetArenaLevelsResponse, ListArenaTurnsResponse, RunArenaLevelResponse } from "@workspace/api-zod";
-import { agentsTable, arenaTurnsTable, db } from "@workspace/db";
-import { ARENA_LEVELS, ArenaEngineError, DAILY_TURN_BUDGET, startLevel } from "../lib/arena-engine";
+import { agentsTable, arenaTurnStepsTable, arenaTurnsTable, db } from "@workspace/db";
+import { ARENA_LEVELS, ArenaEngineError, DAILY_TURN_BUDGET, describeLevelTools, startLevel } from "../lib/arena-engine";
 
 const router: IRouter = Router();
 
@@ -25,7 +25,7 @@ router.get("/arena/levels", async (_req, res): Promise<void> => {
           level: level.level,
           title: level.title,
           goal: level.goal,
-          tools: level.tools,
+          tools: describeLevelTools(level),
           locked: level.lockedReason !== null,
           lockedReason: level.lockedReason,
           running: forLevel.some((turn) => turn.status === "queued" || turn.status === "running"),
@@ -66,6 +66,11 @@ router.get("/arena/turns", async (req, res): Promise<void> => {
     .orderBy(desc(arenaTurnsTable.createdAt), desc(arenaTurnsTable.id))
     .limit(40);
 
+  const turnIds = rows.map(({ turn }) => turn.id);
+  const steps = turnIds.length
+    ? await db.select().from(arenaTurnStepsTable).where(inArray(arenaTurnStepsTable.turnId, turnIds)).orderBy(asc(arenaTurnStepsTable.step))
+    : [];
+
   res.json(
     ListArenaTurnsResponse.parse(
       rows.map(({ turn, agentName, appearanceSeed }) => ({
@@ -83,6 +88,9 @@ router.get("/arena/turns", async (req, res): Promise<void> => {
         durationMs: turn.durationMs,
         createdAt: turn.createdAt.toISOString(),
         finishedAt: turn.finishedAt ? turn.finishedAt.toISOString() : null,
+        steps: steps
+          .filter((step) => step.turnId === turn.id)
+          .map((step) => ({ step: step.step, tool: step.tool, input: step.input, ok: step.ok === 1, summary: step.summary })),
       })),
     ),
   );

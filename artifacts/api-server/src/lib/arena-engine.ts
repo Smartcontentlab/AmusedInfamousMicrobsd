@@ -2,7 +2,7 @@ import { and, eq, gte, inArray } from "drizzle-orm";
 import { DEFAULT_TRAITS, agentSkillsTable, agentsTable, arenaTurnStepsTable, arenaTurnsTable, db, skillsTable, type Agent } from "@workspace/db";
 import { NimError, chatCompletion, chatStep, emptyAnswerMessage, type ChatMessage } from "./nim";
 import { ToolError, researchTools, runTool } from "./contestant-tools";
-import { toolSupportFor } from "./model-catalog";
+import { markUnavailable, respondingModels, toolSupportFor } from "./model-catalog";
 
 export type ArenaLevel = {
   level: number;
@@ -147,9 +147,9 @@ async function recordStep(turnId: number, step: number, tool: string, input: str
   await db.insert(arenaTurnStepsTable).values({ turnId, step, tool, input: input.slice(0, 500), ok: ok ? 1 : 0, summary: summary.slice(0, 400) });
 }
 
-async function runResearchLoop(turnId: number, model: string, system: string, brief: string): Promise<Outcome> {
+async function runResearchLoop(turnId: number, model: string, system: string, brief: string, counter: { value: number }): Promise<Outcome> {
   if (toolSupportFor(model) === false) {
-    await recordStep(turnId, 1, "note", model, false, "This model cannot use tools, so it answered without the web. Pick a tool-capable model in the builder.");
+    await recordStep(turnId, ++counter.value, "note", model, false, "This model cannot use tools, so it answered without the web. Pick a tool-capable model in the builder.");
     const plain = await chatCompletion(
       model,
       [
@@ -171,7 +171,6 @@ async function runResearchLoop(turnId: number, model: string, system: string, br
   const used = new Map<string, number>();
   let promptTokens = 0;
   let completionTokens = 0;
-  let stepNumber = 0;
   let totalCalls = 0;
   let failuresInARow = 0;
   const findings: string[] = [];
@@ -179,7 +178,7 @@ async function runResearchLoop(turnId: number, model: string, system: string, br
   // Answering mid tool-conversation trips some models up, so the final answer
   // comes from a clean conversation with the findings written out as notes.
   const answerFromNotes = async (): Promise<Outcome> => {
-    await recordStep(turnId, ++stepNumber, "note", "", true, "Research time is over; answering with what it found.");
+    await recordStep(turnId, ++counter.value, "note", "", true, "Research time is over; answering with what it found.");
     const final = await chatCompletion(
       model,
       [
@@ -203,7 +202,7 @@ async function runResearchLoop(turnId: number, model: string, system: string, br
     } catch (error) {
       // A model without tool support still gets to play, just without the web.
       if (round === 0 && error instanceof NimError && /does not support tools/.test(error.message)) {
-        await recordStep(turnId, ++stepNumber, "note", model, false, "This model cannot use tools, so it answered without the web.");
+        await recordStep(turnId, ++counter.value, "note", model, false, "This model cannot use tools, so it answered without the web.");
         const plain = await chatCompletion(model, messages, { maxTokens: MAX_OUTPUT_TOKENS, timeoutMs: TURN_TIMEOUT_MS });
         return { text: plain.text, promptTokens: plain.promptTokens ?? 0, completionTokens: plain.completionTokens ?? 0 };
       }
@@ -244,7 +243,7 @@ async function runResearchLoop(turnId: number, model: string, system: string, br
           result = `ERROR: ${error instanceof ToolError ? error.message : "The tool failed."}`;
         }
       }
-      await recordStep(turnId, ++stepNumber, name, input, ok, result);
+      await recordStep(turnId, ++counter.value, name, input, ok, result);
       messages.push({ role: "tool", tool_call_id: call.id, content: result });
       if (ok) findings.push(`[${name}: ${input.slice(0, 200)}]\n${result.slice(0, 1500)}`);
       totalCalls += 1;
@@ -261,23 +260,60 @@ async function runResearchLoop(turnId: number, model: string, system: string, br
   throw new NimError(`Stopped: hit the ${MAX_STEPS}-step limit without a final answer.`);
 }
 
+const MAX_STAND_INS = 2;
+
+/** Picks the responding model with the best record over the last day, preferring tool-capable ones. */
+async function pickStandIn(exclude: string[], needsTools: boolean): Promise<string | null> {
+  const candidates = respondingModels().filter((model) => !exclude.includes(model.id) && (!needsTools || model.tools !== false));
+  if (candidates.length === 0) return null;
+  const since = new Date(Date.now() - 24 * 60 * 60_000);
+  const recent = await db
+    .select({ model: arenaTurnsTable.model, status: arenaTurnsTable.status })
+    .from(arenaTurnsTable)
+    .where(gte(arenaTurnsTable.createdAt, since));
+  const score = (id: string) =>
+    recent.filter((turn) => turn.model === id && turn.status === "completed").length -
+    recent.filter((turn) => turn.model === id && turn.status === "failed").length;
+  return candidates.sort((a, b) => score(b.id) - score(a.id) || Number(b.tools === true) - Number(a.tools === true))[0].id;
+}
+
 async function runTurn(turnId: number, agent: Agent, system: string, level: ArenaLevel) {
   await db.update(arenaTurnsTable).set({ status: "running" }).where(eq(arenaTurnsTable.id, turnId));
   await db.update(agentsTable).set({ status: "working", computerStatus: level.activity }).where(eq(agentsTable.id, agent.id));
   const startedAt = Date.now();
+  const counter = { value: 0 };
 
   try {
     if (!agent.model) throw new NimError("No model chosen. Pick one in the builder.");
-    const outcome: Outcome = level.research
-      ? await runResearchLoop(turnId, agent.model, system, level.brief)
-      : await chatCompletion(
-          agent.model,
-          [
-            { role: "system", content: system },
-            { role: "user", content: level.brief },
-          ],
-          { maxTokens: MAX_OUTPUT_TOKENS, timeoutMs: TURN_TIMEOUT_MS },
-        ).then((result) => ({ text: result.text, promptTokens: result.promptTokens ?? 0, completionTokens: result.completionTokens ?? 0 }));
+    const tried: string[] = [];
+    let model = agent.model;
+    let outcome: Outcome | null = null;
+
+    // Free models drop out without warning. When the contestant's own model has an
+    // outage, another responding model stands in for this turn and the card says so.
+    while (!outcome) {
+      tried.push(model);
+      try {
+        outcome = level.research
+          ? await runResearchLoop(turnId, model, system, level.brief, counter)
+          : await chatCompletion(
+              model,
+              [
+                { role: "system", content: system },
+                { role: "user", content: level.brief },
+              ],
+              { maxTokens: MAX_OUTPUT_TOKENS, timeoutMs: TURN_TIMEOUT_MS },
+            ).then((result) => ({ text: result.text, promptTokens: result.promptTokens ?? 0, completionTokens: result.completionTokens ?? 0 }));
+      } catch (error) {
+        if (!(error instanceof NimError) || !error.outage || tried.length > MAX_STAND_INS) throw error;
+        markUnavailable(model);
+        const standIn = await pickStandIn(tried, level.research === true);
+        if (!standIn) throw error;
+        await recordStep(turnId, ++counter.value, "note", model, false, `${model} stopped responding (${error.message}) so ${standIn} stood in.`);
+        await db.update(arenaTurnsTable).set({ model: standIn, standInFor: agent.model }).where(eq(arenaTurnsTable.id, turnId));
+        model = standIn;
+      }
+    }
 
     await db
       .update(arenaTurnsTable)

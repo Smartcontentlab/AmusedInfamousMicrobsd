@@ -15,6 +15,8 @@ export interface ArenaTurn {
   appearanceSeed?: string | null;
   level: number;
   model?: string | null;
+  /** The contestant's own model when another model stood in for this turn. */
+  standInFor?: string | null;
   status: ArenaTurnStatus;
   output?: string | null;
   error?: string | null;

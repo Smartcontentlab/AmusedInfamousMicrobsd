@@ -8,6 +8,8 @@ export const arenaTurnsTable = pgTable(
     agentId: integer("agent_id").notNull(),
     level: integer("level").notNull(),
     model: text("model"),
+    // The contestant's own model when a different one had to stand in for this turn.
+    standInFor: text("stand_in_for"),
     status: text("status").notNull().default("queued"), // queued, running, completed, failed
     prompt: text("prompt").notNull(),
     output: text("output"),

@@ -80,6 +80,7 @@ router.get("/arena/turns", async (req, res): Promise<void> => {
         appearanceSeed,
         level: turn.level,
         model: turn.model,
+        standInFor: turn.standInFor,
         status: turn.status,
         output: turn.output,
         error: turn.error,

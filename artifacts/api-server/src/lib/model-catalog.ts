@@ -130,6 +130,18 @@ export function statusFor(id: string): ModelStatus {
   return Date.now() - probe.at < ttl ? probe.status : "checking";
 }
 
+/** Models currently known to respond, for picking a stand-in when a contestant's model is down. */
+export function respondingModels(): { id: string; tools: boolean | null }[] {
+  return [...probes.keys()].filter((id) => statusFor(id) === "available").map((id) => ({ id, tools: toolSupportFor(id) }));
+}
+
+/** Records a live outage so the picker and stand-in choice stop offering a model that just failed. */
+export function markUnavailable(id: string) {
+  const probe = probes.get(id);
+  probes.set(id, { status: "unavailable", tools: probe?.tools ?? null, at: Date.now() });
+  saveCache();
+}
+
 /** Whether a model can use tools: true, false, or null when not yet known. */
 export function toolSupportFor(id: string): boolean | null {
   return probes.get(id)?.tools ?? null;

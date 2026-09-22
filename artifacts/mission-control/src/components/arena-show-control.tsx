@@ -44,6 +44,11 @@ function TurnCard({ turn }: { turn: ArenaTurn }) {
           {turn.status === "failed" && <AlertTriangle size={12} className="text-destructive" />}
           {(turn.status === "running" || turn.status === "queued") && <Loader2 size={12} className="animate-spin" />}
           <span>{turn.model ?? "no model"}</span>
+          {turn.standInFor && (
+            <span className="rounded bg-secondary px-1.5 py-0.5 normal-case text-foreground" title={`${turn.standInFor} was down, so this model answered instead.`}>
+              Stand-in for {turn.standInFor}
+            </span>
+          )}
           {turn.durationMs != null && <span>· {(turn.durationMs / 1000).toFixed(1)}s</span>}
           {turn.completionTokens != null && <span>· {(turn.promptTokens ?? 0) + turn.completionTokens} tokens</span>}
         </div>

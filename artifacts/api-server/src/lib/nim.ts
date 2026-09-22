@@ -28,14 +28,25 @@ export type ChatResult = {
   durationMs: number;
 };
 
+/**
+ * "outage" means the model itself could not serve the request (gone, overloaded,
+ * timed out, rate limited), so a different model may succeed where this one did not.
+ */
 export class NimError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    public readonly outage = false,
+  ) {
     super(message);
     this.name = "NimError";
   }
 }
 
-class TransientNimError extends NimError {}
+class TransientNimError extends NimError {
+  constructor(message: string) {
+    super(message, true);
+  }
+}
 
 type RequestOptions = { maxTokens: number; timeoutMs: number; tools?: ToolDefinition[]; toolChoice?: "auto" | "none" };
 
@@ -87,8 +98,8 @@ async function requestOnce(model: string, messages: ChatMessage[], options: Requ
     });
 
     if (!response.ok) {
-      if (response.status === 404 || response.status === 410) throw new NimError(`The model ${model} is not available on this key right now.`);
-      if (response.status === 429) throw new NimError("NVIDIA rate limit reached. Try again in a minute.");
+      if (response.status === 404 || response.status === 410) throw new NimError(`The model ${model} is not available on this key right now.`, true);
+      if (response.status === 429) throw new NimError("NVIDIA rate limit reached. Try again in a minute.", true);
       if (response.status >= 500) throw new TransientNimError(`NVIDIA had a server error (${response.status}) and the retry failed too.`);
       if (response.status === 400 && options.tools?.length) throw new NimError(`The model ${model} does not support tools.`);
       throw new NimError(`NVIDIA returned ${response.status}.`);
@@ -114,7 +125,7 @@ async function requestOnce(model: string, messages: ChatMessage[], options: Requ
       // Free-tier queues are sometimes just slow, so a timeout gets the same single retry as a 5xx.
       throw new TransientNimError(`The model took longer than ${Math.round(options.timeoutMs / 1000)}s twice and was stopped.`);
     }
-    throw new NimError("NVIDIA could not be reached.");
+    throw new NimError("NVIDIA could not be reached.", true);
   } finally {
     clearTimeout(timer);
   }

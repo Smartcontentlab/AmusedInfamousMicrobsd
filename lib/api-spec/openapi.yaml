@@ -1181,6 +1181,10 @@ components:
         model:
           type: string
           nullable: true
+        standInFor:
+          type: string
+          nullable: true
+          description: The contestant's own model when another model stood in for this turn.
         status:
           type: string
           enum: [queued, running, completed, failed]

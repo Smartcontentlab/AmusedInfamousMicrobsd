@@ -1127,6 +1127,7 @@ export const ListArenaTurnsResponseItem = zod.object({
   "appearanceSeed": zod.string().nullish(),
   "level": zod.number(),
   "model": zod.string().nullish(),
+  "standInFor": zod.string().nullish().describe('The contestant\'s own model when another model stood in for this turn.'),
   "status": zod.enum(['queued', 'running', 'completed', 'failed']),
   "output": zod.string().nullish(),
   "error": zod.string().nullish(),

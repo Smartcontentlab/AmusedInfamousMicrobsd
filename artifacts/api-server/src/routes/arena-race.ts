@@ -2,6 +2,8 @@ import { desc, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { GetArenaRaceResponse, SetContestantProfileBody, SetContestantProfileResponse } from "@workspace/api-zod";
 import { DEFAULT_TRAITS, agentsTable, arenaTable, db, projectsTable, type AgentTraits } from "@workspace/db";
+import { stripeConfigured, syncStripeRevenue } from "../lib/stripe-revenue";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -25,6 +27,13 @@ function normalizeTraits(input: Partial<AgentTraits> | undefined, current: Agent
 }
 
 router.get("/arena/race", async (_req, res): Promise<void> => {
+  // The world produces the score: pull what Stripe says was actually paid before ranking anyone.
+  try {
+    await syncStripeRevenue();
+  } catch (error) {
+    logger.warn({ error }, "Stripe revenue sync failed; showing the last verified figures.");
+  }
+
   const [[arena], contestants, projects] = await Promise.all([
     db.select().from(arenaTable).limit(1),
     db.select().from(agentsTable).orderBy(desc(agentsTable.scaleRevenueCents)),
@@ -34,10 +43,12 @@ router.get("/arena/race", async (_req, res): Promise<void> => {
   const prizeCents = arena?.winConditionCents ?? 10000;
 
   // Earnings are whatever the contestant has actually banked from what it built.
+  // With Stripe wired up only verified payments count; the seeded demo figures are ignored.
+  const scoredFromStripe = stripeConfigured();
   const ranked = [...contestants]
     .map((agent) => ({
       agent,
-      earnedCents: agent.scaleRevenueCents || agent.arenaIncomeCents || 0,
+      earnedCents: scoredFromStripe ? agent.arenaIncomeCents : agent.scaleRevenueCents || agent.arenaIncomeCents || 0,
     }))
     .sort((a, b) => b.earnedCents - a.earnedCents);
 

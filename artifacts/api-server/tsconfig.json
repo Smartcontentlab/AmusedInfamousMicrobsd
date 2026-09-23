@@ -8,6 +8,8 @@
     "types": ["node"]
   },
   "include": ["src"],
+  // *.check.ts files are standalone self-checks run directly by node, so they import with .ts extensions.
+  "exclude": ["src/**/*.check.ts"],
   "references": [
     {
       "path": "../../lib/db"

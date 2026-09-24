@@ -313,7 +313,13 @@ export async function launchRuntimeRun(connection: RuntimeConnection, task: stri
   const response = connection.provider === "openclaw"
     ? { data: await openClawRequest(connection, "chat.send", { sessionKey: `mission-control:${agentId}`, message: task, idempotencyKey: `mission-control-${randomUUID()}` }) }
     : await requestJson(connection, paths.launch, { method: "POST", body: JSON.stringify({ input: task, session_id: `mission-control:${agentId}` }) });
-  const capabilities = connection.provider === "hermes" ? hermesCapabilities(response.data) : capabilitiesFrom(response.data, ["launch", "stop"]);
+  // A runtime that advertised pause/resume at the health check keeps them even when its
+  // launch reply says nothing about capabilities. Without this fallback those controls
+  // silently disappear for any runtime that only lists its features once, at discovery.
+  const discovered = connection.capabilities?.length ? connection.capabilities : DEFAULT_CAPABILITIES;
+  const capabilities = connection.provider === "hermes"
+    ? hermesCapabilities(response.data, discovered)
+    : capabilitiesFrom(response.data, discovered);
   return {
     providerRunId: providerRunId(response.data),
     status: normalizeRunStatus(response.data.status ?? response.data.state),
@@ -379,7 +385,9 @@ export async function getRuntimeRun(connection: RuntimeConnection, providerRunId
   const message = stringValue(response.data.lastEvent)
     ?? stringValue(response.data.message)
     ?? (status === "completed" ? "Runtime completed the run." : status === "failed" ? "Runtime reported that the run failed." : `Runtime reports the run is ${status}.`);
-  const capabilities = hermesCapabilities(response.data);
+  // Same reason as launchRuntimeRun: a status poll that says nothing about capabilities
+  // must not revoke the controls discovered when the connection was checked.
+  const capabilities = hermesCapabilities(response.data, connection.capabilities?.length ? connection.capabilities : DEFAULT_CAPABILITIES);
   return {
     status,
     lastEvent: message,

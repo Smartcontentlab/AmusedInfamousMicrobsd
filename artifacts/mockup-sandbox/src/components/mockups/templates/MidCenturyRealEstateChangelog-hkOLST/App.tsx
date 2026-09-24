@@ -119,7 +119,7 @@ const releases = [
       { tag: 'fixed', text: 'Resolved sign-in trouble for clients sharing one household email address (a surprisingly common arrangement).' },
     ],
   },
-];
+] as const;
 
 /* -------------------------------- HELPERS --------------------------------- */
 
@@ -140,13 +140,13 @@ const Starburst = ({ size = 28, color = PALETTE.rust }) => (
   </svg>
 );
 
-const Boomerang = ({ className, color }) => (
+const Boomerang = ({ className, color }: { className?: string; color: string }) => (
   <svg viewBox="0 0 200 120" className={className} fill="none">
     <path d="M10 110 C 60 10, 90 10, 100 40 C 110 10, 140 10, 190 110 C 140 60, 110 55, 100 70 C 90 55, 60 60, 10 110 Z" fill={color} />
   </svg>
 );
 
-const Tag = ({ type }) => {
+const Tag = ({ type }: { type: keyof typeof TAGS }) => {
   const t = TAGS[type];
   const Icon = t.icon;
   return (
@@ -162,7 +162,7 @@ const Tag = ({ type }) => {
 
 const fadeUp = {
   hidden: { opacity: 0, y: 32 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
 /* ---------------------------------- APP ----------------------------------- */

@@ -13,6 +13,7 @@
  */
 import assert from "node:assert/strict";
 import { startMockHermes } from "./mock-runtime.js";
+import { startMockOpenClaw } from "./mock-openclaw.js";
 
 const args = process.argv.slice(2);
 const argValue = (name: string) => {
@@ -102,10 +103,58 @@ async function main() {
       step(`run ${action}`, expected);
     }
 
-    console.log("\nPASS — the dashboard can discover, launch and control a Hermes runtime.");
-    console.log("Point a connection at your real Hermes next; anything that fails now is on its side.\n");
+    console.log("\n  Hermes path: PASS\n");
+    await verifyOpenClaw();
+
+    console.log("\nPASS — the dashboard can discover, launch and control both runtimes.");
+    console.log("Point connections at your real Hermes and OpenClaw next;");
+    console.log("anything that fails now is on their side, not the dashboard's.\n");
   } finally {
     await mock.close();
+  }
+}
+
+/** OpenClaw speaks WebSocket JSON-RPC and only advertises launch and stop. */
+async function verifyOpenClaw() {
+  const gateway = await startMockOpenClaw({ port: 0, quiet: true });
+  console.log(`Stand-in OpenClaw gateway on ws://127.0.0.1:${gateway.port}\n`);
+  try {
+    const created = await call("/runtime-connections", {
+      method: "POST",
+      body: JSON.stringify({ name: `verify-claw-${Date.now()}`, provider: "openclaw", endpointUrl: gateway.url }),
+    });
+    assert.equal(created.status, 201, `could not register the gateway: ${JSON.stringify(created.body)}`);
+    const connectionId = created.body.id;
+    step("gateway registered", `id ${connectionId}`);
+
+    const checked = await call(`/runtime-connections/${connectionId}/check`, { method: "POST" });
+    assert.equal(checked.status, 200, `gateway health check failed: ${JSON.stringify(checked.body)}`);
+    assert.equal(checked.body.status, "healthy", `expected healthy, got ${checked.body.status}: ${checked.body.errorMessage}`);
+    assert.ok(checked.body.capabilities.includes("launch"), "the gateway handshake advertised no launch method");
+    step("handshake + capabilities", `healthy, ${checked.body.capabilities.join("/")}, ${checked.body.latencyMs}ms`);
+
+    const agents = await call("/agents");
+    const chosen = agents.body.find((agent: any) => String(agent.provider).toLowerCase() === "openclaw");
+    assert.ok(chosen, "no agent with provider \"openclaw\" exists. Set one in the dashboard.");
+    step("agent selected", `${chosen.name} (id ${chosen.id})`);
+
+    await call(`/agents/${chosen.id}/run/stop`, { method: "POST" });
+    const launched = await call(`/agents/${chosen.id}/run`, {
+      method: "POST",
+      body: JSON.stringify({ task: "verify-runtime: prove the gateway path", runtimeConnectionId: connectionId }),
+    });
+    assert.equal(launched.status, 201, `gateway launch failed: ${JSON.stringify(launched.body)}`);
+    assert.ok(launched.body.providerRunId, "the gateway returned no run id");
+    step("run launched", `${launched.body.providerRunId.slice(0, 8)}`);
+
+    const stopped = await call(`/agents/${chosen.id}/run/stop`, { method: "POST" });
+    assert.equal(stopped.status, 200, `gateway stop failed: ${JSON.stringify(stopped.body)}`);
+    assert.equal(stopped.body.status, "stopped", `stop left the run as ${stopped.body.status}`);
+    step("run stopped", "stopped");
+
+    console.log("\n  OpenClaw path: PASS");
+  } finally {
+    await gateway.close();
   }
 }
 

@@ -7,7 +7,8 @@
     "hello": "tsx ./src/hello.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "mock-runtime": "tsx ./src/mock-runtime.ts",
-    "verify-runtime": "tsx ./src/verify-runtime.ts"
+    "verify-runtime": "tsx ./src/verify-runtime.ts",
+    "mock-openclaw": "tsx ./src/mock-openclaw.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",

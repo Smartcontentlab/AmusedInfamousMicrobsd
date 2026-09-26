@@ -1774,6 +1774,8 @@ components:
           type: string
         nextMove:
           type: [string, "null"]
+        instructions:
+          type: [string, "null"]
     AgentInput:
       type: object
       required: [name, role]
@@ -1787,6 +1789,8 @@ components:
         projectId:
           type: number
         provider:
+          type: string
+        instructions:
           type: string
     AgentUpdate:
       type: object
@@ -1813,6 +1817,8 @@ components:
           type: number
         runtime:
           type: string
+        instructions:
+          type: [string, "null"]
     Task:
       type: object
       required: [id, title, status, priority, projectId, createdAt]

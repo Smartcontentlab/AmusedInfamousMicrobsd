@@ -36,6 +36,8 @@ export const agentsTable = pgTable("agents", {
   model: text("model"),
   modelProvider: text("model_provider").notNull().default("nvidia_nim"),
   personality: text("personality"),
+  /** Markdown operating rules for this staff member, prepended to every run they are sent. */
+  instructions: text("instructions"),
   traits: jsonb("traits").$type<AgentTraits>().notNull().default(DEFAULT_TRAITS),
   catchphrase: text("catchphrase"),
   // Drives the generated pixel look; re-rolled from the builder. Falls back to the name.

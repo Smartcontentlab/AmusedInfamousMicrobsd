@@ -335,7 +335,13 @@ router.post("/agents/:agentId/run", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const started = await launchRuntimeRun(connection, body.data.task.trim(), agent.id, allowedTools);
+    // The staff member's standing rules travel with every run, so what you write in
+    // their rules panel is what the agent is actually held to, not just a note in the UI.
+    const task = body.data.task.trim();
+    const briefed = agent.instructions?.trim()
+      ? `${agent.instructions.trim()}\n\n---\n\nTask: ${task}`
+      : task;
+    const started = await launchRuntimeRun(connection, briefed, agent.id, allowedTools);
     const now = new Date();
     const [run] = await db.insert(liveRunsTable).values({
       agentId: agent.id,

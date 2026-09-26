@@ -480,6 +480,8 @@ export interface Agent {
   phase: string;
   /** @nullable */
   nextMove?: string | null;
+  /** @nullable */
+  instructions?: string | null;
 }
 
 export interface AgentInput {
@@ -489,6 +491,7 @@ export interface AgentInput {
   role: string;
   projectId?: number;
   provider?: string;
+  instructions?: string;
 }
 
 export type AgentUpdateStatus = typeof AgentUpdateStatus[keyof typeof AgentUpdateStatus];
@@ -514,6 +517,8 @@ export interface AgentUpdate {
   nextMove?: string;
   runtimeConnectionId?: number;
   runtime?: string;
+  /** @nullable */
+  instructions?: string | null;
 }
 
 export type TaskInputPriority = typeof TaskInputPriority[keyof typeof TaskInputPriority];

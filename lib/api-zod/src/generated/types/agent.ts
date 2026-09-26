@@ -27,4 +27,6 @@ export interface Agent {
   phase: string;
   /** @nullable */
   nextMove?: string | null;
+  /** @nullable */
+  instructions?: string | null;
 }

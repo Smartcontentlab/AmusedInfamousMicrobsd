@@ -13,4 +13,5 @@ export interface AgentInput {
   role: string;
   projectId?: number;
   provider?: string;
+  instructions?: string;
 }

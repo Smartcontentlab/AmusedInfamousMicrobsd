@@ -167,7 +167,8 @@ export const ListAgentsResponseItem = zod.object({
   "computerStatus": zod.string(),
   "businessIdea": zod.string().nullish(),
   "phase": zod.string(),
-  "nextMove": zod.string().nullish()
+  "nextMove": zod.string().nullish(),
+  "instructions": zod.string().nullish()
 })
 export const ListAgentsResponse = zod.array(ListAgentsResponseItem)
 
@@ -183,7 +184,8 @@ export const CreateAgentBody = zod.object({
   "name": zod.string().min(1),
   "role": zod.string().min(1),
   "projectId": zod.number().optional(),
-  "provider": zod.string().optional()
+  "provider": zod.string().optional(),
+  "instructions": zod.string().optional()
 })
 
 export const CreateAgentResponse = zod.object({
@@ -200,7 +202,8 @@ export const CreateAgentResponse = zod.object({
   "computerStatus": zod.string(),
   "businessIdea": zod.string().nullish(),
   "phase": zod.string(),
-  "nextMove": zod.string().nullish()
+  "nextMove": zod.string().nullish(),
+  "instructions": zod.string().nullish()
 })
 
 
@@ -224,7 +227,8 @@ export const UpdateAgentBody = zod.object({
   "phase": zod.string().optional(),
   "nextMove": zod.string().optional(),
   "runtimeConnectionId": zod.number().optional(),
-  "runtime": zod.string().optional()
+  "runtime": zod.string().optional(),
+  "instructions": zod.string().nullish()
 })
 
 export const UpdateAgentResponse = zod.object({
@@ -241,7 +245,8 @@ export const UpdateAgentResponse = zod.object({
   "computerStatus": zod.string(),
   "businessIdea": zod.string().nullish(),
   "phase": zod.string(),
-  "nextMove": zod.string().nullish()
+  "nextMove": zod.string().nullish(),
+  "instructions": zod.string().nullish()
 })
 
 

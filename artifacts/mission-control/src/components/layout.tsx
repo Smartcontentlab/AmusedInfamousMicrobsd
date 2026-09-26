@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Folder, Zap, Swords, Inbox } from "lucide-react";
+import { LayoutDashboard, Folder, Zap, Swords, Inbox, Users } from "lucide-react";
 import React from "react";
 import { useListRuntimeHealth } from "@workspace/api-client-react";
 
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: "/", icon: LayoutDashboard, label: "Home" },
   { href: "/inbox", icon: Inbox, label: "Inbox" },
   { href: "/projects", icon: Folder, label: "Projects" },
+  { href: "/agents", icon: Users, label: "Staff" },
   { href: "/skills", icon: Zap, label: "Skills" },
   { href: "/arena", icon: Swords, label: "Game show" },
 ];

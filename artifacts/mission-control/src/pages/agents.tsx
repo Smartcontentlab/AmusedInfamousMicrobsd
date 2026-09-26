@@ -486,8 +486,81 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
          <label className="mt-3 block text-xs font-bold uppercase">Runtime link<select data-testid={`agent-runtime-${agent.id}`} className="mt-1 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.runtimeConnectionId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { runtimeConnectionId: event.target.value ? Number(event.target.value) : undefined } })}><option value="">-- AUTO BY PROVIDER --</option>{runtimeConnections.filter((connection) => String(connection.provider ?? "").toLowerCase() === String(agent.provider ?? "").toLowerCase()).map((connection) => <option key={String(connection.id)} value={String(connection.id)}>{connection.name} ({connection.provider})</option>)}</select></label>
         {updateAgent.isError && <p className="mt-2 font-mono text-xs text-destructive">{messageFor(updateAgent.error, "Agent update failed.")}</p>}
       </div>
+      <RulesPanel agent={agent} />
       <RunPanel agentId={agent.id} agentName={agent.name} provider={agent.provider || ""} />
     </BrutalCard></div>
+  );
+}
+
+/**
+ * Standing rules for one staff member, written as markdown. Whatever is saved here is
+ * prepended to every run they are dispatched, so it is their brief and not a UI note.
+ */
+function RulesPanel({ agent }: { agent: LooseRecord }) {
+  const queryClient = useQueryClient();
+  const updateAgent = useUpdateAgent({
+    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() }) },
+  });
+  const saved = agent.instructions ?? "";
+  const [draft, setDraft] = useState<string>(saved);
+  const [open, setOpen] = useState(false);
+
+  // Adopt outside edits, but never clobber something half-typed.
+  useEffect(() => {
+    setDraft((current) => (current === "" || current === saved ? saved : current));
+  }, [saved]);
+
+  const dirty = draft !== saved;
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/50 p-3">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center gap-2 text-xs font-bold uppercase"
+        data-testid={`agent-rules-toggle-${agent.id}`}
+      >
+        <Terminal size={14} className="text-primary" /> Rules &amp; tasks
+        <span className="ml-auto flex items-center gap-2 font-mono text-[10px] normal-case text-muted-foreground">
+          {saved ? `${saved.split("\n").length} lines` : "none set"}
+          {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </span>
+      </button>
+
+      {open && (
+        <>
+          <textarea
+            data-testid={`agent-rules-${agent.id}`}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            rows={10}
+            spellCheck={false}
+            placeholder={"## Role\nWhat this person owns.\n\n## Rules\n- Never spend money without approval\n- Cite a source for every claim\n\n## Current task\nWhat they should be working on now."}
+            className="mt-2 w-full resize-y rounded-xl border border-border bg-card p-3 font-mono text-xs leading-relaxed focus:outline-none focus:ring-4 focus:ring-primary/20"
+          />
+          <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+            Markdown. Sent ahead of every task this staff member is given.
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <BrutalButton
+              data-testid={`agent-rules-save-${agent.id}`}
+              onClick={() => updateAgent.mutate({ agentId: agent.id, data: { instructions: draft } })}
+              disabled={!dirty || updateAgent.isPending}
+            >
+              {updateAgent.isPending ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Check size={14} /> Save rules</>}
+            </BrutalButton>
+            {dirty && (
+              <BrutalButton variant="default" onClick={() => setDraft(saved)}>
+                Revert
+              </BrutalButton>
+            )}
+          </div>
+          {updateAgent.isError && (
+            <p className="mt-2 font-mono text-xs text-destructive">{messageFor(updateAgent.error, "Rules could not be saved.")}</p>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 

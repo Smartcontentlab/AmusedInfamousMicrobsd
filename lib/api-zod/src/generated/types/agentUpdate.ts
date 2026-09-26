@@ -19,4 +19,6 @@ export interface AgentUpdate {
   nextMove?: string;
   runtimeConnectionId?: number;
   runtime?: string;
+  /** @nullable */
+  instructions?: string | null;
 }

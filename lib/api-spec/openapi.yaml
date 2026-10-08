@@ -526,6 +526,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RuntimeConnectionSafe"
+  /runtime-connections/{connectionId}:
+    delete:
+      operationId: deleteRuntimeConnection
+      tags: [runtimes]
+      summary: Remove a runtime link
+      parameters:
+        - $ref: "#/components/parameters/ConnectionId"
+      responses:
+        "200":
+          description: Runtime link removed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id:
+                    type: number
   /runtime-connections/{connectionId}/check:
     post:
       operationId: checkRuntimeConnection

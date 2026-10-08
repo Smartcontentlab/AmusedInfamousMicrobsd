@@ -50,6 +50,7 @@ export * from './arenaTurnStep';
 export * from './contestantProfile';
 export * from './contestantProfileInput';
 export * from './dashboard';
+export * from './deleteRuntimeConnection200';
 export * from './directMessage';
 export * from './directMessageInput';
 export * from './equipAgentSkillResult';

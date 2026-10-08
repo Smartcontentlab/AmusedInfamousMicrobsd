@@ -44,12 +44,18 @@ Then fill in `.env`:
 - `NVIDIA_API_KEY` and `TAVILY_API_KEY` — copy from the Windows `.env`; these
   are plain API keys and travel fine.
 - `STRIPE_API_KEY` — the test-mode key, if you have created one yet.
+- `SEED_DEMO_DATA` — leave it off. On it plants demo projects, demo staff and
+  invented revenue, which would make a fresh install look busy with numbers that
+  mean nothing.
 
 ## 5. Create the tables
 
 ```bash
-pnpm --filter @workspace/db run push
+DATABASE_URL="postgresql://$(whoami)@localhost:5432/mission_control" pnpm --filter @workspace/db run push
 ```
+
+The push script does not read `.env`, so `DATABASE_URL` has to be in the
+environment for that one command.
 
 ## 6. Start the two servers
 
@@ -61,6 +67,9 @@ pnpm --filter @workspace/mission-control run dev    # UI on :5173
 
 The dev server proxies `/api` to the API server, so the UI just works at
 <http://localhost:5173>.
+
+A fresh database starts with only a handful of bootstrap skills. Open the Skills
+page and hit Refresh to pull the full catalog.
 
 ## 7. Prove the runtime wiring before touching real agents
 

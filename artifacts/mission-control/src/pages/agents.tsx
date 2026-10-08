@@ -3,6 +3,7 @@ import {
   useCheckRuntimeConnection,
   useCreateAgent,
   useCreateRuntimeConnection,
+  useDeleteRuntimeConnection,
   useDetachAgentCapability,
   useGetAgentRun,
   useGetAgentToolAccess,
@@ -82,6 +83,15 @@ function RuntimeLinkPanel() {
         setForm({ name: "", provider: "", endpointUrl: "", token: "" });
         queryClient.invalidateQueries({ queryKey: connectionsQuery.queryKey });
         queryClient.invalidateQueries({ queryKey: healthQuery.queryKey });
+      },
+    },
+  });
+  const deleteConnection = useDeleteRuntimeConnection({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: connectionsQuery.queryKey });
+        queryClient.invalidateQueries({ queryKey: healthQuery.queryKey });
+        queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
       },
     },
   });
@@ -176,10 +186,27 @@ function RuntimeLinkPanel() {
               >
                 {checkConnection.isPending ? <Loader2 size={14} className="animate-spin" /> : <><Check size={14} /> Check link</>}
               </BrutalButton>
+              <BrutalButton
+                data-testid={`runtime-delete-${id}`}
+                variant="outline"
+                className="shrink-0 px-2 py-1 text-xs"
+                disabled={deleteConnection.isPending || !id}
+                title="Remove this runtime link"
+                onClick={() => {
+                  if (confirm(`Remove the runtime link "${connection.name}"? Staff using it fall back to matching by provider.`)) {
+                    deleteConnection.mutate({ connectionId: id });
+                  }
+                }}
+              >
+                <X size={14} />
+              </BrutalButton>
             </div>
           );
         })}
       </div>
+      {deleteConnection.isError && (
+        <p className="mt-2 font-mono text-xs text-destructive">{messageFor(deleteConnection.error, "That runtime link could not be removed.")}</p>
+      )}
       {checkConnection.isError && <div className="mt-3 flex items-center gap-2 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive"><CircleAlert size={14} /> {messageFor(checkConnection.error, "Runtime check failed. The link may be unreachable.")}</div>}
 
       {showForm && (
@@ -455,10 +482,10 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
 
       <div className="mb-4 rounded-xl border border-border bg-accent/5 p-3">
         <div className="mb-2 flex items-center justify-between gap-2 border-b-2 border-border pb-2 text-xs font-bold uppercase">
-          <span className="flex items-center gap-2"><UnlockKeyhole size={14} /> Arena tool permissions</span>
-          <span className="font-mono text-[10px] text-muted-foreground">Round {toolAccessQuery.data?.currentRound ?? "—"}</span>
+          <span className="flex items-center gap-2"><UnlockKeyhole size={14} /> Tool permissions</span>
+          <span className="font-mono text-[10px] text-muted-foreground">grant what this role needs</span>
         </div>
-        <input data-testid={`tool-unlock-reason-${agent.id}`} value={unlockReason} onChange={(event) => setUnlockReason(event.target.value)} placeholder="Game Master reason required..." className="mb-2 w-full rounded-lg border border-border bg-card p-2 font-mono text-xs focus:outline-none" />
+        <input data-testid={`tool-unlock-reason-${agent.id}`} value={unlockReason} onChange={(event) => setUnlockReason(event.target.value)} placeholder="Why are you changing this? (required)" className="mb-2 w-full rounded-lg border border-border bg-card p-2 font-mono text-xs focus:outline-none" />
         <div className="max-h-48 space-y-2 overflow-y-auto">
           {toolAccessQuery.isLoading && <div className="font-mono text-xs text-muted-foreground">Loading tool permissions...</div>}
           {toolAccessQuery.data?.tools.map((tool) => (
@@ -466,7 +493,7 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5"><span className="font-mono text-xs font-bold">{tool.label}</span><BrutalBadge variant={tool.available ? "primary" : "destructive"}>{tool.available ? "allowed" : "locked"}</BrutalBadge></div>
-                  <div className="mt-1 font-mono text-[10px] text-muted-foreground">{tool.unlockCondition} · {tool.source === "manual" ? `GM ${tool.overrideAction}` : tool.source}</div>
+                  <div className="mt-1 font-mono text-[10px] text-muted-foreground">{tool.source === "manual" ? `set by you · ${tool.overrideAction}ed` : tool.available ? "available by default" : "not granted yet"}</div>
                   {tool.overrideReason && <div className="mt-1 font-mono text-[10px]">Reason: {tool.overrideReason}</div>}
                 </div>
                 <BrutalButton data-testid={`tool-toggle-${agent.id}-${tool.key}`} variant={tool.available ? "destructive" : "primary"} className="shrink-0 px-2 py-1 text-[10px]" disabled={!unlockReason.trim() || updateToolUnlock.isPending} onClick={() => changeToolAccess(tool.key, tool.available ? "revoke" : "grant")}>
@@ -476,7 +503,7 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
             </div>
           ))}
         </div>
-        {toolAccessQuery.data?.audit.length ? <div className="mt-2 border-t-2 border-border pt-2 font-mono text-[10px] text-muted-foreground">Audit trail: {toolAccessQuery.data.audit.length} Game Master change{toolAccessQuery.data.audit.length === 1 ? "" : "s"} recorded.</div> : null}
+        {toolAccessQuery.data?.audit.length ? <div className="mt-2 border-t-2 border-border pt-2 font-mono text-[10px] text-muted-foreground">Audit trail: {toolAccessQuery.data.audit.length} change{toolAccessQuery.data.audit.length === 1 ? "" : "s"} recorded.</div> : null}
         {(toolAccessQuery.isError || updateToolUnlock.isError) && <div className="mt-2 rounded-lg border border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">{messageFor(updateToolUnlock.error || toolAccessQuery.error, "Tool permissions could not be updated.")}</div>}
       </div>
 

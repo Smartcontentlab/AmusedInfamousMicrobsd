@@ -742,6 +742,18 @@ export const CreateRuntimeConnectionResponse = zod.object({
 
 
 /**
+ * @summary Remove a runtime link
+ */
+export const DeleteRuntimeConnectionParams = zod.object({
+  "connectionId": zod.coerce.number()
+})
+
+export const DeleteRuntimeConnectionResponse = zod.object({
+  "id": zod.number()
+})
+
+
+/**
  * @summary Check a runtime and discover capabilities
  */
 export const CheckRuntimeConnectionParams = zod.object({

@@ -47,6 +47,7 @@ import type {
   ContestantProfile,
   ContestantProfileInput,
   Dashboard,
+  DeleteRuntimeConnection200,
   DirectMessage,
   DirectMessageInput,
   EquipAgentSkillResult,
@@ -2258,6 +2259,77 @@ export const useCreateRuntimeConnection = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateRuntimeConnectionMutationOptions(options));
+    }
+
+export const getDeleteRuntimeConnectionUrl = (connectionId: number,) => {
+
+
+
+
+  return `/api/runtime-connections/${connectionId}`
+}
+
+/**
+ * @summary Remove a runtime link
+ */
+export const deleteRuntimeConnection = async (connectionId: number, options?: Parameters<typeof customFetch>[1]): Promise<DeleteRuntimeConnection200> => {
+
+  return customFetch<DeleteRuntimeConnection200>(getDeleteRuntimeConnectionUrl(connectionId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteRuntimeConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRuntimeConnection>>, TError,{connectionId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteRuntimeConnection>>, TError,{connectionId: number}, TContext> => {
+
+const mutationKey = ['deleteRuntimeConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRuntimeConnection>>, {connectionId: number}> = (props) => {
+          const {connectionId} = props ?? {};
+
+          return  deleteRuntimeConnection(connectionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteRuntimeConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRuntimeConnection>>>
+
+    export type DeleteRuntimeConnectionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove a runtime link
+ */
+export const useDeleteRuntimeConnection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRuntimeConnection>>, TError,{connectionId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteRuntimeConnection>>,
+        TError,
+        {connectionId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteRuntimeConnectionMutationOptions(options));
     }
 
 export const getCheckRuntimeConnectionUrl = (connectionId: number,) => {

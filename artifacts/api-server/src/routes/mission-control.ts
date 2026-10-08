@@ -76,9 +76,33 @@ const router: IRouter = Router();
 let seedPromise: Promise<void> | undefined;
 let featureSeedPromise: Promise<void> | undefined;
 
+/**
+ * Demo projects, staff and revenue figures are invented. They are useful for looking
+ * around an empty install and actively misleading anywhere you are judging whether
+ * something real works, so they are opt-in.
+ */
+function demoDataEnabled(): boolean {
+  return /^(1|true|yes)$/i.test(process.env.SEED_DEMO_DATA ?? "");
+}
+
+/** The arena is a singleton row several routes read, so it exists with or without demo data. */
+async function ensureArenaRow(): Promise<void> {
+  const [arena] = await db.select({ id: arenaTable.id }).from(arenaTable).limit(1);
+  if (arena) return;
+  await db.insert(arenaTable).values({
+    round: 1,
+    totalRounds: 5,
+    status: "ready",
+    secondsRemaining: 240,
+    winConditionCents: 10000,
+  });
+}
+
 export async function ensureSeeded(): Promise<void> {
   if (!seedPromise) {
     seedPromise = (async () => {
+      await ensureArenaRow();
+      if (!demoDataEnabled()) return;
       const existing = await db.select({ id: projectsTable.id }).from(projectsTable).limit(1);
       if (existing.length > 0) return;
 
@@ -201,13 +225,7 @@ export async function ensureSeeded(): Promise<void> {
         },
       ]);
 
-      await db.insert(arenaTable).values({
-        round: 3,
-        totalRounds: 5,
-        status: "ready",
-        secondsRemaining: 240,
-        winConditionCents: 10000,
-      });
+      await db.update(arenaTable).set({ round: 3 });
     })();
   }
 
@@ -238,6 +256,10 @@ async function ensureFeatureRecords(): Promise<void> {
       }
 
       const catalogSkills = await db.select().from(skillsTable).orderBy(asc(skillsTable.id));
+
+      // Everything below invents business ideas, revenue and evidence for the demo
+      // staff. The real skill catalog above is imported either way.
+      if (!demoDataEnabled()) return;
 
       const worldDefaults = {
         NOVA: {

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { Router, type IRouter, type Response } from "express";
 import {
   ActivityEvent,
@@ -229,6 +229,32 @@ router.post("/runtime-connections", async (req, res): Promise<void> => {
     encryptedToken,
   }).returning();
   res.status(201).json(CreateRuntimeConnectionResponse.parse(safeConnection(connection)));
+});
+
+router.delete("/runtime-connections/:connectionId", async (req, res): Promise<void> => {
+  const connectionId = Number(req.params.connectionId);
+  if (!Number.isInteger(connectionId)) {
+    res.status(400).json({ error: "Runtime connection identifier is invalid." });
+    return;
+  }
+  const [connection] = await db.select().from(runtimeConnectionsTable).where(eq(runtimeConnectionsTable.id, connectionId));
+  if (!connection) {
+    res.status(404).json({ error: "That runtime link does not exist." });
+    return;
+  }
+  // Removing a link out from under a working run would strand it with no way to stop it.
+  const live = await db
+    .select({ id: liveRunsTable.id })
+    .from(liveRunsTable)
+    .where(and(eq(liveRunsTable.connectionId, connectionId), inArray(liveRunsTable.status, ["queued", "running", "paused", "stopping"])));
+  if (live.length > 0) {
+    res.status(409).json({ error: "This link still has a live run. Stop the run before removing it." });
+    return;
+  }
+  // Staff pointed at this link fall back to being matched by provider.
+  await db.update(agentsTable).set({ runtimeConnectionId: null }).where(eq(agentsTable.runtimeConnectionId, connectionId));
+  await db.delete(runtimeConnectionsTable).where(eq(runtimeConnectionsTable.id, connectionId));
+  res.json({ id: connectionId });
 });
 
 router.post("/runtime-connections/:connectionId/check", async (req, res): Promise<void> => {

@@ -1120,6 +1120,10 @@ limit?: number;
 offset?: number;
 };
 
+export type DeleteRuntimeConnection200 = {
+  id: number;
+};
+
 export type ListArenaTurnsParams = {
 level?: number;
 };

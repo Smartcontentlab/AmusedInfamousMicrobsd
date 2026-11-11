@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 /**
  * Proves the whole runtime path works on this machine before you point it at a real agent.
  *
@@ -21,7 +22,22 @@ const argValue = (name: string) => {
   return index >= 0 ? args[index + 1] : undefined;
 };
 
-const api = (argValue("api") ?? "http://127.0.0.1:5000").replace(/\/+$/, "");
+// Default to the port the API server actually uses: PORT from the environment, else the
+// PORT line in the project's .env, else 5000.
+function configuredPort(): string {
+  if (process.env.PORT) return process.env.PORT;
+  try {
+    const env = readFileSync(new URL("../../.env", import.meta.url), "utf8");
+    const lines = env.split(/\r?\n/).filter((line) => /^\s*PORT\s*=/.test(line));
+    const last = lines[lines.length - 1];
+    if (last) return last.split("=")[1].trim().replace(/^["']|["']$/g, "");
+  } catch {
+    // No .env file: fall through to the default.
+  }
+  return "5000";
+}
+
+const api = (argValue("api") ?? `http://127.0.0.1:${configuredPort()}`).replace(/\/+$/, "");
 
 async function call(path: string, init: RequestInit = {}): Promise<{ status: number; body: any }> {
   const response = await fetch(`${api}/api${path}`, {
@@ -41,6 +57,15 @@ function step(label: string, detail = "") {
   console.log(`  ok  ${label}${detail ? ` — ${detail}` : ""}`);
 }
 
+// Test links this run registered. They point at stand-ins that stop when the script ends,
+// so they are removed again rather than left in the dashboard as dead connections.
+const registered: number[] = [];
+async function removeRegistered() {
+  for (const id of registered.splice(0)) {
+    await call(`/runtime-connections/${id}`, { method: "DELETE" }).catch(() => undefined);
+  }
+}
+
 async function main() {
   const mock = await startMockHermes({ port: 0, quiet: true });
   console.log(`\nVerifying the runtime path against ${api}`);
@@ -57,6 +82,7 @@ async function main() {
     });
     assert.equal(created.status, 201, `could not register the connection: ${JSON.stringify(created.body)}`);
     const connectionId = created.body.id;
+    if (connectionId) registered.push(connectionId);
     step("connection registered", `id ${connectionId}`);
 
     const checked = await call(`/runtime-connections/${connectionId}/check`, { method: "POST" });
@@ -110,6 +136,7 @@ async function main() {
     console.log("Point connections at your real Hermes and OpenClaw next;");
     console.log("anything that fails now is on their side, not the dashboard's.\n");
   } finally {
+    await removeRegistered();
     await mock.close();
   }
 }
@@ -125,6 +152,7 @@ async function verifyOpenClaw() {
     });
     assert.equal(created.status, 201, `could not register the gateway: ${JSON.stringify(created.body)}`);
     const connectionId = created.body.id;
+    if (connectionId) registered.push(connectionId);
     step("gateway registered", `id ${connectionId}`);
 
     const checked = await call(`/runtime-connections/${connectionId}/check`, { method: "POST" });
@@ -154,6 +182,7 @@ async function verifyOpenClaw() {
 
     console.log("\n  OpenClaw path: PASS");
   } finally {
+    await removeRegistered();
     await gateway.close();
   }
 }

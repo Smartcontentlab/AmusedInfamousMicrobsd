@@ -75,6 +75,25 @@ export function emptyAnswerMessage(finishReason: string | null): string {
     : "The model returned an empty answer.";
 }
 
+/** Models sometimes send arguments as an object (or nothing); the API only accepts a JSON string when they are echoed back. */
+export function normalizeToolCalls(raw: unknown): ToolCall[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((call) => call && typeof call === "object")
+    .map((call, index) => {
+      const entry = call as { id?: unknown; function?: { name?: unknown; arguments?: unknown } };
+      const args = entry.function?.arguments;
+      return {
+        id: typeof entry.id === "string" && entry.id ? entry.id : `call_${index}`,
+        type: "function" as const,
+        function: {
+          name: typeof entry.function?.name === "string" ? entry.function.name : "",
+          arguments: typeof args === "string" ? args : args === undefined || args === null ? "" : JSON.stringify(args),
+        },
+      };
+    });
+}
+
 async function requestOnce(model: string, messages: ChatMessage[], options: RequestOptions): Promise<ChatStep> {
   const apiKey = process.env.NVIDIA_API_KEY;
   if (!apiKey) throw new NimError("NVIDIA_API_KEY is not set on the server.");
@@ -105,18 +124,26 @@ async function requestOnce(model: string, messages: ChatMessage[], options: Requ
       throw new NimError(`NVIDIA returned ${response.status}.`);
     }
 
-    const payload = (await response.json()) as {
-      choices?: { finish_reason?: string; message?: { content?: string | null; tool_calls?: ToolCall[] } }[];
+    // A 200 that is not JSON (an HTML error page, a proxy notice) is a bad response, not an outage:
+    // another model would not fix it, so it must not mark this model unavailable.
+    let payload: {
+      choices?: { finish_reason?: string; message?: { content?: string | null; tool_calls?: unknown } }[];
       usage?: { prompt_tokens?: number; completion_tokens?: number };
-    };
-    const choice = payload.choices?.[0];
+    } | null;
+    try {
+      payload = (await response.json()) as typeof payload;
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") throw error;
+      throw new NimError(`NVIDIA returned a response that was not valid JSON (model ${model}).`);
+    }
+    const choice = Array.isArray(payload?.choices) ? payload.choices[0] : undefined;
 
     return {
-      content: choice?.message?.content?.trim() ?? "",
-      toolCalls: choice?.message?.tool_calls ?? [],
+      content: typeof choice?.message?.content === "string" ? choice.message.content.trim() : "",
+      toolCalls: normalizeToolCalls(choice?.message?.tool_calls),
       finishReason: choice?.finish_reason ?? null,
-      promptTokens: payload.usage?.prompt_tokens ?? null,
-      completionTokens: payload.usage?.completion_tokens ?? null,
+      promptTokens: payload?.usage?.prompt_tokens ?? null,
+      completionTokens: payload?.usage?.completion_tokens ?? null,
       durationMs: Date.now() - startedAt,
     };
   } catch (error) {

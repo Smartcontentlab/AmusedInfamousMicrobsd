@@ -10,15 +10,7 @@ const MAX_REDIRECTS = 3;
 
 export class ToolError extends Error {}
 
-/** Loopback, private, link-local (incl. cloud metadata), CGNAT and unique-local ranges. */
-function isPrivateAddress(address: string): boolean {
-  if (isIP(address) === 6) {
-    const lower = address.toLowerCase();
-    if (lower === "::1" || lower === "::") return true;
-    if (lower.startsWith("fc") || lower.startsWith("fd") || lower.startsWith("fe80")) return true;
-    const mapped = lower.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    return mapped ? isPrivateAddress(mapped[1]) : false;
-  }
+function isPrivateIPv4(address: string): boolean {
   const [a, b] = address.split(".").map(Number);
   return (
     a === 0 ||
@@ -30,6 +22,45 @@ function isPrivateAddress(address: string): boolean {
     (a === 192 && b === 168) ||
     a >= 224
   );
+}
+
+/** Expands any IPv6 text form (compressed, dotted IPv4 tail, zone id) into eight 16-bit groups. */
+function ipv6Groups(address: string): number[] | null {
+  let text = address.toLowerCase().split("%")[0];
+  const dotted = text.match(/^(.*:)(\d+\.\d+\.\d+\.\d+)$/);
+  if (dotted) {
+    const [a, b, c, d] = dotted[2].split(".").map(Number);
+    text = `${dotted[1]}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const halves = text.split("::");
+  if (halves.length > 2) return null;
+  const head = halves[0] ? halves[0].split(":") : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  const missing = 8 - head.length - tail.length;
+  if (halves.length === 2 ? missing < 1 : missing !== 0) return null;
+  const groups = [...head, ...Array(halves.length === 2 ? missing : 0).fill("0"), ...tail].map((group) => parseInt(group, 16));
+  return groups.length === 8 && groups.every((group) => Number.isInteger(group) && group >= 0 && group <= 0xffff) ? groups : null;
+}
+
+/** Loopback, private, link-local (incl. cloud metadata), CGNAT, unique-local and IPv6 transition ranges. */
+export function isPrivateAddress(address: string): boolean {
+  if (isIP(address) === 6) {
+    const g = ipv6Groups(address);
+    if (!g) return true; // Unparseable means unknown, so refuse it.
+    const toV4 = (hi: number, lo: number) => `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+    // :: and ::1.
+    if (g.slice(0, 7).every((group) => group === 0) && g[7] <= 1) return true;
+    // IPv4-mapped (::ffff:a.b.c.d, in dotted or hex form), IPv4-compatible (::a.b.c.d) and SIIT (::ffff:0:a.b.c.d).
+    if (g.slice(0, 5).every((group) => group === 0) && (g[5] === 0xffff || g[5] === 0)) return isPrivateIPv4(toV4(g[6], g[7]));
+    if (g.slice(0, 4).every((group) => group === 0) && g[4] === 0xffff && g[5] === 0) return isPrivateIPv4(toV4(g[6], g[7]));
+    if ((g[0] & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local
+    if ((g[0] & 0xfe00) === 0xfc00) return true; // fc00::/7 unique-local
+    if ((g[0] & 0xff00) === 0xff00) return true; // ff00::/8 multicast
+    if (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((group) => group === 0)) return true; // 64:ff9b::/96 NAT64
+    if (g[0] === 0x2002) return true; // 2002::/16 6to4
+    return false;
+  }
+  return isPrivateIPv4(address);
 }
 
 // Search-result pages and "read it for me" proxies are ways around sites that block bots.
@@ -84,6 +115,30 @@ function htmlToText(html: string): { title: string; text: string } {
   return { title, text };
 }
 
+/** Reads the body chunk by chunk and stops as soon as it passes the size cap, so a huge page is never held in memory. */
+async function readCapped(response: Response): Promise<string> {
+  const declared = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_PAGE_BYTES) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new ToolError("The page is too large to read.");
+  }
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_PAGE_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      throw new ToolError("The page is too large to read.");
+    }
+    chunks.push(value);
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
+}
+
 export async function readPage(rawUrl: string): Promise<string> {
   let url = await assertPublicUrl(rawUrl);
 
@@ -109,9 +164,7 @@ export async function readPage(rawUrl: string): Promise<string> {
       const type = response.headers.get("content-type") ?? "";
       if (!/text\/|json|xml/.test(type)) throw new ToolError(`That is a ${type || "binary"} file, not a readable page.`);
 
-      const buffer = await response.arrayBuffer();
-      if (buffer.byteLength > MAX_PAGE_BYTES) throw new ToolError("The page is too large to read.");
-      const body = new TextDecoder().decode(buffer);
+      const body = await readCapped(response);
       const { title, text } = type.includes("html") ? htmlToText(body) : { title: "", text: body };
       const clipped = text.length > MAX_PAGE_CHARS ? `${text.slice(0, MAX_PAGE_CHARS)}\n[page truncated]` : text;
       return `${title ? `Title: ${title}\n` : ""}URL: ${url.toString()}\n\n${clipped}`;

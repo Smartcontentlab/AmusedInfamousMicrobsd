@@ -57,12 +57,17 @@ router.post("/arena/levels/:level/run", async (req, res): Promise<void> => {
 });
 
 router.get("/arena/turns", async (req, res): Promise<void> => {
-  const level = req.query.level !== undefined ? Number(req.query.level) : undefined;
+  const rawLevel = req.query.level;
+  if (rawLevel !== undefined && (typeof rawLevel !== "string" || !/^\d{1,9}$/.test(rawLevel))) {
+    res.status(400).json({ error: "level must be a whole number." });
+    return;
+  }
+  const level = rawLevel !== undefined ? Number(rawLevel) : undefined;
   const rows = await db
     .select({ turn: arenaTurnsTable, agentName: agentsTable.name, appearanceSeed: agentsTable.appearanceSeed })
     .from(arenaTurnsTable)
     .innerJoin(agentsTable, eq(arenaTurnsTable.agentId, agentsTable.id))
-    .where(level !== undefined && Number.isInteger(level) ? eq(arenaTurnsTable.level, level) : undefined)
+    .where(level !== undefined ? eq(arenaTurnsTable.level, level) : undefined)
     .orderBy(desc(arenaTurnsTable.createdAt), desc(arenaTurnsTable.id))
     .limit(40);
 

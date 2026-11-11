@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { agentToolUnlocksTable, arenaTable, db } from "@workspace/db";
 
 export const SEASON_0_TOOLS = [
@@ -67,6 +67,30 @@ export const SEASON_0_TOOLS = [
   },
 ] as const;
 
+const NOT_WIRED = "Not wired into the engine yet";
+
+/**
+ * What the arena engine can actually do. Only web research is wired (read_page always, web_search
+ * with a Tavily key); every other tool is a catalog entry with nothing behind it. Returns the reason
+ * a tool cannot be used, or null when the engine really offers it.
+ */
+export function engineBlocker(toolKey: string): string | null {
+  // Page reading works with no key at all, so web research is always wired; only searching needs Tavily.
+  if (toolKey === "web_research") return null;
+  return NOT_WIRED;
+}
+
+/** True when the Game Master's latest decision on web research for this contestant is a revoke. */
+export async function isWebResearchRevoked(agentId: number): Promise<boolean> {
+  const [latest] = await db
+    .select({ action: agentToolUnlocksTable.action })
+    .from(agentToolUnlocksTable)
+    .where(and(eq(agentToolUnlocksTable.agentId, agentId), eq(agentToolUnlocksTable.toolKey, "web_research")))
+    .orderBy(desc(agentToolUnlocksTable.createdAt), desc(agentToolUnlocksTable.id))
+    .limit(1);
+  return latest?.action === "revoke";
+}
+
 export type Season0ToolKey = (typeof SEASON_0_TOOLS)[number]["key"];
 export type ToolUnlockAction = "grant" | "revoke";
 
@@ -75,7 +99,13 @@ export async function getArenaRound(): Promise<number> {
   return arena?.round ?? 1;
 }
 
-export async function getAgentToolAccess(agentId: number, currentRound?: number) {
+/**
+ * "engine" answers what the built-in arena engine can really do. "runtime" answers what the
+ * Game Master permits for a Hermes or OpenClaw run, where the runtime brings its own tools.
+ */
+export type ToolAccessScope = "engine" | "runtime";
+
+export async function getAgentToolAccess(agentId: number, currentRound?: number, scope: ToolAccessScope = "engine") {
   const round = currentRound ?? (await getArenaRound());
   const events = await db
     .select()
@@ -90,7 +120,9 @@ export async function getAgentToolAccess(agentId: number, currentRound?: number)
   const tools = SEASON_0_TOOLS.map((tool) => {
     const override = latestByTool.get(tool.key);
     const roundUnlocked = tool.unlockRound === null || round >= tool.unlockRound;
-    const available = override?.action === "grant" || (override?.action !== "revoke" && roundUnlocked);
+    // A grant or revoke is recorded either way, but nothing is available that the engine cannot do.
+    const blocker = scope === "engine" ? engineBlocker(tool.key) : null;
+    const available = blocker === null && (override?.action === "grant" || (override?.action !== "revoke" && roundUnlocked));
     const source = override
       ? "manual"
       : tool.unlockRound === null
@@ -105,7 +137,10 @@ export async function getAgentToolAccess(agentId: number, currentRound?: number)
       available,
       status: available ? "available" : "locked",
       unlockRound: tool.unlockRound,
-      unlockCondition: tool.unlockCondition,
+      unlockCondition: blocker
+        ?? (scope === "engine" && tool.key === "web_research" && !process.env.TAVILY_API_KEY
+          ? "Page reading only. Web search needs TAVILY_API_KEY on the server."
+          : tool.unlockCondition),
       source,
       overrideAction: override?.action ?? null,
       overrideReason: override?.reason ?? null,
@@ -130,8 +165,8 @@ export async function getAgentToolAccess(agentId: number, currentRound?: number)
   };
 }
 
-export async function getUnavailableTools(agentId: number, requestedTools: string[], currentRound?: number) {
-  const access = await getAgentToolAccess(agentId, currentRound);
+export async function getUnavailableTools(agentId: number, requestedTools: string[], currentRound?: number, scope: ToolAccessScope = "engine") {
+  const access = await getAgentToolAccess(agentId, currentRound, scope);
   const knownTools = new Set(SEASON_0_TOOLS.map((tool) => tool.key));
   const accessByKey = new Map<string, (typeof access.tools)[number]>(access.tools.map((tool) => [tool.key, tool]));
   return [...new Set(requestedTools)].map((key) => {
@@ -145,12 +180,15 @@ export async function getUnavailableTools(agentId: number, requestedTools: strin
       };
     }
     if (tool.available) return null;
+    const blocker = scope === "engine" ? engineBlocker(key) : null;
     return {
       key,
       label: tool.label,
-      reason: tool.overrideAction === "revoke"
-        ? tool.overrideReason ?? "The Game Master revoked this tool."
-        : `${tool.label} is not available in Round ${access.currentRound}.`,
+      reason: blocker
+        ? `${tool.label}: ${blocker}.`
+        : tool.overrideAction === "revoke"
+          ? tool.overrideReason ?? "The Game Master revoked this tool."
+          : `${tool.label} is not available in Round ${access.currentRound}.`,
       unlockCondition: tool.unlockCondition,
     };
   }).filter((item): item is NonNullable<typeof item> => item !== null);

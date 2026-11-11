@@ -45,7 +45,7 @@ router.get("/models", async (_req, res): Promise<void> => {
 });
 router.patch("/agents/:agentId/model", async (req, res): Promise<void> => {
   const agentId = Number(req.params.agentId);
-  if (!Number.isInteger(agentId)) {
+  if (!Number.isInteger(agentId) || agentId < 1 || agentId > 2147483647) {
     res.status(404).json({ error: "That agent does not exist." });
     return;
   }
@@ -56,12 +56,25 @@ router.patch("/agents/:agentId/model", async (req, res): Promise<void> => {
     return;
   }
 
+  const model = parsed.data.model?.trim() || null;
+  if (model) {
+    // Only ids the NVIDIA catalog actually lists can be chosen. Without a key there is no catalog to check against.
+    const apiKey = process.env.NVIDIA_API_KEY;
+    const { ids } = apiKey ? await currentCatalog(apiKey) : { ids: [] as string[] };
+    if (ids.length === 0) {
+      res.status(409).json({ error: "The model catalog is not available (NVIDIA_API_KEY is missing or the catalog could not be loaded), so a model cannot be chosen. You can still clear the model." });
+      return;
+    }
+    if (!ids.includes(model)) {
+      res.status(400).json({ error: "That model is not in the NVIDIA catalog." });
+      return;
+    }
+  }
+
+  // modelProvider from the request is ignored: nvidia_nim is the only provider the engine can call.
   const [agent] = await db
     .update(agentsTable)
-    .set({
-      model: parsed.data.model?.trim() || null,
-      ...(parsed.data.modelProvider ? { modelProvider: parsed.data.modelProvider } : {}),
-    })
+    .set({ model })
     .where(eq(agentsTable.id, agentId))
     .returning();
 

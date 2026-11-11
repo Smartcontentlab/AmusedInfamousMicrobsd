@@ -1,7 +1,9 @@
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, ne } from "drizzle-orm";
 import { DEFAULT_TRAITS, agentSkillsTable, agentsTable, arenaTurnStepsTable, arenaTurnsTable, db, skillsTable, type Agent } from "@workspace/db";
 import { NimError, chatCompletion, chatStep, emptyAnswerMessage, type ChatMessage } from "./nim";
 import { ToolError, researchTools, runTool } from "./contestant-tools";
+import { logger } from "./logger";
+import { isWebResearchRevoked } from "./tool-unlocks";
 import { markUnavailable, respondingModels, toolSupportFor } from "./model-catalog";
 
 export type ArenaLevel = {
@@ -92,8 +94,9 @@ function describeTraits(agent: Agent): string {
 }
 
 /** What the contestant is told it can use, matching exactly what is wired up. */
-export function describeLevelTools(level: ArenaLevel): string[] {
+export function describeLevelTools(level: ArenaLevel, webAllowed = true): string[] {
   if (!level.research) return level.tools.length ? level.tools : ["your own words"];
+  if (!webAllowed) return ["your own words"];
   const names = researchTools().map((tool) => tool.function.name);
   return [
     ...(names.includes("web_search") ? ["web search"] : []),
@@ -101,7 +104,7 @@ export function describeLevelTools(level: ArenaLevel): string[] {
   ];
 }
 
-export function buildSystemPrompt(agent: Agent, level: ArenaLevel, skills: string[]): string {
+export function buildSystemPrompt(agent: Agent, level: ArenaLevel, skills: string[], webAllowed = true): string {
   return [
     `You are ${agent.name}, a contestant on BUILDOFF, a reality game show where contestants race to be the first to earn $100 in real revenue from a business they create themselves.`,
     agent.role ? `Your archetype: ${agent.role}.` : "",
@@ -109,9 +112,9 @@ export function buildSystemPrompt(agent: Agent, level: ArenaLevel, skills: strin
     agent.catchphrase ? `Your catchphrase: "${agent.catchphrase}"` : "",
     `Your strengths and weaknesses (1 = weak, 5 = strong): ${describeTraits(agent)}. Let these shape your choices, including your weaknesses. Do not play against type.`,
     skills.length ? `Your skills: ${skills.join(", ")}.` : "You have no special skills equipped.",
-    `This is level ${level.level}: ${level.title}. Tools available to you right now: ${describeLevelTools(level).join(", ")}. Nothing else exists for you yet.`,
+    `This is level ${level.level}: ${level.title}. Tools available to you right now: ${describeLevelTools(level, webAllowed).join(", ")}. Nothing else exists for you yet.`,
     "The judges verify every claim against real results. Never invent customers, revenue, traffic or anything you have not actually done.",
-    level.research
+    level.research && webAllowed
       ? "If a website blocks you or needs a login, accept it and move on. Never try to get around blocks, logins or paywalls. Keep research focused: a handful of good sources beats many pages."
       : "",
   ]
@@ -141,15 +144,25 @@ const TOOL_CAPS: Record<string, number> = { web_search: 5, read_page: 8 };
 const MAX_TOOL_CALLS = 12;
 const MAX_FAILURES_IN_A_ROW = 5;
 
+// value numbers the steps; researched counts tool calls that really fetched something.
+type Counter = { value: number; researched: number };
+
 type Outcome = { text: string; promptTokens: number; completionTokens: number };
 
 async function recordStep(turnId: number, step: number, tool: string, input: string, ok: boolean, summary: string) {
   await db.insert(arenaTurnStepsTable).values({ turnId, step, tool, input: input.slice(0, 500), ok: ok ? 1 : 0, summary: summary.slice(0, 400) });
 }
 
-async function runResearchLoop(turnId: number, model: string, system: string, brief: string, counter: { value: number }): Promise<Outcome> {
-  if (toolSupportFor(model) === false) {
-    await recordStep(turnId, ++counter.value, "note", model, false, "This model cannot use tools, so it answered without the web. Pick a tool-capable model in the builder.");
+async function runResearchLoop(turnId: number, model: string, system: string, brief: string, counter: Counter, webAllowed: boolean): Promise<Outcome> {
+  if (!webAllowed || toolSupportFor(model) === false) {
+    await recordStep(
+      turnId,
+      ++counter.value,
+      "note",
+      model,
+      false,
+      webAllowed ? "This model cannot use tools, so it answered without the web. Pick a tool-capable model in the builder." : "The Game Master revoked web research for this contestant, so it answered without the web.",
+    );
     const plain = await chatCompletion(
       model,
       [
@@ -226,7 +239,8 @@ async function runResearchLoop(turnId: number, model: string, system: string, br
       const signature = `${name}:${input}`;
       const repeats = (seen.get(signature) ?? 0) + 1;
       seen.set(signature, repeats);
-      if (repeats >= MAX_REPEATS) throw new NimError(`Stopped: it repeated the same ${name} call ${MAX_REPEATS} times.`);
+      // A model stuck repeating itself still gets to answer, from what it has found so far.
+      if (repeats >= MAX_REPEATS) return answerFromNotes();
 
       const count = (used.get(name) ?? 0) + 1;
       used.set(name, count);
@@ -245,6 +259,7 @@ async function runResearchLoop(turnId: number, model: string, system: string, br
       }
       await recordStep(turnId, ++counter.value, name, input, ok, result);
       messages.push({ role: "tool", tool_call_id: call.id, content: result });
+      if (ok && (name === "read_page" || name === "web_search")) counter.researched += 1;
       if (ok) findings.push(`[${name}: ${input.slice(0, 200)}]\n${result.slice(0, 1500)}`);
       totalCalls += 1;
       failuresInARow = ok ? 0 : failuresInARow + 1;
@@ -261,6 +276,7 @@ async function runResearchLoop(turnId: number, model: string, system: string, br
 }
 
 const MAX_STAND_INS = 2;
+export const UNVERIFIED_NOTICE = "UNVERIFIED: no pages were read for this answer.";
 
 /** Picks the responding model with the best record over the last day, preferring tool-capable ones. */
 async function pickStandIn(exclude: string[], needsTools: boolean): Promise<string | null> {
@@ -277,11 +293,11 @@ async function pickStandIn(exclude: string[], needsTools: boolean): Promise<stri
   return candidates.sort((a, b) => score(b.id) - score(a.id) || Number(b.tools === true) - Number(a.tools === true))[0].id;
 }
 
-async function runTurn(turnId: number, agent: Agent, system: string, level: ArenaLevel) {
+async function runTurn(turnId: number, agent: Agent, system: string, level: ArenaLevel, webAllowed: boolean) {
   await db.update(arenaTurnsTable).set({ status: "running" }).where(eq(arenaTurnsTable.id, turnId));
   await db.update(agentsTable).set({ status: "working", computerStatus: level.activity }).where(eq(agentsTable.id, agent.id));
   const startedAt = Date.now();
-  const counter = { value: 0 };
+  const counter: Counter = { value: 0, researched: 0 };
 
   try {
     if (!agent.model) throw new NimError("No model chosen. Pick one in the builder.");
@@ -295,7 +311,7 @@ async function runTurn(turnId: number, agent: Agent, system: string, level: Aren
       tried.push(model);
       try {
         outcome = level.research
-          ? await runResearchLoop(turnId, model, system, level.brief, counter)
+          ? await runResearchLoop(turnId, model, system, level.brief, counter, webAllowed)
           : await chatCompletion(
               model,
               [
@@ -307,7 +323,7 @@ async function runTurn(turnId: number, agent: Agent, system: string, level: Aren
       } catch (error) {
         if (!(error instanceof NimError) || !error.outage || tried.length > MAX_STAND_INS) throw error;
         markUnavailable(model);
-        const standIn = await pickStandIn(tried, level.research === true);
+        const standIn = await pickStandIn(tried, level.research === true && webAllowed);
         if (!standIn) throw error;
         await recordStep(turnId, ++counter.value, "note", model, false, `${model} stopped responding (${error.message}) so ${standIn} stood in.`);
         await db.update(arenaTurnsTable).set({ model: standIn, standInFor: agent.model }).where(eq(arenaTurnsTable.id, turnId));
@@ -319,7 +335,8 @@ async function runTurn(turnId: number, agent: Agent, system: string, level: Aren
       .update(arenaTurnsTable)
       .set({
         status: "completed",
-        output: outcome.text,
+        // A research answer with no page actually read is flagged so nobody mistakes it for checked work.
+        output: level.research && counter.researched === 0 ? `${UNVERIFIED_NOTICE}\n${outcome.text}` : outcome.text,
         promptTokens: outcome.promptTokens,
         completionTokens: outcome.completionTokens,
         durationMs: Date.now() - startedAt,
@@ -336,11 +353,43 @@ async function runTurn(turnId: number, agent: Agent, system: string, level: Aren
     await db.update(agentsTable).set({ status: "waiting", computerStatus: "idle", lastActivity: message }).where(eq(agentsTable.id, agent.id));
   }
 }
+export const RESTART_MESSAGE = "Server restarted before this turn finished";
+
+/**
+ * Turns run inside this process, so any turn still queued or running at boot was cut off by a
+ * restart. Left alone it would block its level forever, so mark it failed and free its contestant.
+ */
+export async function recoverInterruptedTurns(): Promise<{ turns: number; agents: number }> {
+  const stuck = await db
+    .update(arenaTurnsTable)
+    .set({ status: "failed", error: RESTART_MESSAGE, finishedAt: new Date() })
+    .where(inArray(arenaTurnsTable.status, ["queued", "running"]))
+    .returning({ agentId: arenaTurnsTable.agentId });
+  const agentIds = [...new Set(stuck.map((turn) => turn.agentId))];
+  const freed = agentIds.length
+    ? await db
+        .update(agentsTable)
+        .set({ status: "waiting", computerStatus: "idle", lastActivity: RESTART_MESSAGE })
+        .where(and(inArray(agentsTable.id, agentIds), eq(agentsTable.status, "working")))
+        .returning({ id: agentsTable.id })
+    : [];
+  return { turns: stuck.length, agents: freed.length };
+}
+
+// One process runs the engine, so a promise chain is enough to keep two starts from overlapping.
+let startQueue: Promise<unknown> = Promise.resolve();
+
 /**
  * Starts one level for every contestant and returns immediately; each turn
  * finishes in the background and the house and feed pick up the changes.
  */
-export async function startLevel(levelNumber: number): Promise<{ started: number }> {
+export function startLevel(levelNumber: number): Promise<{ started: number }> {
+  const run = startQueue.then(() => startLevelNow(levelNumber));
+  startQueue = run.catch(() => undefined);
+  return run;
+}
+
+async function startLevelNow(levelNumber: number): Promise<{ started: number }> {
   const level = ARENA_LEVELS.find((entry) => entry.level === levelNumber);
   if (!level) throw new ArenaEngineError("That level does not exist.", 404);
   if (level.lockedReason) throw new ArenaEngineError(level.lockedReason, 409);
@@ -353,15 +402,25 @@ export async function startLevel(levelNumber: number): Promise<{ started: number
 
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
-  const today = await db.select({ id: arenaTurnsTable.id }).from(arenaTurnsTable).where(gte(arenaTurnsTable.createdAt, startOfDay));
+  // Failed turns (and skipped contestants, who never get a turn) cost nothing against the budget.
+  const today = await db
+    .select({ id: arenaTurnsTable.id })
+    .from(arenaTurnsTable)
+    .where(and(gte(arenaTurnsTable.createdAt, startOfDay), ne(arenaTurnsTable.status, "failed")));
 
-  const contestants = await db.select().from(agentsTable);
-  if (contestants.length === 0) throw new ArenaEngineError("There are no contestants in the house yet.", 409);
+  const everyone = await db.select().from(agentsTable);
+  if (everyone.length === 0) throw new ArenaEngineError("There are no contestants in the house yet.", 409);
+  const contestants = everyone.filter((agent) => agent.model && agent.model.trim());
+  if (contestants.length === 0) {
+    throw new ArenaEngineError("No contestant has a model, so nobody can play. Pick a model for at least one contestant in the builder.", 409);
+  }
   if (today.length + contestants.length > DAILY_TURN_BUDGET) {
     throw new ArenaEngineError(`Today's budget of ${DAILY_TURN_BUDGET} turns would be exceeded.`, 429);
   }
 
   const skills = await skillNamesByAgent(contestants.map((agent) => agent.id));
+  const revoked = new Set<number>();
+  for (const agent of contestants) if (await isWebResearchRevoked(agent.id)) revoked.add(agent.id);
 
   const turns = await db
     .insert(arenaTurnsTable)
@@ -378,9 +437,15 @@ export async function startLevel(levelNumber: number): Promise<{ started: number
 
   for (const turn of turns) {
     const agent = contestants.find((entry) => entry.id === turn.agentId)!;
-    const system = buildSystemPrompt(agent, level, skills.get(agent.id) ?? []);
-    void runTurn(turn.id, agent, system, level);
+    const webAllowed = !revoked.has(agent.id);
+    const system = buildSystemPrompt(agent, level, skills.get(agent.id) ?? [], webAllowed);
+    runTurn(turn.id, agent, system, level, webAllowed).catch((error) => {
+      logger.error({ err: error, turnId: turn.id }, "Arena turn crashed outside its own error handling");
+    });
   }
 
+  if (contestants.length < everyone.length) {
+    logger.info({ level: levelNumber, skipped: everyone.length - contestants.length }, "Skipped contestants with no model");
+  }
   return { started: turns.length };
 }

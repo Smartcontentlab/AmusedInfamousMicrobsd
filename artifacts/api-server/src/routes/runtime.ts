@@ -336,7 +336,7 @@ router.post("/agents/:agentId/run", async (req, res): Promise<void> => {
      return;
    }
    const requestedTools = body.data.tools ?? [];
-  const unavailableTools = await getUnavailableTools(agent.id, requestedTools);
+  const unavailableTools = await getUnavailableTools(agent.id, requestedTools, undefined, "runtime");
   if (unavailableTools.length > 0) {
     const details = unavailableTools
       .map((tool) => `${tool.label}: ${tool.reason} ${tool.unlockCondition}`)
@@ -347,7 +347,7 @@ router.post("/agents/:agentId/run", async (req, res): Promise<void> => {
     });
     return;
   }
-  const access = await getAgentToolAccess(agent.id);
+  const access = await getAgentToolAccess(agent.id, undefined, "runtime");
   const allowedTools = requestedTools.length > 0
     ? [...new Set(requestedTools)]
     : access.tools.filter((tool) => tool.available).map((tool) => tool.key);

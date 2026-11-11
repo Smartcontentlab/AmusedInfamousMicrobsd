@@ -1,10 +1,13 @@
 import {
+  getGetDashboardQueryKey,
+  getGetInboxQueryKey,
   getListAgentsQueryKey,
   getListApprovalsQueryKey,
   getListMissionPlansQueryKey,
   getListProjectsQueryKey,
   getListTasksQueryKey,
   useCreateMissionPlan,
+  useListApprovals,
   useListMissionPlans,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -27,9 +30,9 @@ type PlanningOutput = {
 
 const planningOutputs: PlanningOutput[] = [
   { icon: Lightbulb, title: "Project brief", detail: "Your original words become the project directive." },
-  { icon: Users, title: "Lead operative", detail: "A waiting owner is assigned so work has a clear home." },
-  { icon: ClipboardList, title: "Starter loop", detail: "Three small tasks are queued instead of one vague ambition." },
-  { icon: ShieldAlert, title: "Human checkpoint", detail: "A pending approval pauses outside action until you decide." },
+  { icon: Users, title: "Placeholder lead", detail: "A waiting staff record, named by you or \"Starter lead\". It has no model or runtime attached." },
+  { icon: ClipboardList, title: "Starter tasks", detail: "Three generic tasks, the same wording pattern for every idea. Edit or replace them." },
+  { icon: ShieldAlert, title: "Approval to review", detail: "A pending approval you can approve, reject, or ask to change." },
 ];
 
 export function IdeaLab() {
@@ -37,6 +40,7 @@ export function IdeaLab() {
   const plansQuery = useListMissionPlans({
     query: { queryKey: getListMissionPlansQueryKey(), refetchOnMount: "always" },
   });
+  const approvalsQuery = useListApprovals({ query: { queryKey: getListApprovalsQueryKey(), refetchOnMount: "always" } });
   const createPlan = useCreateMissionPlan({
     mutation: {
       onSuccess: () => {
@@ -45,6 +49,8 @@ export function IdeaLab() {
         queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
         queryClient.invalidateQueries({ queryKey: getListApprovalsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetInboxQueryKey() });
       },
     },
   });
@@ -81,11 +87,11 @@ export function IdeaLab() {
       <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div className="max-w-3xl">
           <div className="mb-2 flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-primary">
-            <Lightbulb size={15} /> main-agent planning desk
+            <Lightbulb size={15} /> starter plan desk
           </div>
           <h1 className="text-2xl font-bold uppercase tracking-tighter">Idea Lab</h1>
           <p className="mt-2 font-mono text-xs text-muted-foreground">
-            Drop in the rough thought. The main agent will shape it into a project, a lead, a starter loop, and a checkpoint for you to approve.
+            Drop in the rough thought. Mission Control fills in a fixed starter template from it: a project, a placeholder lead, three generic tasks, and an approval. No AI reads or analyzes your text.
           </p>
         </div>
         <div className="rounded-xl border border-border bg-accent/20 px-4 py-3 font-mono text-xs font-bold uppercase shadow-sm">
@@ -119,14 +125,14 @@ export function IdeaLab() {
           {showDetails && (
             <div className="mt-4 grid gap-4 rounded-xl border border-border bg-muted/40 p-4 md:grid-cols-3">
               <label className="text-xs font-bold uppercase">Project name<input data-testid="idea-project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Auto-name if blank" className="mt-2 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none" /></label>
-              <label className="text-xs font-bold uppercase">Lead callsign<input data-testid="idea-lead-name" value={leadName} onChange={(event) => setLeadName(event.target.value)} placeholder="SCOUT" className="mt-2 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none" /></label>
+              <label className="text-xs font-bold uppercase">Lead callsign<input data-testid="idea-lead-name" value={leadName} onChange={(event) => setLeadName(event.target.value)} placeholder="Starter lead" className="mt-2 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none" /></label>
               <label className="text-xs font-bold uppercase">Lead role<input data-testid="idea-lead-role" value={leadRole} onChange={(event) => setLeadRole(event.target.value)} placeholder="Idea lead" className="mt-2 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-normal normal-case focus:outline-none" /></label>
             </div>
           )}
-          {createPlan.isError && <div data-testid="idea-plan-error" className="mt-4 rounded-xl border border-destructive bg-destructive/10 p-3 font-mono text-sm text-destructive">{messageFor(createPlan.error, "The idea could not be shaped. Keep the draft and try again.")}</div>}
+          {createPlan.isError && <div data-testid="idea-plan-error" className="mt-4 rounded-xl border border-destructive bg-destructive/10 p-3 font-mono text-sm text-destructive">{messageFor(createPlan.error, "The starter project could not be created. Keep the draft and try again.")}</div>}
           {createPlan.data && (
             <div data-testid="idea-plan-success" className="mt-4 rounded-xl border border-primary bg-primary/10 p-4 font-mono text-sm">
-              <div className="flex items-center gap-2 font-bold uppercase"><Check size={17} /> Plan saved. Nothing dispatches until you approve the checkpoint.</div>
+              <div className="flex items-center gap-2 font-bold uppercase"><Check size={17} /> Starter template created. Nothing runs and no agent has been started.</div>
               <p className="mt-2">{createPlan.data.summary}</p>
               <Link href="/approvals" className="mt-3 inline-flex items-center gap-2 font-bold uppercase underline">Review checkpoint <ShieldAlert size={15} /></Link>
             </div>
@@ -137,7 +143,7 @@ export function IdeaLab() {
             disabled={createPlan.isPending || brainDump.trim().length < 12}
             onClick={submit}
           >
-            {createPlan.isPending ? <><Loader2 size={16} className="animate-spin" /> Shaping plan...</> : <><Sparkles size={16} /> Shape this idea</>}
+            {createPlan.isPending ? <><Loader2 size={16} className="animate-spin" /> Creating...</> : <><Sparkles size={16} /> Create starter project</>}
           </BrutalButton>
         </BrutalCard>
 
@@ -148,26 +154,29 @@ export function IdeaLab() {
             })}
           </div>
           <div className="mt-5 border-l border-accent bg-accent/10 p-3 font-mono text-xs">
-            The plan is deliberately conservative: it organizes the next loop, but it never contacts people, publishes, spends money, or changes an outside service by itself.
+            This only creates records inside Mission Control. It never contacts people, publishes, spends money, or changes an outside service.
           </div>
         </BrutalCard>
       </div>
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-2">
-          <div><h2 className="text-2xl font-bold uppercase tracking-tight">Saved idea plans</h2><p className="mt-1 font-mono text-sm text-muted-foreground">Every plan remains visible after reload so you can pick up the next loop later.</p></div>
+          <div><h2 className="text-2xl font-bold uppercase tracking-tight">Saved idea plans</h2><p className="mt-1 font-mono text-sm text-muted-foreground">Starter plans you created, kept here after reload.</p></div>
           <span data-testid="idea-plan-count" className="font-mono text-xs font-bold uppercase text-muted-foreground">{plans.length} recorded</span>
         </div>
-        {plansQuery.isLoading && <div className="flex items-center gap-2 rounded-xl border border-dashed border-border p-6 font-mono text-sm"><Loader2 size={16} className="animate-spin" /> Reading the planning desk...</div>}
-        {plansQuery.isError && <div className="rounded-xl border border-destructive bg-destructive/10 p-5 font-mono text-sm text-destructive">Saved plans are unavailable right now. Your existing projects and approvals are unchanged.</div>}
-        {!plansQuery.isLoading && !plansQuery.isError && plans.length === 0 && <div data-testid="idea-plans-empty" className="rounded-xl border border-dashed border-border bg-muted/30 p-10 text-center font-mono text-sm text-muted-foreground">NO IDEAS SHAPED YET. YOUR NEXT ROUGH NOTE CAN START THE FIRST LOOP.</div>}
+        {plansQuery.isLoading && <div className="flex items-center gap-2 rounded-xl border border-dashed border-border p-6 font-mono text-sm"><Loader2 size={16} className="animate-spin" /> Loading...</div>}
+        {plansQuery.isError && <div className="rounded-xl border border-destructive bg-destructive/10 p-5 font-mono text-sm text-destructive">Saved plans could not be loaded.</div>}
+        {!plansQuery.isLoading && !plansQuery.isError && plans.length === 0 && <div data-testid="idea-plans-empty" className="rounded-xl border border-dashed border-border bg-muted/30 p-10 text-center font-mono text-sm text-muted-foreground">NO STARTER PLANS YET.</div>}
         <div data-testid="idea-plans-list" className="grid gap-5 lg:grid-cols-2">
           {plans.map((plan) => (
             <div key={plan.id} data-testid={`idea-plan-${plan.id}`} className="rounded-xl border border-border bg-card p-4 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-xl font-bold uppercase">{plan.projectName}</h3><p className="mt-1 font-mono text-xs text-muted-foreground">{new Date(plan.createdAt).toLocaleString()}</p></div><BrutalBadge variant="secondary">CHECKPOINT PENDING</BrutalBadge></div>
+              <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-xl font-bold uppercase">{plan.projectName}</h3><p className="mt-1 font-mono text-xs text-muted-foreground">{new Date(plan.createdAt).toLocaleString()}</p></div><BrutalBadge variant="secondary">{(() => {
+                const status = approvalsQuery.data?.find((approval) => approval.id === plan.approvalId)?.status;
+                return status ? status.replace("_", " ").toUpperCase() : "—";
+              })()}</BrutalBadge></div>
               <p className="mt-4 border-l border-primary bg-muted/40 p-3 font-mono text-sm leading-relaxed">{plan.brainDump}</p>
-              <div className="mt-4 grid grid-cols-2 gap-3 text-xs font-mono"><div className="rounded-lg border border-border p-2"><span className="font-bold uppercase text-muted-foreground">Owner</span><div className="mt-1 font-bold">{plan.agentName} / {plan.agentRole}</div></div><div className="rounded-lg border border-border p-2"><span className="font-bold uppercase text-muted-foreground">Starter tasks</span><div className="mt-1 font-bold">{plan.taskIds.length} queued</div></div></div>
-              <div className="mt-4 flex flex-wrap gap-3"><Link href="/projects" className="rounded-lg border border-border px-3 py-2 text-xs font-bold uppercase hover:bg-muted">Open project</Link><Link href="/approvals" className="rounded-lg border border-destructive bg-destructive/10 px-3 py-2 text-xs font-bold uppercase text-destructive hover:bg-destructive hover:text-destructive-foreground">Review approval</Link></div>
+              <div className="mt-4 grid grid-cols-2 gap-3 text-xs font-mono"><div className="rounded-lg border border-border p-2"><span className="font-bold uppercase text-muted-foreground">Owner</span><div className="mt-1 font-bold">{plan.agentName} / {plan.agentRole}</div></div><div className="rounded-lg border border-border p-2"><span className="font-bold uppercase text-muted-foreground">Starter tasks</span><div className="mt-1 font-bold">{plan.taskIds.length} created</div></div></div>
+              <div className="mt-4 flex flex-wrap gap-3"><Link href={`/projects/${plan.projectId}`} className="rounded-lg border border-border px-3 py-2 text-xs font-bold uppercase hover:bg-muted">Open project</Link><Link href="/approvals" className="rounded-lg border border-destructive bg-destructive/10 px-3 py-2 text-xs font-bold uppercase text-destructive hover:bg-destructive hover:text-destructive-foreground">Review approval</Link></div>
             </div>
           ))}
         </div>

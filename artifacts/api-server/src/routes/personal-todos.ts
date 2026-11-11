@@ -66,6 +66,11 @@ router.patch("/personal-todos/:todoId", async (req, res): Promise<void> => {
     updates.completedAt = parsed.data.done ? new Date() : null;
   }
 
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "Nothing to update: send at least one field to change." });
+    return;
+  }
+
   const [todo] = await db.update(personalTodosTable).set(updates).where(eq(personalTodosTable.id, todoId)).returning();
   if (!todo) {
     res.status(404).json({ error: "That to-do does not exist." });

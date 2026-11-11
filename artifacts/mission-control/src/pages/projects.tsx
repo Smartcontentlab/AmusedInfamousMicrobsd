@@ -1,4 +1,4 @@
-import { useListProjects, useCreateProject, useUpdateProject, getListProjectsQueryKey, useListAgents, useListApprovals, useListTasks, useListRuntimeHealth } from "@workspace/api-client-react";
+import { useListProjects, useCreateProject, useUpdateProject, getGetDashboardQueryKey, getListProjectsQueryKey, getListRuntimeHealthQueryKey, getListTasksQueryKey, useListAgents, useListApprovals, useListTasks, useListRuntimeHealth } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -6,20 +6,24 @@ import { useState } from "react";
 import { Plus, Users, ShieldAlert, Activity, CircleAlert, Radio, RotateCcw } from "lucide-react";
 
 export function Projects() {
-  const { data: projects, isLoading: pLoading } = useListProjects();
+  const { data: projects, isLoading: pLoading, isError: pError } = useListProjects();
   const { data: agents, isLoading: aLoading } = useListAgents();
   const { data: approvals, isLoading: apLoading } = useListApprovals();
-   const { data: tasks, isLoading: tLoading } = useListTasks({ query: { queryKey: ["/api/tasks"], refetchInterval: 10000 } });
-   const { data: runtimeHealth, isLoading: rLoading } = useListRuntimeHealth({ query: { queryKey: ["runtime-health"], refetchInterval: 10000 } });
+   const { data: tasks, isLoading: tLoading } = useListTasks({ query: { queryKey: getListTasksQueryKey(), refetchInterval: 10000 } });
+   const { data: runtimeHealth, isLoading: rLoading } = useListRuntimeHealth({ query: { queryKey: getListRuntimeHealthQueryKey(), refetchInterval: 10000 } });
   
   const queryClient = useQueryClient();
   
-  const createProject = useCreateProject({
-     mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() }) }
-  });
-  const updateProject = useUpdateProject({
-     mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() }) }
-  });
+  // Projects feed the list, the dashboard income total and each project's detail page.
+  const invalidateProjectViews = () => {
+    queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+    queryClient.invalidateQueries({
+      predicate: (query) => typeof query.queryKey[0] === "string" && query.queryKey[0].startsWith("/api/projects/"),
+    });
+  };
+  const createProject = useCreateProject({ mutation: { onSuccess: invalidateProjectViews } });
+  const updateProject = useUpdateProject({ mutation: { onSuccess: invalidateProjectViews } });
 
   const [showNew, setShowNew] = useState(false);
   const [newProj, setNewProj] = useState({ name: '', description: '' });
@@ -74,6 +78,9 @@ export function Projects() {
               </div>
            </BrutalCard>
         )}
+
+        {pError && <div className="rounded-xl border border-destructive bg-destructive/10 p-4 font-mono text-sm text-destructive">Projects could not be loaded.</div>}
+        {(createProject.isError || updateProject.isError) && <div className="rounded-xl border border-destructive bg-destructive/10 p-4 font-mono text-sm text-destructive">That project change was not saved. Try again.</div>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
            {projects?.map(project => {
@@ -146,8 +153,8 @@ export function Projects() {
                     
                     <div className="flex justify-between items-end border-t border-border pt-4 mt-auto">
                        <div>
-                          <div className="text-xs font-bold uppercase text-muted-foreground mb-1">Generated Income</div>
-                          <div className="text-2xl font-bold text-primary font-mono">${(project.incomeCents / 100).toFixed(2)}</div>
+                          <div className="text-xs font-bold uppercase text-muted-foreground mb-1">Income entered</div>
+                          <div className="text-2xl font-bold text-primary font-mono">{project.incomeCents ? `$${(project.incomeCents / 100).toFixed(2)}` : "—"}</div>
                        </div>
                        <div className="flex flex-col items-end">
                           <label className="text-xs font-bold uppercase text-muted-foreground mb-1">Status Shift</label>
@@ -168,7 +175,7 @@ export function Projects() {
               );
            })}
            
-           {projects?.length === 0 && (
+           {!pError && projects?.length === 0 && (
              <div className="col-span-full p-12 rounded-xl border border-dashed border-border text-center font-mono font-bold text-muted-foreground text-lg">
                 NO ACTIVE PROJECTS. DEPLOY A NEW PROJECT TO COMMENCE OPERATIONS.
              </div>

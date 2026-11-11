@@ -1,6 +1,8 @@
 import {
+  getGetInboxQueryKey,
   getListAgentCapabilitiesQueryKey,
   getListAgentsQueryKey,
+  getListApprovalsQueryKey,
   getListSkillsQueryKey,
   getGetSkillFacetsQueryKey,
   useEquipAgentSkill,
@@ -80,6 +82,9 @@ export function Skills() {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListAgentCapabilitiesQueryKey(Number(agentId)) });
           queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+          // Equipping can open an approval request.
+          queryClient.invalidateQueries({ queryKey: getListApprovalsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetInboxQueryKey() });
         },
       },
     );
@@ -91,7 +96,7 @@ export function Skills() {
         <div>
           <h1 className="text-2xl font-bold uppercase tracking-tighter">Skill library</h1>
           <p className="mt-1 font-mono text-xs text-muted-foreground">
-            {facets ? `${facets.total.toLocaleString()} skills across ${facets.sources.length} sources` : "Loading library..."}
+            {facets ? `${facets.total.toLocaleString()} skills across ${facets.sources.length} sources` : facetsQuery.isError ? "—" : "Loading library..."}
           </p>
         </div>
         <BrutalButton
@@ -123,7 +128,7 @@ export function Skills() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search 7,000+ skills..."
+            placeholder="Search skills..."
             className="w-full rounded-lg border border-border bg-card py-1.5 pl-7 pr-2 text-xs outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -162,9 +167,13 @@ export function Skills() {
             </span>
           }
         >
-          {skills.length === 0 && !skillsQuery.isFetching ? (
+          {skillsQuery.isError ? (
+            <p className="py-8 text-center font-mono text-xs uppercase text-destructive">The skill library could not be loaded.</p>
+          ) : skills.length === 0 && !skillsQuery.isFetching ? (
             <p className="py-8 text-center font-mono text-xs uppercase text-muted-foreground">
-              Nothing matched. Try a different search, or refresh the catalog.
+              {facets?.total === 0
+                ? "The skill library is empty. Press Refresh catalog to import skills."
+                : "Nothing matched. Try a different search, or refresh the catalog."}
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -248,7 +257,11 @@ export function Skills() {
                     Equip
                   </BrutalButton>
                 </div>
-                {equipSkill.isSuccess && <p className="mt-1 font-mono text-[10px] uppercase text-primary">Sent to the staff member.</p>}
+                {equipSkill.isSuccess && equipSkill.data && (
+                  <p className="mt-1 font-mono text-[10px] uppercase text-primary">
+                    {equipSkill.data.installation.message ?? `Installation status: ${equipSkill.data.installation.status}`}
+                  </p>
+                )}
                 {equipSkill.isError && <p className="mt-1 font-mono text-[10px] uppercase text-destructive">That could not be equipped.</p>}
               </div>
             </div>

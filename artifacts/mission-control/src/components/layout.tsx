@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { LayoutDashboard, Folder, Zap, Swords, Inbox, Users } from "lucide-react";
 import React from "react";
-import { useListRuntimeHealth } from "@workspace/api-client-react";
+import { getListRuntimeHealthQueryKey, useListRuntimeHealth } from "@workspace/api-client-react";
 
 const NAV_ITEMS = [
   { href: "/", icon: LayoutDashboard, label: "Home" },
@@ -30,9 +30,19 @@ function NavItem({ href, icon: Icon, label, active }: { href: string; icon: Reac
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const runtimeHealth = useListRuntimeHealth({ query: { queryKey: ["runtime-health"], refetchInterval: 10000 } });
+  const runtimeHealth = useListRuntimeHealth({ query: { queryKey: getListRuntimeHealthQueryKey(), refetchInterval: 10000 } });
   const healthItems = Array.isArray(runtimeHealth.data) ? runtimeHealth.data : [];
   const healthy = healthItems.filter((item) => item.status === "healthy").length;
+  const linkLabel = runtimeHealth.isError
+    ? "LINK DEGRADED"
+    : runtimeHealth.isLoading
+      ? "CHECKING"
+      : healthItems.length === 0
+        ? "NO RUNTIME"
+        : healthy === healthItems.length
+          ? "LIVE LINK"
+          : "LINK DEGRADED";
+  const linkOk = !runtimeHealth.isError && !runtimeHealth.isLoading && healthItems.length > 0 && healthy === healthItems.length;
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background font-sans text-foreground">
@@ -57,9 +67,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 font-mono text-xs font-bold tracking-tight">
               <div
-                className={`h-3 w-3 rounded-lg border border-border ${runtimeHealth.isError ? "bg-destructive" : "bg-accent"} ${runtimeHealth.isLoading ? "" : "animate-pulse"}`}
+                className={`h-3 w-3 rounded-lg border border-border ${linkOk ? "bg-accent animate-pulse" : runtimeHealth.isLoading || healthItems.length === 0 ? "bg-muted-foreground" : "bg-destructive"}`}
               />
-              <span className="hidden sm:inline">{runtimeHealth.isError ? "LINK DEGRADED" : "LIVE LINK"}</span>
+              <span className="hidden sm:inline">{linkLabel}</span>
             </div>
             <div
               data-testid="layout-runtime-status"
@@ -67,7 +77,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               <span className="text-muted-foreground">runtime</span>
               <span className={runtimeHealth.isError ? "text-destructive" : "text-primary"}>
-                {runtimeHealth.isLoading ? "probing" : `${healthy}/${healthItems.length || "—"}`}
+                {runtimeHealth.isLoading ? "probing" : runtimeHealth.isError || healthItems.length === 0 ? "—" : `${healthy}/${healthItems.length}`}
               </span>
             </div>
           </div>

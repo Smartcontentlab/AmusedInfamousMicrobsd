@@ -3,7 +3,11 @@ import { Link, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ChevronDown, ChevronRight, Plus, Repeat, X } from "lucide-react";
 import {
+  getGetDashboardQueryKey,
+  getGetInboxQueryKey,
   getGetProjectDetailQueryKey,
+  getListAgentsQueryKey,
+  getListTasksQueryKey,
   useCreateAgentLoop,
   useDeleteAgentLoop,
   useGetProjectDetail,
@@ -173,7 +177,15 @@ export function ProjectDetail() {
     query: { queryKey: getGetProjectDetailQueryKey(projectId), refetchInterval: 20000 },
   });
   const updateTask = useUpdateTask({
-    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetProjectDetailQueryKey(projectId) }) },
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetProjectDetailQueryKey(projectId) });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetInboxQueryKey() });
+      },
+    },
   });
 
   if (detail.isLoading) return <p className="py-8 font-mono text-xs uppercase text-muted-foreground">Loading project...</p>;
@@ -202,7 +214,7 @@ export function ProjectDetail() {
             {project.status}
           </BrutalBadge>
           <span className="ml-auto font-mono text-xs font-bold text-muted-foreground">
-            ${(project.incomeCents / 100).toLocaleString()}
+            {project.incomeCents ? `$${(project.incomeCents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} income` : "No income entered"}
           </span>
         </div>
         {description && <p className="mt-1 max-w-3xl text-xs text-muted-foreground">{description}</p>}
@@ -227,7 +239,7 @@ export function ProjectDetail() {
 
           <BrutalCard title={<span className="text-sm">Progress</span>}>
             <div className="mb-2 flex items-baseline justify-between">
-              <span className="text-2xl font-bold tabular-nums">{progress.percentComplete}%</span>
+              <span className="text-2xl font-bold tabular-nums">{progress.totalTasks === 0 ? "—" : `${progress.percentComplete}%`}</span>
               <span className="font-mono text-[11px] uppercase text-muted-foreground">
                 {progress.doneTasks}/{progress.totalTasks} done
               </span>

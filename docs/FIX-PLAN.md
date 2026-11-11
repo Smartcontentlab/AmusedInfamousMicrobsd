@@ -1,6 +1,6 @@
 # Mission Control fix plan
 
-Written 2026-11-10. Status: audit one-third done, no code changed yet.
+Written 2026-11-10. Status 2026-11-11: WP1, WP2, WP4 and the dashboard pass are done on branch `claude/mission-control-fixes`. WP3 (Stripe) and a full runtime audit are still open. See HANDOFF.md.
 
 ## Ground rules (owner's instructions)
 

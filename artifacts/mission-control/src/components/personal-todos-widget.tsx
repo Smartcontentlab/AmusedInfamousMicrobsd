@@ -27,14 +27,13 @@ export function PersonalTodosWidget() {
     event.preventDefault();
     const title = draft.trim();
     if (!title) return;
-    createTodo.mutate({ data: { title } });
-    setDraft("");
+    createTodo.mutate({ data: { title } }, { onSuccess: () => setDraft("") });
   };
 
   return (
     <BrutalCard
       title="My list"
-      action={<span className="font-mono text-xs font-bold text-muted-foreground">{openCount} open</span>}
+      action={<span className="font-mono text-xs font-bold text-muted-foreground">{todos.data ? `${openCount} open` : "—"}</span>}
       className="h-full"
     >
       <form onSubmit={submit} className="mb-3 flex gap-2">
@@ -56,7 +55,7 @@ export function PersonalTodosWidget() {
 
       <ul className="flex-1 space-y-1 overflow-auto">
         {items.length === 0 && (
-          <li className="py-6 text-center font-mono text-xs uppercase text-muted-foreground">Nothing on your list.</li>
+          <li className="py-6 text-center font-mono text-xs uppercase text-muted-foreground">{todos.isError ? "List unavailable." : todos.isLoading ? "—" : "Nothing on your list."}</li>
         )}
         {items.map((todo) => (
           <li key={todo.id} className="group flex items-center gap-2 rounded-lg border border-transparent px-1 py-1 hover:border-border hover:bg-muted/40">

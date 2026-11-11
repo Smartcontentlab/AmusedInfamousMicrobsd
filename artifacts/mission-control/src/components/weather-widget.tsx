@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 
-const FALLBACK_COORDS = { latitude: 34.0522, longitude: -118.2437 };
-
 type Weather = { temperatureF: number; label: string };
 
 const WEATHER_CODES: Record<number, string> = {
@@ -40,19 +38,22 @@ async function fetchWeather({ latitude, longitude }: { latitude: number; longitu
   };
 }
 
+type Coords = { latitude: number; longitude: number };
+
+// null = still asking, "unavailable" = no location (denied, unsupported or timed out). No guessed location is used.
 function useCoords() {
-  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [coords, setCoords] = useState<Coords | "unavailable" | null>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setCoords(FALLBACK_COORDS);
+      setCoords("unavailable");
       return;
     }
     let settled = false;
     const timer = setTimeout(() => {
       if (!settled) {
         settled = true;
-        setCoords(FALLBACK_COORDS);
+        setCoords("unavailable");
       }
     }, 4000);
 
@@ -67,7 +68,7 @@ function useCoords() {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        setCoords(FALLBACK_COORDS);
+        setCoords("unavailable");
       },
     );
 
@@ -89,7 +90,11 @@ export function WeatherWidget() {
   }, []);
 
   useEffect(() => {
-    if (!coords) return;
+    if (coords === null) return;
+    if (coords === "unavailable") {
+      setFailed(true);
+      return;
+    }
     let cancelled = false;
     const load = () =>
       fetchWeather(coords)
@@ -100,7 +105,10 @@ export function WeatherWidget() {
           }
         })
         .catch(() => {
-          if (!cancelled) setFailed(true);
+          if (!cancelled) {
+            setWeather(null);
+            setFailed(true);
+          }
         });
     load();
     const timer = setInterval(load, 600000);
@@ -125,7 +133,7 @@ export function WeatherWidget() {
           {weather ? `${weather.temperatureF}°` : failed ? "—" : "··"}
         </span>
         <span className="pb-1 font-mono text-xs font-bold uppercase text-muted-foreground">
-          {weather ? weather.label : failed ? "offline" : "loading"}
+          {weather ? weather.label : failed ? "weather unavailable" : "loading"}
         </span>
       </div>
     </div>

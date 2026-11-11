@@ -1820,7 +1820,7 @@ components:
           type: string
           enum: [working, waiting, reviewing, blocked, offline]
         projectId:
-          type: number
+          type: [number, "null"]
         currentTask:
           type: string
         room:
@@ -1832,7 +1832,7 @@ components:
         nextMove:
           type: string
         runtimeConnectionId:
-          type: number
+          type: [number, "null"]
         runtime:
           type: string
         instructions:

@@ -1,10 +1,10 @@
-import { useGetAgentRun, useListApprovals, useListRuntimeHealth, useUpdateApproval, getListApprovalsQueryKey } from "@workspace/api-client-react";
+import { useGetAgentRun, useListApprovals, useListRuntimeHealth, useUpdateApproval, getGetAgentRunQueryKey, getGetDashboardQueryKey, getGetInboxQueryKey, getListAgentsQueryKey, getListApprovalsQueryKey, getListRuntimeHealthQueryKey, getListTasksQueryKey } from "@workspace/api-client-react";
 import { BrutalCard, BrutalButton, BrutalBadge } from "../components/ui/brutal";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, X, Edit3, ArrowRight, ShieldAlert, Loader2, RefreshCw } from "lucide-react";
 
 function ApprovalLiveState({ agentId, health }: { agentId: number; health: Array<{ id: number; status: string; nextAction: string; errorMessage: string | null }> }) {
-   const { data: run, isLoading } = useGetAgentRun(agentId, { query: { queryKey: ["agent-run", agentId], refetchInterval: 5000 } });
+   const { data: run, isLoading } = useGetAgentRun(agentId, { query: { queryKey: getGetAgentRunQueryKey(agentId), refetchInterval: 5000 } });
    const runtime = run ? health.find((item) => item.id === run.connectionId) : undefined;
    return (
       <div className="mt-4 grid gap-3 rounded-lg border border-border bg-background/60 p-3 sm:grid-cols-2" data-testid={`approval-live-state-${agentId}`}>
@@ -25,11 +25,22 @@ function ApprovalLiveState({ agentId, health }: { agentId: number; health: Array
 
 export function Approvals() {
    const { data: approvals, isLoading, isError, error, refetch } = useListApprovals({ query: { queryKey: getListApprovalsQueryKey(), refetchInterval: 10000 } });
-   const { data: runtimeHealth } = useListRuntimeHealth({ query: { queryKey: ["runtime-health"], refetchInterval: 10000 } });
+   const { data: runtimeHealth } = useListRuntimeHealth({ query: { queryKey: getListRuntimeHealthQueryKey(), refetchInterval: 10000 } });
    const queryClient = useQueryClient();
 
    const updateApproval = useUpdateApproval({
-      mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListApprovalsQueryKey() }) }
+      mutation: {
+         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: getListApprovalsQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getGetInboxQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+            queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+            queryClient.invalidateQueries({
+               predicate: (query) => typeof query.queryKey[0] === "string" && query.queryKey[0].startsWith("/api/projects/"),
+            });
+         },
+      }
    });
 
    const handleAction = (id: number, status: 'approved' | 'rejected' | 'changes_requested' | 'handed_off') => {
@@ -47,7 +58,7 @@ export function Approvals() {
          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="max-w-xl">
                <h1 className="text-2xl font-bold uppercase tracking-tighter">Human Clearance</h1>
-               <p className="text-muted-foreground font-mono mt-1 text-xs">High-risk agent actions requiring explicit founder authorization.</p>
+               <p className="text-muted-foreground font-mono mt-1 text-xs">Requests that wait for your decision before anything proceeds.</p>
             </div>
             <div className="bg-destructive text-destructive-foreground font-bold uppercase text-xl px-4 py-2 rounded-xl border border-border shadow-sm">
                {pending.length} PENDING
@@ -107,7 +118,7 @@ export function Approvals() {
              <div data-testid="approvals-empty" className="p-12 rounded-xl border border-dashed border-border bg-muted/30 text-center flex flex-col items-center justify-center gap-4">
                <ShieldAlert className="text-muted-foreground opacity-50" size={48} />
                <div className="font-mono font-bold text-muted-foreground text-xl uppercase tracking-widest">NO PENDING CLEARANCES</div>
-               <p className="text-sm">All agent actions are currently operating within autonomous bounds.</p>
+               <p className="text-sm">Nothing is waiting for your decision.</p>
             </div>
          )}
 

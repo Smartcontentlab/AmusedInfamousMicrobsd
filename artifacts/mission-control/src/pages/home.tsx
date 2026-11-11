@@ -45,8 +45,7 @@ function AtlasBar() {
     event.preventDefault();
     const body = message.trim();
     if (!body) return;
-    createMessage.mutate({ data: { body } });
-    setMessage("");
+    createMessage.mutate({ data: { body } }, { onSuccess: () => setMessage("") });
   };
 
   return (
@@ -59,7 +58,7 @@ function AtlasBar() {
         <input
           value={message}
           onChange={(event) => setMessage(event.target.value)}
-          placeholder="Ask Atlas anything, or tell it what to delegate..."
+          placeholder="Leave a note in your inbox..."
           className="min-w-0 flex-1 bg-transparent py-2 text-base font-medium outline-none placeholder:text-muted-foreground"
         />
         <button
@@ -72,7 +71,11 @@ function AtlasBar() {
         </button>
       </form>
       <p className="mt-2 text-center font-mono text-[11px] uppercase text-muted-foreground">
-        {sent ? "Sent to Atlas — waiting on a runtime link to reply" : "Atlas routes work to your staff agents"}
+        {createMessage.isError
+          ? "Could not save the note. Try again."
+          : sent
+            ? "Saved to your inbox. No agent replies automatically."
+            : "Notes are saved to your inbox. No agent reads them automatically."}
       </p>
     </div>
   );
@@ -80,14 +83,14 @@ function AtlasBar() {
 
 function InboxWidget() {
   const inbox = useGetInbox({ query: { queryKey: getGetInboxQueryKey(), refetchInterval: 30000 } });
-  const needsYou = inbox.data?.needsYou.length ?? 0;
-  const needsApproval = inbox.data?.needsApproval.length ?? 0;
-  const unread = inbox.data?.directMessages.filter((message) => !message.readAt).length ?? 0;
+  const needsYou = inbox.data ? inbox.data.needsYou.length : null;
+  const needsApproval = inbox.data ? inbox.data.needsApproval.length : null;
+  const unread = inbox.data ? inbox.data.directMessages.filter((message) => !message.readAt).length : null;
 
   const rows = [
-    { label: "Needs you", value: needsYou, highlight: needsYou > 0 },
-    { label: "Needs approval", value: needsApproval, highlight: needsApproval > 0 },
-    { label: "Unread messages", value: unread, highlight: unread > 0 },
+    { label: "Needs you", value: needsYou, highlight: (needsYou ?? 0) > 0 },
+    { label: "Needs approval", value: needsApproval, highlight: (needsApproval ?? 0) > 0 },
+    { label: "Unread messages", value: unread, highlight: (unread ?? 0) > 0 },
   ];
 
   return (
@@ -105,7 +108,7 @@ function InboxWidget() {
           <div key={row.label} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
             <span className="font-mono text-xs font-bold uppercase text-muted-foreground">{row.label}</span>
             <span className={`text-2xl font-bold tabular-nums ${row.highlight ? "text-primary" : "text-muted-foreground"}`}>
-              {row.value}
+              {row.value ?? "—"}
             </span>
           </div>
         ))}
@@ -122,11 +125,11 @@ function WorkloadWidget() {
   return (
     <BrutalCard
       title="Workload"
-      action={<span className="font-mono text-xs font-bold text-muted-foreground">{total} tasks</span>}
+      action={<span className="font-mono text-xs font-bold text-muted-foreground">{tasks.data ? `${total} tasks` : "—"}</span>}
       className="h-full"
     >
       {total === 0 ? (
-        <p className="flex flex-1 items-center justify-center font-mono text-xs uppercase text-muted-foreground">No tasks yet.</p>
+        <p className="flex flex-1 items-center justify-center font-mono text-xs uppercase text-muted-foreground">{tasks.isError ? "Tasks unavailable." : tasks.isLoading ? "—" : "No tasks yet."}</p>
       ) : (
         <div className="flex flex-1 flex-col justify-center gap-3">
           <div className="flex h-8 w-full overflow-hidden rounded-xl border border-border">
@@ -164,7 +167,7 @@ export function Home() {
   const dashboard = useGetDashboard();
   const inbox = useGetInbox({ query: { queryKey: getGetInboxQueryKey() } });
   const now = new Date();
-  const waiting = (inbox.data?.needsYou.length ?? 0) + (inbox.data?.needsApproval.length ?? 0);
+  const waiting = inbox.data ? inbox.data.needsYou.length + inbox.data.needsApproval.length : null;
 
   return (
     <div className="space-y-8 py-6">
@@ -172,9 +175,7 @@ export function Home() {
         <p className="font-mono text-xs font-bold uppercase tracking-widest text-muted-foreground">Mission control</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tighter">{greeting(now)}.</h1>
         <p className="mt-3 font-mono text-sm text-muted-foreground">
-          {dashboard.data
-            ? `${dashboard.data.activeAgentCount} agents active · ${waiting} waiting on you`
-            : "Syncing operations..."}
+          {`${dashboard.data ? dashboard.data.activeAgentCount : "—"} agents active · ${waiting ?? "—"} waiting on you`}
         </p>
       </div>
 
@@ -195,7 +196,7 @@ export function Home() {
 
       {dashboard.data?.recommendation && (
         <div className="mx-auto max-w-3xl rounded-xl border border-border bg-primary/10 p-4 shadow-sm">
-          <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-primary">Atlas suggests</p>
+          <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-primary">Suggested next step</p>
           <p className="mt-1 text-sm font-medium">{dashboard.data.recommendation}</p>
         </div>
       )}

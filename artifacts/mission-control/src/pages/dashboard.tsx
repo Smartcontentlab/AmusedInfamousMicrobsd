@@ -1,5 +1,11 @@
 import {
+  getGetDashboardQueryKey,
+  getGetInboxQueryKey,
+  getHealthCheckQueryKey,
+  getListAgentsQueryKey,
   getListApprovalsQueryKey,
+  getListRuntimeConnectionsQueryKey,
+  getListRuntimeHealthQueryKey,
   getListTasksQueryKey,
   useCreateTask,
   useGetDashboard,
@@ -225,35 +231,42 @@ function RuntimeHealthRow({ runtime }: { runtime: RuntimeHealth }) {
 export function Dashboard() {
   const queryClient = useQueryClient();
   const { data: dashboard, isLoading: dashLoading, isError: dashError, error: dashErrorValue, refetch: refetchDashboard } = useGetDashboard();
-  const { data: health, isLoading: healthLoading, isError: healthError, refetch: refetchHealth } = useHealthCheck({ query: { queryKey: ["/api/healthz"], refetchInterval: 10000 } });
-  const { data: runtimeHealth, isLoading: runtimeHealthLoading, isError: runtimeHealthError, refetch: refetchRuntimeHealth } = useListRuntimeHealth({ query: { queryKey: ["runtime-health"], refetchInterval: 10000 } });
-  const { data: runtimeConnections, isLoading: runtimeConnectionsLoading, isError: runtimeConnectionsError, refetch: refetchRuntimeConnections } = useListRuntimeConnections({ query: { queryKey: ["runtime-connections"], refetchInterval: 15000 } });
-  const { data: tasks, isLoading: tasksLoading, isError: tasksError, refetch: refetchTasks } = useListTasks({ query: { queryKey: ["/api/tasks"], refetchInterval: 10000 } });
-  const { data: agents, isLoading: agentsLoading, isError: agentsError, refetch: refetchAgents } = useListAgents({ query: { queryKey: ["/api/agents"], refetchInterval: 10000 } });
+  const { data: health, isLoading: healthLoading, isError: healthError, refetch: refetchHealth } = useHealthCheck({ query: { queryKey: getHealthCheckQueryKey(), refetchInterval: 10000 } });
+  const { data: runtimeHealth, isLoading: runtimeHealthLoading, isError: runtimeHealthError, refetch: refetchRuntimeHealth } = useListRuntimeHealth({ query: { queryKey: getListRuntimeHealthQueryKey(), refetchInterval: 10000 } });
+  const { data: runtimeConnections, isLoading: runtimeConnectionsLoading, isError: runtimeConnectionsError, refetch: refetchRuntimeConnections } = useListRuntimeConnections({ query: { queryKey: getListRuntimeConnectionsQueryKey(), refetchInterval: 15000 } });
+  const { data: tasks, isLoading: tasksLoading, isError: tasksError, refetch: refetchTasks } = useListTasks({ query: { queryKey: getListTasksQueryKey(), refetchInterval: 10000 } });
+  const { data: agents, isLoading: agentsLoading, isError: agentsError, refetch: refetchAgents } = useListAgents({ query: { queryKey: getListAgentsQueryKey(), refetchInterval: 10000 } });
   const { data: projects, isLoading: projectsLoading, isError: projectsError, refetch: refetchProjects } = useListProjects();
   const { data: approvals, isLoading: approvalsLoading, isError: approvalsError, refetch: refetchApprovals } = useListApprovals();
   const [command, setCommand] = useState("");
 
+  // Everything that can show a task or approval: lists, dashboard recommendation, inbox and project detail pages.
+  const invalidateWorkViews = () => {
+    queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListApprovalsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetInboxQueryKey() });
+    queryClient.invalidateQueries({
+      predicate: (query) => typeof query.queryKey[0] === "string" && query.queryKey[0].startsWith("/api/projects/"),
+    });
+  };
   const createTask = useCreateTask({
     mutation: {
       onSuccess: () => {
         setCommand("");
-        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+        invalidateWorkViews();
       },
     },
   });
   const updateApproval = useUpdateApproval({
     mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListApprovalsQueryKey() });
-      },
+      onSuccess: invalidateWorkViews,
     },
   });
   const updateTask = useUpdateTask({
     mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
-      },
+      onSuccess: invalidateWorkViews,
     },
   });
 
@@ -475,7 +488,7 @@ export function Dashboard() {
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div data-testid="metric-runtime-healthy" className="rounded-lg border border-border bg-primary/10 p-3">
               <p className="font-mono text-[11px] font-bold uppercase text-muted-foreground">Healthy</p>
-              <p className="mt-1 font-mono text-2xl font-bold text-primary">{healthyRuntimeCount}/{runtimeHealthList.length || "—"}</p>
+              <p className="mt-1 font-mono text-2xl font-bold text-primary">{runtimeHealthList.length ? `${healthyRuntimeCount}/${runtimeHealthList.length}` : "—"}</p>
               <p className="mt-1 font-mono text-[10px] text-muted-foreground">health records clear</p>
             </div>
             <div data-testid="metric-runtime-blockers" className="rounded-lg border border-border bg-destructive/10 p-3">
@@ -533,7 +546,7 @@ export function Dashboard() {
         <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-2 font-bold uppercase"><Sparkles size={17} className="text-primary" /> Command recommendation</div>
-            <p data-testid="text-dashboard-recommendation" className="mt-3 font-mono text-base font-bold leading-relaxed">{dashboard?.recommendation || "No recommendation was returned. Review active work and runtime blockers manually."}</p>
+            <p data-testid="text-dashboard-recommendation" className="mt-3 font-mono text-base font-bold leading-relaxed">{dashboard?.recommendation || "None yet."}</p>
             <div className="mt-5 flex flex-col gap-3">
               <label htmlFor="dashboard-command" className="font-mono text-xs font-bold uppercase">Queue a plain-language instruction</label>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -557,6 +570,7 @@ export function Dashboard() {
                 </BrutalButton>
               </div>
               {!projects?.length && <p className="font-mono text-xs text-destructive">A project is required before an instruction can be queued.</p>}
+              {!!projects?.length && <p className="font-mono text-xs text-muted-foreground">Creates a high-priority task in {projects[0].name}. No agent is notified.</p>}
               {createTask.isError && <p className="font-mono text-xs text-destructive">The instruction could not be queued. Try again after checking the work queue.</p>}
             </div>
           </div>
@@ -579,16 +593,16 @@ export function Dashboard() {
 
       <section data-testid="dashboard-snapshot" className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <BrutalCard title="Monthly income" className="border-l-8 border-l-primary">
-          <div data-testid="metric-monthly-income" className="font-mono text-xl font-bold text-primary">${((dashboard?.monthlyIncomeCents || 0) / 100).toFixed(2)}</div>
-          <p className="mt-2 font-mono text-xs text-muted-foreground">Revenue generated this month.</p>
+          <div data-testid="metric-monthly-income" className="font-mono text-xl font-bold text-primary">{dashboard?.monthlyIncomeCents ? `$${(dashboard.monthlyIncomeCents / 100).toFixed(2)}` : "—"}</div>
+          <p className="mt-2 font-mono text-xs text-muted-foreground">Total of the income entered on your projects. Not connected to a payment source.</p>
         </BrutalCard>
         <BrutalCard title="Runway" className="border-l-8 border-l-secondary">
-          <div data-testid="metric-runway" className="font-mono text-xl font-bold text-secondary">{dashboard?.runwayDays ?? "—"} days</div>
-          <p className="mt-2 font-mono text-xs text-muted-foreground">Estimated operating time remaining.</p>
+          <div data-testid="metric-runway" className="font-mono text-xl font-bold text-secondary">{dashboard?.runwayDays != null ? `${dashboard.runwayDays} days` : "—"}</div>
+          <p className="mt-2 font-mono text-xs text-muted-foreground">{dashboard?.runwayDays != null ? "Estimated operating time remaining." : "Not tracked yet."}</p>
         </BrutalCard>
         <BrutalCard title="Velocity" className="border-l-8 border-l-accent">
-          <div data-testid="metric-velocity" className="font-mono text-xl font-bold text-accent-strong">{dashboard?.velocityPercent ?? "—"}%</div>
-          <p className="mt-2 font-mono text-xs text-muted-foreground">Task completion rate reported by the dashboard.</p>
+          <div data-testid="metric-velocity" className="font-mono text-xl font-bold text-accent-strong">{dashboard?.velocityPercent != null ? `${dashboard.velocityPercent}%` : "—"}</div>
+          <p className="mt-2 font-mono text-xs text-muted-foreground">{dashboard?.velocityPercent != null ? "Task completion rate reported by the dashboard." : "Not tracked yet."}</p>
         </BrutalCard>
         <BrutalCard title="Recent activity" className="border-l-8 border-l-primary">
           {dashboard?.recentActivity?.length ? (
@@ -598,7 +612,7 @@ export function Dashboard() {
               ))}
             </div>
           ) : (
-            <p className="font-mono text-xs text-muted-foreground">No recent activity was returned.</p>
+            <p className="font-mono text-xs text-muted-foreground">None yet.</p>
           )}
         </BrutalCard>
       </section>

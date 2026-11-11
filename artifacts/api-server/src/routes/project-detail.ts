@@ -177,6 +177,11 @@ router.patch("/agent-loops/:loopId", async (req, res): Promise<void> => {
   if (parsed.data.cadence !== undefined) updates.cadence = parsed.data.cadence;
   if (parsed.data.enabled !== undefined) updates.enabled = parsed.data.enabled;
 
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "Nothing to update: send at least one field to change." });
+    return;
+  }
+
   const [loop] = await db.update(agentLoopsTable).set(updates).where(eq(agentLoopsTable.id, loopId)).returning();
   if (!loop) {
     res.status(404).json({ error: "That loop does not exist." });

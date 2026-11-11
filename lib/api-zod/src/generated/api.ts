@@ -220,13 +220,13 @@ export const UpdateAgentParams = zod.object({
 export const UpdateAgentBody = zod.object({
   "role": zod.string().min(1).optional(),
   "status": zod.enum(['working', 'waiting', 'reviewing', 'blocked', 'offline']).optional(),
-  "projectId": zod.number().optional(),
+  "projectId": zod.number().nullish(),
   "currentTask": zod.string().optional(),
   "room": zod.string().optional(),
   "businessIdea": zod.string().optional(),
   "phase": zod.string().optional(),
   "nextMove": zod.string().optional(),
-  "runtimeConnectionId": zod.number().optional(),
+  "runtimeConnectionId": zod.number().nullish(),
   "runtime": zod.string().optional(),
   "instructions": zod.string().nullish()
 })

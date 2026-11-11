@@ -2,7 +2,11 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckSquare, MessageSquare, Send } from "lucide-react";
 import {
+  getGetDashboardQueryKey,
   getGetInboxQueryKey,
+  getListAgentsQueryKey,
+  getListApprovalsQueryKey,
+  getListTasksQueryKey,
   useCreateDirectMessage,
   useGetInbox,
   useMarkDirectMessageRead,
@@ -99,7 +103,20 @@ export function Inbox() {
   const inbox = useGetInbox({ query: { queryKey: getGetInboxQueryKey(), refetchInterval: 20000 } });
   const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetInboxQueryKey() });
 
-  const updateApproval = useUpdateApproval({ mutation: { onSuccess: invalidate } });
+  const updateApproval = useUpdateApproval({
+    mutation: {
+      onSuccess: () => {
+        invalidate();
+        queryClient.invalidateQueries({ queryKey: getListApprovalsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        queryClient.invalidateQueries({
+          predicate: (query) => typeof query.queryKey[0] === "string" && query.queryKey[0].startsWith("/api/projects/"),
+        });
+      },
+    },
+  });
   const markRead = useMarkDirectMessageRead({ mutation: { onSuccess: invalidate } });
   const sendMessage = useCreateDirectMessage({ mutation: { onSuccess: invalidate } });
 
@@ -111,20 +128,23 @@ export function Inbox() {
     event.preventDefault();
     const body = reply.trim();
     if (!body) return;
-    sendMessage.mutate({ data: { body } });
-    setReply("");
+    sendMessage.mutate({ data: { body } }, { onSuccess: () => setReply("") });
   };
 
   return (
     <div className="space-y-8 py-2">
       <div>
         <h1 className="text-2xl font-bold uppercase tracking-tighter">Inbox</h1>
-        <p className="mt-1 font-mono text-sm text-muted-foreground">Everything Atlas needs from you, in one channel.</p>
+        <p className="mt-1 font-mono text-sm text-muted-foreground">Everything that needs your attention, in one place.</p>
       </div>
+
+      {inbox.isError && (
+        <p className="rounded-xl border border-destructive bg-destructive/10 p-4 font-mono text-sm text-destructive">The inbox could not be loaded.</p>
+      )}
 
       <Section title="Needs you" icon={AlertTriangle} count={needsYou.length} accent>
         {needsYou.length === 0 ? (
-          <EmptyRow>Nothing is blocked. You are clear.</EmptyRow>
+          <EmptyRow>{inbox.isError ? "—" : inbox.isLoading ? "—" : "Nothing is blocked."}</EmptyRow>
         ) : (
           needsYou.map((item) => <AttentionCard key={`${item.kind}-${item.id}`} item={item} />)
         )}
@@ -132,7 +152,7 @@ export function Inbox() {
 
       <Section title="Needs approval" icon={CheckSquare} count={needsApproval.length} accent>
         {needsApproval.length === 0 ? (
-          <EmptyRow>No approvals waiting.</EmptyRow>
+          <EmptyRow>{inbox.isError || inbox.isLoading ? "—" : "No approvals waiting."}</EmptyRow>
         ) : (
           needsApproval.map((item) => (
             <AttentionCard key={`approval-${item.id}`} item={item}>
@@ -161,7 +181,7 @@ export function Inbox() {
             <input
               value={reply}
               onChange={(event) => setReply(event.target.value)}
-              placeholder="Message Atlas..."
+              placeholder="Write a note (saved here, no agent replies automatically)..."
               className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium outline-none focus:ring-4 focus:ring-primary/20"
             />
             <button
@@ -175,7 +195,7 @@ export function Inbox() {
 
           <div className="mt-4 space-y-2">
             {messages.length === 0 ? (
-              <EmptyRow>No messages yet.</EmptyRow>
+              <EmptyRow>{inbox.isError || inbox.isLoading ? "—" : "No messages yet."}</EmptyRow>
             ) : (
               messages.map((message) => (
                 <div

@@ -20,7 +20,12 @@ import {
   useStopAgentRun,
   useUpdateAgent,
   useUpdateAgentToolUnlock,
+  getGetAgentRunQueryKey,
+  getGetDashboardQueryKey,
+  getListAgentActivityQueryKey,
   getListAgentCapabilitiesQueryKey,
+  getListRuntimeConnectionsQueryKey,
+  getListRuntimeHealthQueryKey,
   getListAgentsQueryKey,
   getGetAgentToolAccessQueryKey,
   getGetArenaQueryKey,
@@ -74,8 +79,8 @@ function statusVariant(status: string | undefined): "primary" | "secondary" | "a
 
 function RuntimeLinkPanel() {
   const queryClient = useQueryClient();
-  const connectionsQuery = useListRuntimeConnections({ query: { queryKey: ["runtime-connections"], refetchInterval: 15000 } });
-  const healthQuery = useListRuntimeHealth({ query: { queryKey: ["runtime-health"], refetchInterval: 10000 } });
+  const connectionsQuery = useListRuntimeConnections({ query: { queryKey: getListRuntimeConnectionsQueryKey(), refetchInterval: 15000 } });
+  const healthQuery = useListRuntimeHealth({ query: { queryKey: getListRuntimeHealthQueryKey(), refetchInterval: 10000 } });
   const createConnection = useCreateRuntimeConnection({
     mutation: {
       onSuccess: () => {
@@ -247,9 +252,9 @@ function RuntimeLinkPanel() {
 
 function RunPanel({ agentId, agentName, provider }: { agentId: number; agentName: string; provider: string }) {
   const queryClient = useQueryClient();
-  const runQuery = useGetAgentRun(agentId, { query: { queryKey: ["agent-run", agentId], refetchInterval: 5000 } });
-  const activityQuery = useListAgentActivity(agentId, { query: { queryKey: ["agent-activity", agentId], refetchInterval: 5000 } });
-  const connectionsQuery = useListRuntimeConnections({ query: { queryKey: ["runtime-connections"], refetchInterval: 15000 } });
+  const runQuery = useGetAgentRun(agentId, { query: { queryKey: getGetAgentRunQueryKey(agentId), refetchInterval: 5000 } });
+  const activityQuery = useListAgentActivity(agentId, { query: { queryKey: getListAgentActivityQueryKey(agentId), refetchInterval: 5000 } });
+  const connectionsQuery = useListRuntimeConnections({ query: { queryKey: getListRuntimeConnectionsQueryKey(), refetchInterval: 15000 } });
   const toolAccessQuery = useGetAgentToolAccess(agentId, { query: { queryKey: getGetAgentToolAccessQueryKey(agentId), refetchInterval: 10000 } });
   const launchRun = useLaunchAgentRun();
   const pauseRun = usePauseAgentRun();
@@ -385,7 +390,16 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
   const { data: capabilities, isLoading: capLoading, isError: capError } = useListAgentCapabilities(agent.id);
   const toolAccessQuery = useGetAgentToolAccess(agent.id, { query: { queryKey: getGetAgentToolAccessQueryKey(agent.id), refetchInterval: 10000 } });
   const updateAgent = useUpdateAgent({
-    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() }) },
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        // Assignment and status show up on project detail pages and the inbox.
+        queryClient.invalidateQueries({
+          predicate: (query) => typeof query.queryKey[0] === "string" && (query.queryKey[0].startsWith("/api/projects") || query.queryKey[0] === "/api/inbox"),
+        });
+      },
+    },
   });
   const attachSkill = useAttachAgentCapability({
     mutation: {
@@ -397,7 +411,10 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
   });
   const detachSkill = useDetachAgentCapability({
     mutation: {
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAgentCapabilitiesQueryKey(agent.id) }),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListAgentCapabilitiesQueryKey(agent.id) });
+        queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() });
+      },
     },
   });
   const updateToolUnlock = useUpdateAgentToolUnlock({
@@ -509,8 +526,8 @@ function AgentCard({ agent, projects, runtimeConnections }: { agent: any; projec
 
        <div className="rounded-xl border border-border bg-muted/50 p-3">
          <div className="flex items-center gap-2 text-xs font-bold uppercase"><Radio size={14} className="text-primary" /> Live state is controlled by the run panel</div>
-        <label className="mt-3 block text-xs font-bold uppercase">Assignment<select data-testid={`agent-project-${agent.id}`} className="mt-1 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.projectId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { projectId: event.target.value ? Number(event.target.value) : undefined } })}><option value="">-- UNASSIGNED --</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-         <label className="mt-3 block text-xs font-bold uppercase">Runtime link<select data-testid={`agent-runtime-${agent.id}`} className="mt-1 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.runtimeConnectionId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { runtimeConnectionId: event.target.value ? Number(event.target.value) : undefined } })}><option value="">-- AUTO BY PROVIDER --</option>{runtimeConnections.filter((connection) => String(connection.provider ?? "").toLowerCase() === String(agent.provider ?? "").toLowerCase()).map((connection) => <option key={String(connection.id)} value={String(connection.id)}>{connection.name} ({connection.provider})</option>)}</select></label>
+        <label className="mt-3 block text-xs font-bold uppercase">Assignment<select data-testid={`agent-project-${agent.id}`} className="mt-1 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.projectId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { projectId: event.target.value ? Number(event.target.value) : null } })}><option value="">-- UNASSIGNED --</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+         <label className="mt-3 block text-xs font-bold uppercase">Runtime link<select data-testid={`agent-runtime-${agent.id}`} className="mt-1 w-full rounded-xl border border-border bg-card p-2 font-mono text-sm font-bold focus:outline-none" value={agent.runtimeConnectionId || ""} onChange={(event) => updateAgent.mutate({ agentId: agent.id, data: { runtimeConnectionId: event.target.value ? Number(event.target.value) : null } })}><option value="">-- AUTO BY PROVIDER --</option>{runtimeConnections.filter((connection) => String(connection.provider ?? "").toLowerCase() === String(agent.provider ?? "").toLowerCase()).map((connection) => <option key={String(connection.id)} value={String(connection.id)}>{connection.name} ({connection.provider})</option>)}</select></label>
         {updateAgent.isError && <p className="mt-2 font-mono text-xs text-destructive">{messageFor(updateAgent.error, "Agent update failed.")}</p>}
       </div>
       <RulesPanel agent={agent} />
@@ -594,7 +611,7 @@ function RulesPanel({ agent }: { agent: LooseRecord }) {
 export function Agents() {
   const { data: agents, isLoading: agentsLoading, isError: agentsError, error: agentsErrorValue, refetch: refetchAgents } = useListAgents({ query: { queryKey: getListAgentsQueryKey(), refetchInterval: 10000 } });
   const { data: projects, isLoading: projectsLoading } = useListProjects();
-   const { data: runtimeConnections } = useListRuntimeConnections({ query: { queryKey: ["runtime-connections"], refetchInterval: 15000 } });
+   const { data: runtimeConnections } = useListRuntimeConnections({ query: { queryKey: getListRuntimeConnectionsQueryKey(), refetchInterval: 15000 } });
   const queryClient = useQueryClient();
   const createAgent = useCreateAgent({ mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() }) } });
   const [showNew, setShowNew] = useState(false);

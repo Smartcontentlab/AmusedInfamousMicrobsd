@@ -236,8 +236,8 @@ function buildMissionPlanRecord(item: { id: number; data: Record<string, unknown
     projectId: Number(item.data.projectId),
     projectName: String(item.data.projectName ?? "Untitled project"),
     agentId: Number(item.data.agentId),
-    agentName: String(item.data.agentName ?? "Lead operative"),
-    agentRole: String(item.data.agentRole ?? "Project lead"),
+    agentName: String(item.data.agentName ?? "Starter lead"),
+    agentRole: String(item.data.agentRole ?? "Idea lead"),
     taskIds: Array.isArray(item.data.taskIds) ? item.data.taskIds.map(Number) : [],
     approvalId: Number(item.data.approvalId),
     checkpoint: String(item.data.checkpoint ?? "Review the plan before starting outside work."),
@@ -279,15 +279,16 @@ router.post("/mission-plans", async (req, res): Promise<void> => {
     .replace(/[^a-z0-9 -]/gi, "")
     .trim();
   const projectName = parsed.data.projectName?.trim() || (fallbackProjectName ? `${fallbackProjectName} Lab` : "New venture lab");
-  const leadName = parsed.data.leadName?.trim() || "SCOUT";
+  const leadName = parsed.data.leadName?.trim() || "Starter lead";
   const leadRole = parsed.data.leadRole?.trim() || "Idea lead";
-  const provider = parsed.data.provider?.trim() || "OpenClaw";
-  const summary = `Shape ${projectName} into a small, testable launch loop: clarify the user, prove demand, then review the first signal.`;
+  const provider = parsed.data.provider?.trim() || undefined;
   const tasksToCreate = [
     `Clarify the user and smallest useful version for ${projectName}`,
     `Run one low-cost demand test for ${projectName}`,
     `Prepare a decision brief with the first signal`,
   ];
+  // Everything below is a fixed template filled in by Mission Control. No agent or model is run here.
+  const summary = `Starter template created by Mission Control for ${projectName}: a project, a placeholder lead, ${tasksToCreate.length} generic starter tasks and an approval to review. No agent has analyzed your idea yet.`;
 
   const [project] = await db.insert(projectsTable).values({
     name: projectName,
@@ -297,15 +298,11 @@ router.post("/mission-plans", async (req, res): Promise<void> => {
   const [agent] = await db.insert(agentsTable).values({
     name: leadName,
     role: leadRole,
-    provider,
+    ...(provider ? { provider } : {}),
     status: "waiting",
     projectId: project.id,
-    currentTask: tasksToCreate[0],
-    room: "Idea Studio",
-    computerStatus: "ready",
     businessIdea: brainDump,
     phase: "idea",
-    nextMove: "Wait for the operator to approve the launch checkpoint.",
   }).returning();
   const tasks = await db.insert(tasksTable).values(
     tasksToCreate.map((title, index) => ({
@@ -319,11 +316,11 @@ router.post("/mission-plans", async (req, res): Promise<void> => {
   const [approval] = await db.insert(approvalsTable).values({
     projectId: project.id,
     agentId: agent.id,
-    title: `Approve the ${projectName} launch loop`,
-    action: "Approve the first experiment",
-    details: `The main agent shaped this brain dump into a project, a lead operative, and ${tasks.length} starter tasks. Review the scope before any outside action begins.`,
-    reason: "New ideas remain paused until a human confirms the project shape and first experiment.",
-    requestedAction: "Review the project brief, then approve, request changes, or hand the loop to a different owner.",
+    title: `Approve the ${projectName} starter template`,
+    action: "Approve the starter template",
+    details: `Mission Control created this starter template from your brain dump: a project, a placeholder lead, and ${tasks.length} generic starter tasks. No agent has run or analyzed the idea. Review and edit the scope before anything else happens.`,
+    reason: "The starter template was created automatically and nothing has been started. It stays paused until you confirm it.",
+    requestedAction: "Review the starter project and tasks, then approve, request changes, or hand it to a different owner.",
     risk: "medium",
     status: "pending",
   }).returning();
@@ -340,7 +337,7 @@ router.post("/mission-plans", async (req, res): Promise<void> => {
       agentRole: agent.role,
       taskIds: tasks.map((task) => task.id),
       approvalId: approval.id,
-      checkpoint: "Review the project shape and approve the first experiment before dispatch.",
+      checkpoint: "Review the starter template and approve it before any work is assigned.",
     },
   }).returning();
 
@@ -371,6 +368,10 @@ router.patch("/projects/:projectId", async (req, res): Promise<void> => {
   const body = UpdateProjectBody.safeParse(req.body);
   if (!params.success || !body.success) {
     res.status(400).json({ error: "Project update is incomplete or invalid." });
+    return;
+  }
+  if (Object.keys(body.data).length === 0) {
+    res.status(400).json({ error: "Nothing to update: send at least one field to change." });
     return;
   }
   const [project] = await db
@@ -409,6 +410,10 @@ router.patch("/agents/:agentId", async (req, res): Promise<void> => {
   const body = UpdateAgentBody.safeParse(req.body);
   if (!params.success || !body.success) {
     res.status(400).json({ error: "Agent update is incomplete or invalid." });
+    return;
+  }
+  if (Object.keys(body.data).length === 0) {
+    res.status(400).json({ error: "Nothing to update: send at least one field to change." });
     return;
   }
   const [agent] = await db
@@ -598,9 +603,16 @@ router.patch("/approvals/:approvalId", async (req, res): Promise<void> => {
   const [approval] = await db
     .update(approvalsTable)
     .set({ status: body.data.status, resolvedAt: new Date() })
-    .where(eq(approvalsTable.id, params.data.approvalId))
+    // Only a pending request can be decided, so a second click cannot flip the decision
+    // or send the skill installation twice.
+    .where(and(eq(approvalsTable.id, params.data.approvalId), eq(approvalsTable.status, "pending")))
     .returning();
   if (!approval) {
+    const [existing] = await db.select({ status: approvalsTable.status }).from(approvalsTable).where(eq(approvalsTable.id, params.data.approvalId));
+    if (existing) {
+      res.status(409).json({ error: `This request was already ${existing.status}.` });
+      return;
+    }
     res.status(404).json({ error: "Approval request not found." });
     return;
   }
@@ -650,6 +662,10 @@ router.patch("/tasks/:taskId", async (req, res): Promise<void> => {
   const body = UpdateTaskBody.safeParse(req.body);
   if (!params.success || !body.success) {
     res.status(400).json({ error: "Task update is incomplete or invalid." });
+    return;
+  }
+  if (Object.keys(body.data).length === 0) {
+    res.status(400).json({ error: "Nothing to update: send at least one field to change." });
     return;
   }
   const [task] = await db
@@ -805,7 +821,7 @@ async function latestInstallation(agentId: number, skillId: number) {
   return installation;
 }
 
-async function createApprovalForSkill(agent: { id: number; projectId: number | null }, skill: {
+async function createApprovalForSkill(agent: { id: number; name: string; projectId: number | null }, skill: {
   name: string;
   description: string;
   requiresApproval: boolean;
@@ -813,7 +829,7 @@ async function createApprovalForSkill(agent: { id: number; projectId: number | n
   installMethod: string;
 }) {
   if (!agent.projectId) return null;
-  const title = `Equip ${skill.name} on ${agent.id}`;
+  const title = `Equip ${skill.name} on ${agent.name}`;
   const existing = await db.select().from(approvalsTable).where(eq(approvalsTable.agentId, agent.id));
   const pending = existing.find((approval) => approval.status === "pending" && approval.title === title);
   if (pending) return pending;

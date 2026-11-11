@@ -509,13 +509,15 @@ export interface AgentUpdate {
   /** @minLength 1 */
   role?: string;
   status?: AgentUpdateStatus;
-  projectId?: number;
+  /** @nullable */
+  projectId?: number | null;
   currentTask?: string;
   room?: string;
   businessIdea?: string;
   phase?: string;
   nextMove?: string;
-  runtimeConnectionId?: number;
+  /** @nullable */
+  runtimeConnectionId?: number | null;
   runtime?: string;
   /** @nullable */
   instructions?: string | null;

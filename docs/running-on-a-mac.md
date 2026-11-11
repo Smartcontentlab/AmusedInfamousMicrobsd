@@ -117,7 +117,7 @@ cp .env.example .env
 Generate a session secret and write the database URL in one go:
 
 ```bash
-printf '\nDATABASE_URL=postgresql://%s@localhost:5432/mission_control\nSESSION_SECRET=%s\nPORT=5000\nSEED_DEMO_DATA=false\n' "$(whoami)" "$(openssl rand -base64 48 | tr -d '\n/+=')" >> .env
+printf '\nDATABASE_URL=postgresql://%s@localhost:5432/mission_control\nSESSION_SECRET=%s\nPORT=5000\n' "$(whoami)" "$(openssl rand -base64 48 | tr -d '\n/+=')" >> .env
 ```
 
 Homebrew's Postgres uses your macOS username with no password, which is why the
@@ -138,10 +138,6 @@ grep -E 'NVIDIA_API_KEY|TAVILY_API_KEY' .env
 
 Delete any duplicate `DATABASE_URL`, `SESSION_SECRET` or `PORT` lines the copy
 left behind — the last one in the file wins, and the appended ones are correct.
-
-Leave `SEED_DEMO_DATA=false`. Turning it on plants demo projects, demo staff and
-invented revenue, which is exactly what you do not want on the machine you are
-using to judge whether something real works.
 
 ## Step 7 — Create the tables
 
@@ -171,13 +167,27 @@ pnpm --filter @workspace/mission-control run dev
 
 Open <http://localhost:5173>.
 
-It will look empty — no projects, no staff. That is correct with
-`SEED_DEMO_DATA=false`. You are starting from nothing on purpose.
+It will look empty — no projects, no staff. That is correct: the app never
+creates demo projects, staff, revenue or evidence. You are starting from nothing
+on purpose.
 
 ## Step 9 — Load the skill library
 
-The Skills page starts with only a handful of bootstrap entries. Open
-<http://localhost:5173/skills> and press **Refresh** to pull the full catalog.
+The Skills page starts empty. Open <http://localhost:5173/skills> and press
+**Refresh** to pull the full catalog.
+
+### Clearing demo rows left by older versions
+
+Older versions could plant demo projects, staff (NOVA, MICA, ORBIT), approvals and
+revenue evidence. The app no longer creates any of that. To remove what an old
+database still holds, preview first, then apply:
+
+```bash
+pnpm --filter @workspace/scripts run purge-demo-data
+pnpm --filter @workspace/scripts run purge-demo-data -- --apply
+```
+
+The first command only lists rows. Anything you added yourself is left alone.
 
 ## Step 10 — Prove the wiring before touching your real agents
 

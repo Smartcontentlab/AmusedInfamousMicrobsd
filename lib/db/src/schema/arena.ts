@@ -7,7 +7,7 @@ export const arenaTable = pgTable("arena", {
   totalRounds: integer("total_rounds").notNull().default(5),
   status: text("status").notNull().default("ready"),
   secondsRemaining: integer("seconds_remaining").notNull().default(240),
-  winConditionCents: integer("win_condition_cents").notNull().default(50000),
+  winConditionCents: integer("win_condition_cents").notNull().default(10000),
   winnerAgentId: integer("winner_agent_id"),
 });
 

@@ -768,11 +768,11 @@ export interface ArenaScore {
   agentName: string;
   score: number;
   incomeCents: number;
-  businessIdea?: string;
+  businessIdea?: string | null;
   room?: string;
   computerStatus?: string;
   phase?: string;
-  nextMove?: string;
+  nextMove?: string | null;
   progressPercent?: number;
   scaleRevenueCents?: number;
   assignedSkills?: string[];
@@ -932,10 +932,10 @@ export type StaffMember = Agent & {
 
 export interface Dashboard {
   monthlyIncomeCents: number;
-  runwayDays: number;
-  velocityPercent: number;
+  runwayDays: number | null;
+  velocityPercent: number | null;
   activeAgentCount: number;
-  recommendation: string;
+  recommendation: string | null;
   recentActivity: string[];
 }
 

@@ -316,3 +316,15 @@ does not match the port it is on. The dashboard proxies `/api` to that port.
 
 **Weather widget shows `—`** — the browser denied location access, or it fell back and the
 network request failed. Harmless; nothing else depends on it.
+
+## Removing old demo data
+Older versions could plant demo projects, staff (NOVA, MICA, ORBIT), approvals and
+revenue evidence. The app no longer creates any of that. To remove what an old
+database still holds, preview first, then apply:
+
+```bash
+pnpm --filter @workspace/scripts run purge-demo-data
+pnpm --filter @workspace/scripts run purge-demo-data -- --apply
+```
+
+The first command only lists rows. Anything you added yourself is left alone.

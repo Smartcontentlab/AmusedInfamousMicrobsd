@@ -2081,6 +2081,7 @@ components:
           type: number
         businessIdea:
           type: string
+          nullable: true
         room:
           type: string
         computerStatus:
@@ -2089,6 +2090,7 @@ components:
           type: string
         nextMove:
           type: string
+          nullable: true
         progressPercent:
           type: number
         scaleRevenueCents:
@@ -2307,12 +2309,15 @@ components:
           type: number
         runwayDays:
           type: number
+          nullable: true
         velocityPercent:
           type: number
+          nullable: true
         activeAgentCount:
           type: number
         recommendation:
           type: string
+          nullable: true
         recentActivity:
           type: array
           items:

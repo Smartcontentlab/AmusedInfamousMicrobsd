@@ -22,10 +22,10 @@ export const HealthCheckResponse = zod.object({
  */
 export const GetDashboardResponse = zod.object({
   "monthlyIncomeCents": zod.number(),
-  "runwayDays": zod.number(),
-  "velocityPercent": zod.number(),
+  "runwayDays": zod.number().nullable(),
+  "velocityPercent": zod.number().nullable(),
   "activeAgentCount": zod.number(),
-  "recommendation": zod.string(),
+  "recommendation": zod.string().nullable(),
   "recentActivity": zod.array(zod.string())
 })
 
@@ -565,11 +565,11 @@ export const GetArenaResponse = zod.object({
   "agentName": zod.string(),
   "score": zod.number(),
   "incomeCents": zod.number(),
-  "businessIdea": zod.string().optional(),
+  "businessIdea": zod.string().nullish(),
   "room": zod.string().optional(),
   "computerStatus": zod.string().optional(),
   "phase": zod.string().optional(),
-  "nextMove": zod.string().optional(),
+  "nextMove": zod.string().nullish(),
   "progressPercent": zod.number().optional(),
   "scaleRevenueCents": zod.number().optional(),
   "assignedSkills": zod.array(zod.string()).optional(),
@@ -613,11 +613,11 @@ export const AdvanceArenaResponse = zod.object({
   "agentName": zod.string(),
   "score": zod.number(),
   "incomeCents": zod.number(),
-  "businessIdea": zod.string().optional(),
+  "businessIdea": zod.string().nullish(),
   "room": zod.string().optional(),
   "computerStatus": zod.string().optional(),
   "phase": zod.string().optional(),
-  "nextMove": zod.string().optional(),
+  "nextMove": zod.string().nullish(),
   "progressPercent": zod.number().optional(),
   "scaleRevenueCents": zod.number().optional(),
   "assignedSkills": zod.array(zod.string()).optional(),

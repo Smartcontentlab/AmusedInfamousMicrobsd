@@ -8,10 +8,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "mock-runtime": "tsx ./src/mock-runtime.ts",
     "verify-runtime": "tsx ./src/verify-runtime.ts",
-    "mock-openclaw": "tsx ./src/mock-openclaw.ts"
+    "mock-openclaw": "tsx ./src/mock-openclaw.ts",
+    "purge-demo-data": "tsx ./src/purge-demo-data.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "tsx": "catalog:"
+    "tsx": "catalog:",
+    "@types/pg": "^8.20.0"
+  },
+  "dependencies": {
+    "pg": "^8.22.0"
   }
 }

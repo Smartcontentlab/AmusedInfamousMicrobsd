@@ -36,36 +36,6 @@ export const APPROVED_CATALOG_SOURCES: CatalogSource[] = [
   },
 ];
 
-// Shown before the first catalog refresh so the library is never empty.
-export const BOOTSTRAP_CATALOG: ImportedCatalogEntry[] = [
-  {
-    externalId: "voltagent:anthropics/skill-creator",
-    name: "Skill Creator",
-    description: "Guide for creating effective skills for AI coding agents.",
-    category: "Core",
-    sourceKind: "catalog",
-    sourceName: "Awesome Agent Skills",
-    sourceUrl: "https://github.com/VoltAgent/awesome-agent-skills",
-    compatibleRuntimes: ["hermes", "openclaw"],
-    installMethod: "skills.install",
-    requiresApproval: false,
-    sideEffectRisk: "low",
-  },
-  {
-    externalId: "skilldb:bootstrap/research",
-    name: "Research Briefing",
-    description: "Turns a question into a sourced, decision-ready brief with explicit uncertainty.",
-    category: "Research",
-    sourceKind: "catalog",
-    sourceName: "SkillDB",
-    sourceUrl: "https://skilldb.dev",
-    compatibleRuntimes: ["hermes", "openclaw"],
-    installMethod: "skills.install",
-    requiresApproval: false,
-    sideEffectRisk: "low",
-  },
-];
-
 const USER_AGENT = "mission-control-catalog-importer";
 const REQUEST_TIMEOUT_MS = 20_000;
 const SKILLDB_PAGE_SIZE = 50;

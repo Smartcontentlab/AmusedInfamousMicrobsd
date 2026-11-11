@@ -67,338 +67,53 @@ import {
   runtimeConnectionsTable,
   missionItemsTable,
 } from "@workspace/db";
-import { BOOTSTRAP_CATALOG, APPROVED_CATALOG_SOURCES, importApprovedCatalogs, runtimeSupportsSkillInstall } from "../lib/skill-catalog";
+import { APPROVED_CATALOG_SOURCES, importApprovedCatalogs, runtimeSupportsSkillInstall } from "../lib/skill-catalog";
 import { adapterError, installRuntimeSkill } from "../lib/runtime-adapters";
+import { stripeConfigured } from "../lib/stripe-revenue";
 import { findSeason0Tool, getAgentToolAccess } from "../lib/tool-unlocks";
 
 const router: IRouter = Router();
 
+/** The Arena goal: the first $100 of verified revenue. */
+const ARENA_WIN_CONDITION_CENTS = 10000;
+
 let seedPromise: Promise<void> | undefined;
-let featureSeedPromise: Promise<void> | undefined;
 
 /**
- * Demo projects, staff and revenue figures are invented. They are useful for looking
- * around an empty install and actively misleading anywhere you are judging whether
- * something real works, so they are opt-in.
+ * The arena is a singleton row several routes read, so it has to exist. It holds only
+ * the rules of the game (rounds, win condition), never results. Nothing else is seeded:
+ * projects, staff, approvals, evidence and skills all come from the owner or from real
+ * imports.
  */
-function demoDataEnabled(): boolean {
-  return /^(1|true|yes)$/i.test(process.env.SEED_DEMO_DATA ?? "");
-}
-
-/** The arena is a singleton row several routes read, so it exists with or without demo data. */
 async function ensureArenaRow(): Promise<void> {
-  const [arena] = await db.select({ id: arenaTable.id }).from(arenaTable).limit(1);
-  if (arena) return;
-  await db.insert(arenaTable).values({
-    round: 1,
-    totalRounds: 5,
-    status: "ready",
-    secondsRemaining: 240,
-    winConditionCents: 10000,
-  });
+  const [arena] = await db.select().from(arenaTable).limit(1);
+  if (!arena) {
+    await db.insert(arenaTable).values({
+      round: 1,
+      totalRounds: 5,
+      status: "ready",
+      secondsRemaining: 240,
+      winConditionCents: ARENA_WIN_CONDITION_CENTS,
+    });
+    return;
+  }
+  // Rows created while the schema default was 50000 disagree with the $100 goal the
+  // show is built around. The column is the single source of truth from here on.
+  if (arena.winConditionCents === 50000) {
+    await db.update(arenaTable).set({ winConditionCents: ARENA_WIN_CONDITION_CENTS }).where(eq(arenaTable.id, arena.id));
+  }
 }
 
 export async function ensureSeeded(): Promise<void> {
   if (!seedPromise) {
-    seedPromise = (async () => {
-      await ensureArenaRow();
-      if (!demoDataEnabled()) return;
-      const existing = await db.select({ id: projectsTable.id }).from(projectsTable).limit(1);
-      if (existing.length > 0) return;
-
-      const projects = await db
-        .insert(projectsTable)
-        .values([
-          {
-            name: "Lumen Invite Flow",
-            description: "Creator referral flow preparing for a controlled launch.",
-            status: "building",
-            incomeCents: 328000,
-          },
-          {
-            name: "Kite Payout Audit",
-            description: "Automated payout reconciliation for creator businesses.",
-            status: "review",
-            incomeCents: 187000,
-          },
-          {
-            name: "Relay Webhooks",
-            description: "Reliable delivery and observability for event workflows.",
-            status: "live",
-            incomeCents: 87000,
-          },
-        ])
-        .returning();
-
-      const lumen = projects.find((project) => project.name === "Lumen Invite Flow");
-      const kite = projects.find((project) => project.name === "Kite Payout Audit");
-      const relay = projects.find((project) => project.name === "Relay Webhooks");
-
-      if (!lumen || !kite || !relay) return;
-
-      const agents = await db
-        .insert(agentsTable)
-        .values([
-          {
-            name: "NOVA",
-            role: "Lead orchestration",
-            provider: "OpenClaw",
-            status: "working",
-            projectId: lumen.id,
-            skillCount: 7,
-            currentTask: "Ship the invite flow",
-            room: "Launch Lab",
-            computerStatus: "deploying",
-            businessIdea: "A referral engine for creator communities",
-            phase: "first_100",
-            nextMove: "Publish the first invite landing page",
-            arenaScore: 82,
-            arenaIncomeCents: 42000,
-            scaleRevenueCents: 8400,
-          },
-          {
-            name: "MICA",
-            role: "Revenue systems",
-            provider: "Hermes",
-            status: "reviewing",
-            projectId: kite.id,
-            skillCount: 5,
-            currentTask: "Audit creator payouts",
-            room: "Revenue Suite",
-            computerStatus: "researching",
-            businessIdea: "Automated payout audits for independent creators",
-            phase: "first_100",
-            nextMove: "Ask for approval to contact five design partners",
-            arenaScore: 74,
-            arenaIncomeCents: 31000,
-            scaleRevenueCents: 5200,
-          },
-          {
-            name: "ORBIT",
-            role: "Infrastructure",
-            provider: "OpenClaw",
-            status: "working",
-            projectId: relay.id,
-            skillCount: 6,
-            currentTask: "Release webhook retries",
-            room: "Signal Den",
-            computerStatus: "building",
-            businessIdea: "Webhook reliability reports for small SaaS teams",
-            phase: "idea",
-            nextMove: "Ship a clickable demo before the next round",
-            arenaScore: 61,
-            arenaIncomeCents: 18000,
-            scaleRevenueCents: 1800,
-          },
-        ])
-        .returning();
-
-      const nova = agents.find((agent) => agent.name === "NOVA");
-      const mica = agents.find((agent) => agent.name === "MICA");
-      const orbit = agents.find((agent) => agent.name === "ORBIT");
-
-      await db.insert(tasksTable).values([
-        { title: "Map onboarding friction", projectId: lumen.id, agentId: nova?.id, priority: "high" },
-        { title: "Ship the invite flow", projectId: lumen.id, agentId: nova?.id, priority: "high", status: "active" },
-        { title: "Audit creator payouts", projectId: kite.id, agentId: mica?.id, priority: "high", status: "review" },
-        { title: "Release webhook retries", projectId: relay.id, agentId: orbit?.id, priority: "medium", status: "active" },
-      ]);
-
-      await db.insert(skillsTable).values([
-        {
-          name: "Revenue Analyst",
-          description: "Turns messy billing data into a clear opportunity list.",
-          category: "Revenue",
-          enabled: true,
-        },
-        {
-          name: "Product QA",
-          description: "Finds friction, edge cases, and launch blockers before users do.",
-          category: "Quality",
-          enabled: true,
-        },
-        {
-          name: "Webhook Surgeon",
-          description: "Diagnoses event delivery failures and proposes resilient fixes.",
-          category: "Infrastructure",
-          enabled: true,
-        },
-      ]);
-
-      await db.update(arenaTable).set({ round: 3 });
-    })();
+    // A rejected attempt must not be cached, or one database blip fails every route
+    // until the process restarts.
+    seedPromise = ensureArenaRow().catch((error) => {
+      seedPromise = undefined;
+      throw error;
+    });
   }
-
   await seedPromise;
-  await ensureFeatureRecords();
-}
-
-async function ensureFeatureRecords(): Promise<void> {
-  if (!featureSeedPromise) {
-    featureSeedPromise = (async () => {
-      const [agents, _skills, projects, capabilities, approvals] = await Promise.all([
-        db.select().from(agentsTable).orderBy(asc(agentsTable.id)),
-        db.select().from(skillsTable).orderBy(asc(skillsTable.id)),
-        db.select().from(projectsTable).orderBy(asc(projectsTable.id)),
-        db.select({ id: agentSkillsTable.id }).from(agentSkillsTable).limit(1),
-        db.select({ id: approvalsTable.id, status: approvalsTable.status }).from(approvalsTable),
-      ]);
-
-      for (const entry of BOOTSTRAP_CATALOG) {
-        const [existing] = await db.select({ id: skillsTable.id }).from(skillsTable).where(eq(skillsTable.externalId, entry.externalId));
-        if (!existing) {
-          await db.insert(skillsTable).values({
-            ...entry,
-            importState: "imported",
-            importedAt: new Date(),
-          });
-        }
-      }
-
-      const catalogSkills = await db.select().from(skillsTable).orderBy(asc(skillsTable.id));
-
-      // Everything below invents business ideas, revenue and evidence for the demo
-      // staff. The real skill catalog above is imported either way.
-      if (!demoDataEnabled()) return;
-
-      const worldDefaults = {
-        NOVA: {
-          provider: "OpenClaw",
-          room: "Launch Lab",
-          computerStatus: "deploying",
-          businessIdea: "A referral engine for creator communities",
-          phase: "first_100",
-          nextMove: "Publish the first invite landing page",
-          scaleRevenueCents: 8400,
-        },
-        MICA: {
-          provider: "Hermes",
-          room: "Revenue Suite",
-          computerStatus: "researching",
-          businessIdea: "Automated payout audits for independent creators",
-          phase: "first_100",
-          nextMove: "Ask for approval to contact five design partners",
-          scaleRevenueCents: 5200,
-        },
-        ORBIT: {
-          provider: "OpenClaw",
-          room: "Signal Den",
-          computerStatus: "building",
-          businessIdea: "Webhook reliability reports for small SaaS teams",
-          phase: "idea",
-          nextMove: "Ship a clickable demo before the next round",
-          scaleRevenueCents: 1800,
-        },
-      } as const;
-
-      await Promise.all(
-        agents
-          .filter((agent) => agent.businessIdea === null && agent.room === "studio")
-          .map((agent) => {
-            const defaults = worldDefaults[agent.name as keyof typeof worldDefaults];
-            return defaults
-              ? db.update(agentsTable).set(defaults).where(eq(agentsTable.id, agent.id))
-              : Promise.resolve();
-          }),
-      );
-
-      const [arena] = await db.select().from(arenaTable).limit(1);
-      if (arena?.winConditionCents === 50000) {
-        await db
-          .update(arenaTable)
-          .set({ winConditionCents: 10000 })
-          .where(eq(arenaTable.id, arena.id));
-      }
-
-      const existingEvidence = await db.select({ id: arenaEvidenceTable.id }).from(arenaEvidenceTable).limit(1);
-      if (existingEvidence.length === 0 && agents.length > 0) {
-        await db.insert(arenaEvidenceTable).values(
-          agents.flatMap((agent, index) => [
-            {
-              agentId: agent.id,
-              round: Math.max(1, arena?.round ?? 1),
-              metric: "website_exists",
-              value: 1,
-              source: "Game Master demo telemetry",
-              note: "Seeded baseline evidence for the local Arena demo.",
-            },
-            {
-              agentId: agent.id,
-              round: Math.max(1, arena?.round ?? 1),
-              metric: "website_works",
-              value: Math.max(0, Math.min(5, 5 - index)),
-              source: "Game Master demo telemetry",
-              note: "Seeded baseline smoke-test result for the local Arena demo.",
-            },
-            {
-              agentId: agent.id,
-              round: Math.max(1, arena?.round ?? 1),
-              metric: "revenue_cents",
-              value: Math.max(0, agent.arenaIncomeCents),
-              source: "Game Master demo telemetry",
-              note: "Seeded baseline revenue result; replace with a connected provider receipt.",
-            },
-          ]),
-        );
-      }
-
-      if (capabilities.length === 0 && agents.length > 0 && catalogSkills.length > 0) {
-        await db.insert(agentSkillsTable).values(
-          agents.flatMap((agent, agentIndex) =>
-            catalogSkills.slice(0, Math.min(2 + agentIndex, catalogSkills.length)).map((skill) => ({
-              agentId: agent.id,
-              skillId: skill.id,
-            })),
-          ),
-        );
-        await Promise.all(
-          agents.map((agent, index) =>
-            db
-              .update(agentsTable)
-              .set({ skillCount: Math.min(2 + index, catalogSkills.length) })
-              .where(eq(agentsTable.id, agent.id)),
-          ),
-        );
-      }
-
-      if (approvals.length === 0 && agents.length > 0 && projects.length > 0) {
-        const projectForAgent = (agentIndex: number) => projects[agentIndex] ?? projects[0];
-        await db.insert(approvalsTable).values([
-          {
-            projectId: projectForAgent(0).id,
-            agentId: agents[0].id,
-            title: "Publish the Lumen invite landing page",
-            action: "Approve public launch",
-            details: "NOVA has prepared a launch page and email capture flow. Review the public copy before it goes live.",
-            risk: "medium",
-          },
-          {
-            projectId: projectForAgent(1).id,
-            agentId: agents[1] ? agents[1].id : agents[0].id,
-            title: "Contact five payout-audit design partners",
-            action: "Approve outbound outreach",
-            details: "MICA wants to send a first research message to five prospective creator businesses.",
-            risk: "high",
-          },
-          {
-            projectId: projectForAgent(2).id,
-            agentId: agents[2] ? agents[2].id : agents[0].id,
-            title: "Choose the first pricing experiment",
-            action: "Select a price test",
-            details: "ORBIT needs a human decision between a free trial and a paid pilot for the webhook report.",
-            risk: "low",
-          },
-        ]);
-      }
-
-      await Promise.all(
-        approvals
-          .filter((approval) => approval.status === "needs_review")
-          .map((approval) => db.update(approvalsTable).set({ status: "pending" }).where(eq(approvalsTable.id, approval.id))),
-      );
-    })();
-  }
-  await featureSeedPromise;
 }
 
 type ArenaEvidenceMetric =
@@ -498,18 +213,17 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
   const reviewTask = tasks.find((task) => task.status === "review");
   const data = GetDashboardResponse.parse({
     monthlyIncomeCents,
-    runwayDays: 18.4,
-    velocityPercent: 27,
+    // Neither figure is tracked anywhere yet; null means "not known", not zero.
+    runwayDays: null,
+    velocityPercent: null,
     activeAgentCount,
     recommendation: reviewTask
       ? `Review “${reviewTask.title}” before moving more work into the queue.`
-      : "Choose the next task you want your lead agent to prioritize.",
-    recentActivity: activity.length
-      ? activity.map((item) => {
-          const agent = agents.find((candidate) => candidate.id === item.agentId);
-          return `${agent?.name ?? "SYSTEM"}: ${item.message}`;
-        })
-      : ["No live runtime activity has been recorded yet."],
+      : null,
+    recentActivity: activity.map((item) => {
+      const agent = agents.find((candidate) => candidate.id === item.agentId);
+      return `${agent?.name ?? "SYSTEM"}: ${item.message}`;
+    }),
   });
   res.json(data);
 });
@@ -1058,12 +772,16 @@ router.post("/skills/refresh", async (_req, res): Promise<void> => {
     await db.delete(skillsTable).where(inArray(skillsTable.id, retiredIds));
   }
 
+  // A source that failed (or only partly answered) tells us nothing about which of its
+  // entries still exist, so its rows are left exactly as they were. Only a source that
+  // answered cleanly while another one failed can mark a missing entry unavailable.
   for (const skill of existingCatalog) {
     const belongsToRefreshSource = APPROVED_CATALOG_SOURCES.some((source) => skill.sourceName === source.name);
-    if (belongsToRefreshSource && skill.externalId && !incomingIds.has(skill.externalId) && result.errors.length > 0) {
+    const sourceFailed = result.errors.some((error) => error.startsWith(`${skill.sourceName}:`));
+    if (belongsToRefreshSource && skill.externalId && !incomingIds.has(skill.externalId) && result.errors.length > 0 && !sourceFailed) {
       await db.update(skillsTable).set({
         importState: "unavailable",
-        importError: result.errors.find((error) => error.startsWith(`${skill.sourceName}:`)) ?? "The approved repository did not return this entry.",
+        importError: "The approved repository did not return this entry.",
       }).where(eq(skillsTable.id, skill.id));
     }
   }
@@ -1289,12 +1007,14 @@ async function getArenaState() {
       agentName: agent.name,
       score: scorecards.get(agent.id)?.score ?? 0,
       incomeCents: scorecards.get(agent.id)?.revenueCents ?? 0,
-      businessIdea: agent.businessIdea ?? "A fresh business idea is being shaped.",
+      businessIdea: agent.businessIdea,
       room: agent.room,
       computerStatus: agent.computerStatus,
       phase: agent.phase,
-      nextMove: agent.nextMove ?? "Choose the next experiment.",
-       progressPercent: Math.min(100, Math.round(((scorecards.get(agent.id)?.revenueCents ?? 0) / 10000) * 100)),
+      nextMove: agent.nextMove,
+      progressPercent: arena && arena.winConditionCents > 0
+        ? Math.min(100, Math.round(((scorecards.get(agent.id)?.revenueCents ?? 0) / arena.winConditionCents) * 100))
+        : 0,
       scaleRevenueCents: agent.scaleRevenueCents,
     })),
   });
@@ -1313,6 +1033,10 @@ router.get("/arena/evidence", async (_req, res): Promise<void> => {
     .limit(100);
   res.json(ListArenaEvidenceResponse.parse({ evidence }));
 });
+
+/** Postgres integer columns top out here; anything larger would 500 on insert. */
+const MAX_EVIDENCE_VALUE = 2147483647;
+const MANUAL_EVIDENCE_VERIFIER = "Manual entry (not Stripe-verified)";
 
 router.post("/arena/evidence", async (req, res): Promise<void> => {
   const parsed = CreateArenaEvidenceBody.safeParse(req.body);
@@ -1333,9 +1057,19 @@ router.post("/arena/evidence", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Contestant or Arena not found." });
     return;
   }
-  if (!source || !Number.isInteger(parsed.data.value) || parsed.data.value < 0 || parsed.data.round < 1 || parsed.data.round > arena.totalRounds) {
-    res.status(400).json({ error: `Use a non-negative integer result and a round from 1 to ${arena.totalRounds}.` });
+  if (!source || !Number.isInteger(parsed.data.value) || parsed.data.value < 0 || parsed.data.value > MAX_EVIDENCE_VALUE || parsed.data.round < 1 || parsed.data.round > arena.totalRounds) {
+    res.status(400).json({ error: `Use an integer result from 0 to ${MAX_EVIDENCE_VALUE} and a round from 1 to ${arena.totalRounds}.` });
     return;
+  }
+  if (parsed.data.metric === "revenue_cents") {
+    if (stripeConfigured()) {
+      res.status(409).json({ error: "Revenue is read from Stripe. Manual revenue entries are not accepted while a Stripe key is configured." });
+      return;
+    }
+    if (!evidenceRef) {
+      res.status(400).json({ error: "A manual revenue entry needs an evidence reference, such as a receipt or payment id." });
+      return;
+    }
   }
   if (parsed.data.metric === "website_exists" && parsed.data.value > 1) {
     res.status(400).json({ error: "Website exists must be 0 or 1." });
@@ -1360,6 +1094,7 @@ router.post("/arena/evidence", async (req, res): Promise<void> => {
       source: source.slice(0, 160),
       evidenceRef: evidenceRef?.slice(0, 500) ?? null,
       note: note?.slice(0, 500) ?? null,
+      verifiedBy: MANUAL_EVIDENCE_VERIFIER,
     })
     .returning();
   const scorecard = (await getArenaScorecards([agent.id])).get(agent.id) ?? {
@@ -1375,15 +1110,12 @@ router.post("/arena/evidence", async (req, res): Promise<void> => {
       arenaScore: scorecard.score,
       arenaIncomeCents: scorecard.revenueCents,
       phase: scorecard.revenueCents >= arena.winConditionCents ? "scale" : "first_100",
-      nextMove: scorecard.revenueCents >= arena.winConditionCents
-        ? "Double down on the channel that reached the first $100."
-        : "Run the next small experiment toward the first $100.",
     })
     .where(eq(agentsTable.id, agent.id));
   await db.insert(activityTable).values({
     agentId: agent.id,
-    kind: "arena_evidence_verified",
-    message: `Game Master verified ${arenaEvidenceLabels[parsed.data.metric as ArenaEvidenceMetric]} for ${agent.name} via ${source.slice(0, 80)}. Score is now ${scorecard.score}.`,
+    kind: "arena_evidence_recorded",
+    message: `Manual entry recorded for ${arenaEvidenceLabels[parsed.data.metric as ArenaEvidenceMetric]} for ${agent.name} via ${source.slice(0, 80)} (not Stripe-verified). Score is now ${scorecard.score}.`,
   });
   res.status(201).json(CreateArenaEvidenceResponse.parse({ evidence, verifiedScore: scorecard.score }));
 });
@@ -1401,11 +1133,32 @@ router.post("/arena/advance", async (req, res): Promise<void> => {
     return;
   }
 
-  if (parsed.data.action === "reset") {
-    await db.update(arenaTable).set({ round: 1, status: "ready", secondsRemaining: 240 }).where(eq(arenaTable.id, arena.id));
-  } else if (parsed.data.action === "start") {
+  const action = parsed.data.action;
+  if (action !== "reset") {
+    const allowedFrom: Record<string, string[]> = {
+      start: ["ready", "paused"],
+      pause: ["live"],
+      advance: ["live"],
+    };
+    const allowed = allowedFrom[action] ?? [];
+    if (!allowed.includes(arena.status)) {
+      res.status(409).json({
+        error: arena.status === "complete"
+          ? "The show is complete. Reset it to run again."
+          : `Cannot ${action} while the show is ${arena.status}.`,
+      });
+      return;
+    }
+  }
+
+  if (action === "reset") {
+    await db.update(arenaTable).set({ round: 1, status: "ready", secondsRemaining: 240, winnerAgentId: null }).where(eq(arenaTable.id, arena.id));
+    // Evidence rows stay as the record of what happened; only the cached per-agent
+    // totals that the Arena wrote are cleared.
+    await db.update(agentsTable).set({ arenaScore: 0, arenaIncomeCents: 0 });
+  } else if (action === "start") {
     await db.update(arenaTable).set({ status: "live" }).where(eq(arenaTable.id, arena.id));
-  } else if (parsed.data.action === "pause") {
+  } else if (action === "pause") {
     await db.update(arenaTable).set({ status: "paused" }).where(eq(arenaTable.id, arena.id));
   } else {
     const isFinalRound = arena.round >= arena.totalRounds;
@@ -1417,22 +1170,16 @@ router.post("/arena/advance", async (req, res): Promise<void> => {
         secondsRemaining: isFinalRound ? 0 : 240,
       })
       .where(eq(arenaTable.id, arena.id));
+    // Only the numbers that are derived from evidence are recomputed. Phase, next move
+    // and computer status belong to the agents and the owner, not to the advance button.
     const agents = await db.select().from(agentsTable);
     const scorecards = await getArenaScorecards(agents.map((agent) => agent.id));
     await Promise.all(
-      agents.map((agent, index) => {
+      agents.map((agent) => {
         const scorecard = scorecards.get(agent.id) ?? { score: 0, revenueCents: 0 };
         return db
           .update(agentsTable)
-          .set({
-            arenaScore: scorecard.score,
-            arenaIncomeCents: scorecard.revenueCents,
-            phase: scorecard.revenueCents >= arena.winConditionCents ? "scale" : "first_100",
-            computerStatus: index === 0 ? "selling" : "building",
-            nextMove: scorecard.revenueCents >= arena.winConditionCents
-              ? "Double down on the channel that reached the first $100."
-              : "Run the next small experiment toward the first $100.",
-          })
+          .set({ arenaScore: scorecard.score, arenaIncomeCents: scorecard.revenueCents })
           .where(eq(agentsTable.id, agent.id));
       }),
     );

@@ -8,9 +8,9 @@
 
 export interface Dashboard {
   monthlyIncomeCents: number;
-  runwayDays: number;
-  velocityPercent: number;
+  runwayDays: number | null;
+  velocityPercent: number | null;
   activeAgentCount: number;
-  recommendation: string;
+  recommendation: string | null;
   recentActivity: string[];
 }

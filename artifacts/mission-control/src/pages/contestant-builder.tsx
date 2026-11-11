@@ -80,20 +80,25 @@ export function ContestantBuilder() {
   const [traits, setTraits] = useState<AgentTraits | null>(null);
   const [personality, setPersonality] = useState("");
   const [catchphrase, setCatchphrase] = useState("");
+  const [loadedFor, setLoadedFor] = useState<number | null>(null);
 
-  // Load the saved profile once, then let the operator edit a local draft.
+  // Load the saved profile once per contestant id, then let the operator edit a local draft.
+  // Changing the id in the route discards the previous contestant's draft.
   useEffect(() => {
-    if (!contestant || traits) return;
+    if (!contestant || loadedFor === agentId) return;
     setTraits(contestant.traits);
     setPersonality(contestant.personality ?? "");
     setCatchphrase(contestant.catchphrase ?? "");
-  }, [contestant, traits]);
+    setLoadedFor(agentId);
+  }, [contestant, agentId, loadedFor]);
 
   const equipped = capabilities.data ?? [];
   const archetype = findArchetype(contestant?.role);
-  const spent = traits ? traitTotal(traits) : 0;
+  const draftReady = loadedFor === agentId && !!traits;
+  const spent = traits && draftReady ? traitTotal(traits) : 0;
   const dirty =
     !!contestant &&
+    draftReady &&
     !!traits &&
     (JSON.stringify(traits) !== JSON.stringify(contestant.traits) ||
       personality !== (contestant.personality ?? "") ||
@@ -105,7 +110,15 @@ export function ContestantBuilder() {
     return archetype.skills.filter((wanted) => names.some((name) => name.includes(wanted.split(" ")[0]))).length;
   }, [archetype, equipped]);
 
-  if (race.isLoading) return <p className="py-8 font-mono text-xs uppercase text-muted-foreground">Loading contestant...</p>;
+  if (race.isLoading || (contestant && !draftReady)) return <p className="py-8 font-mono text-xs uppercase text-muted-foreground">Loading contestant...</p>;
+  if (!race.data)
+    return (
+      <div className="py-8">
+        <p className="font-mono text-xs uppercase text-destructive">The contestant could not be loaded{race.error instanceof Error ? `: ${race.error.message}` : "."}</p>
+        <button onClick={() => race.refetch()} className="mt-2 mr-3 font-mono text-xs uppercase underline">Retry</button>
+        <Link href="/arena" className="mt-2 inline-block font-mono text-xs uppercase underline">Back to the game show</Link>
+      </div>
+    );
   if (!contestant || !traits)
     return (
       <div className="py-8">

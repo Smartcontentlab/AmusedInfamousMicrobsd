@@ -31,6 +31,15 @@ export function ModelPicker({
   // A model can also vanish from the catalog entirely once NVIDIA retires it.
   const currentIsDead = !!model && !!catalog.data && (!current || current.status === "unavailable");
 
+  if (catalog.isError && !catalog.data) {
+    return (
+      <p data-testid="models-error" className="flex items-start gap-1 font-mono text-[10px] text-destructive">
+        <AlertTriangle size={11} className="mt-0.5 shrink-0" /> The model list could not be loaded{catalog.error instanceof Error ? `: ${catalog.error.message}` : "."}{" "}
+        <button type="button" onClick={() => catalog.refetch()} className="font-bold underline">Retry</button>
+      </p>
+    );
+  }
+
   if (catalog.data && !catalog.data.configured) {
     return (
       <p className="flex items-start gap-1 font-mono text-[10px] text-muted-foreground">
@@ -48,7 +57,7 @@ export function ModelPicker({
         aria-label="Model for this agent"
         className="w-full rounded-lg border border-border bg-background px-2 py-1.5 font-mono text-[11px] outline-none focus:ring-2 focus:ring-ring/30 disabled:opacity-50"
       >
-        <option value="">{available.length === 0 ? "Finding models that respond..." : "Use project default"}</option>
+        <option value="">{available.length === 0 ? "Finding models that respond..." : "No model (cannot play)"}</option>
         {currentIsDead && model && <option value={model}>{model} (not responding)</option>}
         {available.map((option) => (
           <option key={option.id} value={option.id}>
@@ -79,6 +88,7 @@ export function ModelPicker({
           <AlertTriangle size={11} className="mt-0.5 shrink-0" /> This agent's model stopped responding. Pick another.
         </p>
       )}
+      {setModel.isError && <p className="mt-1 font-mono text-[10px] text-destructive">{(setModel.error as { data?: { error?: string } } | null)?.data?.error ?? "The model could not be changed."}</p>}
       {catalog.data?.message && !catalog.data.checking && <p className="mt-1 font-mono text-[10px] text-destructive">{catalog.data.message}</p>}
     </div>
   );

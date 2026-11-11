@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CSSProperties, ElementType } from "react";
 import { AlertTriangle, Coffee, DollarSign, Hammer, Lightbulb, Mic, Moon, Search, UserPlus } from "lucide-react";
-import { getGetArenaRaceQueryKey, useCreateAgent, useGetArenaRace } from "@workspace/api-client-react";
+import { getGetArenaLevelsQueryKey, getGetArenaQueryKey, getGetArenaRaceQueryKey, useCreateAgent, useGetArenaRace } from "@workspace/api-client-react";
 import type { RaceContestant } from "@workspace/api-client-react";
 import { PixelPerson } from "./pixel-person";
 
@@ -177,8 +177,12 @@ function MoveIn() {
   const queryClient = useQueryClient();
   const createAgent = useCreateAgent({
     mutation: {
-      onSuccess: (agent) => {
-        queryClient.invalidateQueries({ queryKey: getGetArenaRaceQueryKey() });
+      onSuccess: async (agent) => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: getGetArenaRaceQueryKey() }),
+          queryClient.invalidateQueries({ queryKey: getGetArenaQueryKey() }),
+          queryClient.invalidateQueries({ queryKey: getGetArenaLevelsQueryKey() }),
+        ]);
         navigate(`/arena/contestants/${agent.id}`);
       },
     },
@@ -207,7 +211,7 @@ function MoveIn() {
       >
         <UserPlus size={12} /> Move in
       </button>
-      {createAgent.isError && <span className="font-mono text-[10px] text-destructive">Could not create them.</span>}
+      {createAgent.isError && <span className="font-mono text-[10px] text-destructive">{(createAgent.error as { data?: { error?: string } } | null)?.data?.error ?? "Could not create them."}</span>}
     </form>
   );
 }

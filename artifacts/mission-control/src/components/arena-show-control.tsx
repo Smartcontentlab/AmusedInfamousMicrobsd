@@ -118,6 +118,8 @@ export function ArenaShowControl() {
   // Every turn in one run is inserted together, so they share the exact same timestamp.
   const shown = (turns.data ?? []).filter((turn) => turn.createdAt === latestRun);
   const runError = run.error as { data?: { error?: string } } | null;
+  const latestRunDone = shown.length > 0 && shown.every((turn) => turn.status === "completed");
+  const latestRunPending = shown.some((turn) => turn.status === "running" || turn.status === "queued");
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -129,6 +131,13 @@ export function ArenaShowControl() {
           </span>
         )}
       </header>
+
+      {levels.isError && !levels.data && (
+        <p data-testid="arena-levels-error" className="border-b border-border px-3 py-3 text-xs text-destructive">
+          The levels could not be loaded{levels.error instanceof Error ? `: ${levels.error.message}` : "."}{" "}
+          <button onClick={() => levels.refetch()} className="font-semibold underline">Retry</button>
+        </p>
+      )}
 
       <ol className="grid grid-cols-2 gap-1.5 border-b border-border p-3 sm:grid-cols-5">
         {(levels.data?.levels ?? []).map((entry) => (
@@ -143,7 +152,7 @@ export function ArenaShowControl() {
                 Level {entry.level}
                 {entry.locked && <Lock size={10} />}
                 {entry.running && <Loader2 size={10} className="animate-spin text-primary" />}
-                {!entry.locked && !entry.running && entry.completedTurns > 0 && <CheckCircle2 size={10} className="text-accent-strong" />}
+                {!entry.locked && !entry.running && selected === entry.level && latestRunDone && <CheckCircle2 size={10} className="text-accent-strong" />}
               </span>
               <span className="block text-xs font-semibold leading-tight">{entry.title}</span>
             </button>
@@ -157,7 +166,7 @@ export function ArenaShowControl() {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold">{level.goal}</p>
               <p className="text-xs text-muted-foreground">
-                {level.locked ? level.lockedReason : `Tools this level: ${level.tools.join(", ")}`}
+                {level.locked ? (level.lockedReason ?? "This level is locked.") : level.tools.length > 0 ? `Tools this level: ${level.tools.join(", ")}` : null}
               </p>
             </div>
             <button
@@ -166,13 +175,20 @@ export function ArenaShowControl() {
               className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold uppercase text-primary-foreground shadow-sm disabled:opacity-40"
             >
               {level.running ? <Loader2 size={13} className="animate-spin" /> : level.locked ? <Lock size={13} /> : <Play size={13} />}
-              {level.running ? "Running…" : level.locked ? "Locked" : level.completedTurns > 0 ? "Run again" : "Run level"}
+              {level.running ? "Running…" : level.locked ? "Locked" : shown.length > 0 && !latestRunPending ? (latestRunDone ? "Run again" : "Retry") : "Run level"}
             </button>
           </div>
 
           {run.isError && <p className="text-xs text-destructive">{runError?.data?.error ?? "That level could not start."}</p>}
 
-          {shown.length === 0 ? (
+          {turns.isError && !turns.data ? (
+            <p data-testid="arena-turns-error" className="rounded-lg border border-destructive bg-destructive/10 px-3 py-4 text-center text-xs text-destructive">
+              The turns for this level could not be loaded{turns.error instanceof Error ? `: ${turns.error.message}` : "."}{" "}
+              <button onClick={() => turns.refetch()} className="font-semibold underline">Retry</button>
+            </p>
+          ) : turns.isLoading ? (
+            <p className="px-3 py-6 text-center text-xs text-muted-foreground">Loading turns...</p>
+          ) : shown.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
               {level.locked ? "This level unlocks when its tools are connected." : "Nobody has played this level yet. Run it to hear from the contestants."}
             </p>
